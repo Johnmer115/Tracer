@@ -1,0 +1,422 @@
+/* ═══════════════════════════════════════════════════════
+   SARF Create Form — Stylesheet
+   Scope: Dean_OSA / New Activity
+═══════════════════════════════════════════════════════ */
+
+/* ── Layout ───────────────────────────────────── */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 24px;
+}
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.form-group.full { grid-column: 1 / -1; }
+
+@media (max-width: 640px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: 1; }
+}
+
+/* ── Typography helpers ───────────────────────── */
+.form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+.form-label .req { color: #ef4444; }
+.field-hint {
+    font-size: 12px;
+    color: #64748b;
+    margin: 0 0 6px;
+}
+kbd {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 11px;
+}
+.step-section-title {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 20px;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.td-muted {
+    font-size: 13px;
+    color: #64748b;
+}
+
+/* ── Form Controls ────────────────────────────── */
+.form-control {
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-size: 13.5px;
+    color: #1e293b;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+    font-family: inherit;
+    background: #fff;
+    width: 100%;
+    box-sizing: border-box;
+}
+.form-control:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, .12);
+}
+.form-control.is-invalid {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, .1);
+}
+textarea.form-control { resize: vertical; }
+
+/* ── Step Indicator Buttons ───────────────────── */
+.step-indicators {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+}
+.step-indicator-btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 10px 8px;
+    border: 0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #f1f5f9;
+    color: #64748b;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .2s;
+}
+.step-indicator-btn.active {
+    background: #3b82f6;
+    color: #fff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, .16);
+}
+.step-indicator-btn.completed {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.step-indicators--edit-complete .step-indicator-btn.completed.active {
+    background: #16a34a;
+    color: #fff;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, .16);
+}
+
+/* ── Context Cards ────────────────────────────── */
+.context-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #3b82f6;
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+}
+.context-card-title {
+    font-weight: 700;
+    font-size: 13.5px;
+    color: #1e40af;
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+/* colour variants */
+.context-card--purple { border-left-color: #8b5cf6; }
+.context-card--purple .context-card-title { color: #6d28d9; }
+.context-card--green  { border-left-color: #10b981; }
+.context-card--green  .context-card-title { color: #065f46; }
+.context-card--amber  { border-left-color: #f59e0b; }
+.context-card--amber  .context-card-title { color: #92400e; }
+.context-card--rose   { border-left-color: #f43f5e; }
+.context-card--rose   .context-card-title { color: #9f1239; }
+
+/* ── Radio Groups ─────────────────────────────── */
+.radio-group {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 6px 0;
+}
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13.5px;
+    color: #374151;
+    cursor: pointer;
+}
+.radio-option input[type="radio"] {
+    accent-color: #3b82f6;
+    cursor: pointer;
+}
+
+/* ── Tag Inputs (Dept / Level) ────────────────── */
+.tag-input-wrap {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 8px;
+    background: #fff;
+}
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+    min-height: 10px;
+}
+.tag {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+}
+.tag-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #3b82f6;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+}
+.tag-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.tag-input {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 6px 8px;
+    flex: 1;
+}
+.tag-input:focus {
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
+
+/* ── Level Preset Buttons ─────────────────────── */
+.level-preset-btn {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+}
+.level-preset-btn:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+    color: #1d4ed8;
+}
+.level-preset-btn.active {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    color: #1d4ed8;
+}
+
+/* ── Bulleted Objectives ──────────────────────── */
+.obj-list {
+    list-style: disc;
+    padding-left: 20px;
+    margin: 0 0 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.obj-list li {
+    font-size: 13.5px;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.obj-list li span { flex: 1; }
+.obj-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ef4444;
+    font-size: 13px;
+    padding: 0 2px;
+}
+
+/* ── SARF Code Badge ──────────────────────────── */
+.sarf-code-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    color: #1e40af;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+.sarf-code-display .code-label {
+    font-weight: 500;
+    color: #64748b;
+    font-size: 12px;
+    letter-spacing: 0;
+}
+
+.sarf-code-display--header {
+    padding: 8px 12px;
+    min-height: 38px;
+}
+
+@media (max-width: 640px) {
+    .sarf-code-display--header {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ── Late Submission Warning ──────────────────── */
+.late-warning-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-left: 4px solid #f97316;
+    border-radius: 10px;
+    padding: 14px 18px;
+}
+.late-warning-card > i {
+    color: #f97316;
+    font-size: 18px;
+    margin-top: 2px;
+}
+.late-warning-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #9a3412;
+    margin: 0 0 2px;
+}
+.late-warning-desc {
+    font-size: 12px;
+    color: #7c2d12;
+    margin: 0;
+}
+
+/* ── Attachment Rows ──────────────────────────── */
+.attachment-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: #fff;
+    transition: border-color .15s;
+    flex-wrap: wrap;
+}
+.attachment-row:has(input[type="checkbox"]:checked) {
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+.attachment-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    flex: 1;
+    min-width: 220px;
+}
+.attachment-check input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    accent-color: #3b82f6;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.sarf-badge {
+    background: #e2e8f0;
+    color: #334155;
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    min-width: 36px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.sarf-label {
+    font-size: 13px;
+    color: #475569;
+    font-weight: 500;
+}
+.file-upload-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.file-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: #fff;
+    font-weight: 600;
+    background: #3b82f6;
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background .15s;
+    white-space: nowrap;
+}
+.file-label:hover { background: #2563eb; }
+input[type="file"] { display: none; }
+.file-name-display {
+    font-size: 12px;
+    color: #64748b;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Validation error message ─────────────────── */
+.field-error {
+    font-size: 12px;
+    color: #dc2626;
+    margin-top: 2px;
+    display: none;
+}
+.field-error.visible { display: block; }
+
+/* ── Step navigation buttons area ────────────── */
+.step-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 24px;
+}
+.step-nav.end { justify-content: flex-end; }

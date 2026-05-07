@@ -6,34 +6,45 @@ use Illuminate\Database\Eloquent\Model;
 
 class Activity extends Model
 {
-    //
-      protected $fillable = [
+    protected $fillable = [
         'code',
         'school_year_code',
         'branch_id',
         'level',
         'department',
-        'organization',
-        'type_of_activity',
+
+        // SARF Detail
         'title',
-        'date_of_activity',
-        'time_of_activity',
-        'venue',
-        'participants',
         'description',
         'objectives',
-        'mode_of_conduct',
-        'public_poster',
+        'type_of_activity',
         'event_type',
+        'activity_level',        
+        'participants_profile',  
+        'participants_count',    
+        'date_of_activity',
+        'time_of_activity',
+        'public_poster',
+        'mode_of_conduct',
+        'venue',
+        'venue_type',            
+        'platform',              
+
+        // Budget
         'funds',
         'source',
+        'amount',                
+        'expected_collection',  
         'canteen',
         'procurement',
+        'late_submission_reason',
+
+        // Meta
         'received_by',
         'encoded_by',
         'status',
 
-        // Approval signatories
+        // Approvals (keep these if you still need them)
         'approval_dean',
         'approval_avp_sps',
         'approval_director',
@@ -42,8 +53,6 @@ class Activity extends Model
         'approval_vp_auditor',
         'approval_comptroller',
         'approval_finance',
-
-        // Per-approver remarks
         'remarks_dean',
         'remarks_avp_sps',
         'remarks_director',
@@ -56,10 +65,29 @@ class Activity extends Model
 
     protected $casts = [
         'date_of_activity' => 'date',
+        'department'       => 'array',
+        'objectives'       => 'array',
+        'level'            => 'array',
+        'date_of_activity' => 'date',
     ];
 
-        public function branch()
+    public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function receivedBy()
+    {
+        return $this->belongsTo(\App\Models\Account::class, 'received_by');
+    }
+
+    public function encodedBy()
+    {
+        return $this->belongsTo(\App\Models\Account::class, 'encoded_by');
+    }
+
+    public function sarfDocuments()
+    {
+        return $this->hasMany(SarfDocument::class);
     }
 }
