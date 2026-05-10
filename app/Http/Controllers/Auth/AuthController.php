@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Models\SystemLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -41,6 +42,14 @@ class AuthController extends Controller
         Auth::login($account, $request->boolean('remember'));
         $request->session()->regenerate();
 
+        SystemLog::record('Logged in', 'Authentication', [
+            'account_id' => $account->id,
+            'subject_type' => Account::class,
+            'subject_id' => $account->id,
+            'subject_label' => $account->username,
+            'description' => $account->username . ' logged in as ' . $account->usertype . '.',
+        ]);
+
         if ($account->usertype === 'Dean_OSA') {
             return redirect()->route('dean_osa.index');
         } 
@@ -61,6 +70,18 @@ class AuthController extends Controller
      */
     public function logout(Request $request): RedirectResponse
     {
+        $account = Auth::user();
+
+        if ($account) {
+            SystemLog::record('Logged out', 'Authentication', [
+                'account_id' => $account->id,
+                'subject_type' => Account::class,
+                'subject_id' => $account->id,
+                'subject_label' => $account->username,
+                'description' => $account->username . ' logged out.',
+            ]);
+        }
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

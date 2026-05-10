@@ -121,6 +121,12 @@
                 <i class="fas fa-check-circle"></i> SARF Approvals
             </div>
             <form method="GET" action="{{ route('dean_osa.approval.index') }}" class="panel-controls">
+                <select name="status" class="filter-select" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    @foreach(['pending','ongoing','for approval','for approval finance','approved','completed','for revision','cancelled'] as $s)
+                        <option value="{{ $s }}" @selected(request('status') === $s)>{{ ucfirst($s) }}</option>
+                    @endforeach
+                </select>
                 <div class="search-wrap">
                     <i class="fas fa-search"></i>
                     <input class="search-input" type="text" name="search"
@@ -128,14 +134,10 @@
                         placeholder="Search title or code…">
                 </div>
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
-                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => 'dean_osa.approval.index'])
-                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'button', 'filterRoute' => 'dean_osa.approval.index'])
             </form>
         </div>
 
-        @include('Dean_OSA.partials.sarf-filters', ['filterRoute' => 'dean_osa.approval.index'])
-
-        {{-- ── Summary chips ── 
+        {{-- ── Summary chips ── --}}
         <div style="display:flex; gap:8px; flex-wrap:wrap; padding:14px 20px; border-bottom:1px solid #e5e7eb;">
             @php
                 $chipData = [
@@ -168,7 +170,7 @@
                     </span>
                 </a>
             @endforeach
-        </div>--}}
+        </div>
 
         <div class="table-wrap">
             <table>
@@ -352,17 +354,6 @@
                                     <i class="fas {{ $badge['icon'] }}" style="font-size:10px;"></i>
                                     {{ $badge['label'] }}
                                 </span>
-                                @if($activity->reschedule_status === 'pending')
-                                <span style="
-                                    display:inline-flex; align-items:center; gap:4px;
-                                    font-size:10px; font-weight:700;
-                                    padding:3px 8px; border-radius:20px;
-                                    background:#fef3c7; color:#92400e;
-                                    border:1px solid #fbbf24; margin-left:4px;">
-                                    <i class="fas fa-calendar-alt" style="font-size:9px;"></i>
-                                    Rescheduling
-                                </span>
-                                @endif
                             </td>
 
                             {{-- Submitted --}}
@@ -402,7 +393,7 @@
                 </span>
                 <form method="GET" action="{{ route('dean_osa.approval.index') }}" class="show-wrap">
                     @if(request('search'))  <input type="hidden" name="search"   value="{{ request('search') }}">  @endif
-                    @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => 'dean_osa.approval.index'])
+                    @if(request('status'))  <input type="hidden" name="status"   value="{{ request('status') }}">  @endif
                     Show
                     <select name="per_page" onchange="this.form.submit()">
                         <option value="10"  @selected(request('per_page',10)==10)>10</option>

@@ -220,29 +220,6 @@
         color: #1e40af;
     }
 
-    .btn-quick-action--reschedule {
-        background: #fffbeb;
-        color: #b45309;
-        border-color: #fbbf24;
-    }
-    .btn-quick-action--reschedule:hover {
-        background: #fef3c7;
-        border-color: #f59e0b;
-        color: #92400e;
-    }
-    @media (max-width: 720px) {
-        .workflow-spacer {
-            display: none;
-        }
-    }
-    .workflow-side-actions {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-left: auto;
-    }
-
     /* ══════════════════════════════════════════════
        Signatory cards
     ══════════════════════════════════════════════ */
@@ -487,7 +464,7 @@
         font-size: 13px;
         color: #1e293b;
     }
-
+    
     .document-check-row {
         display: flex;
         justify-content: flex-end;
@@ -540,12 +517,6 @@
         .show-field:nth-child(odd) { border-right: none; }
         .step-indicators { flex-direction: column; }
     }
-
-    /* Rescheduling pulse animation */
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50%      { opacity: 0.4; }
-    }
     </style>
 @endpush
 
@@ -557,8 +528,6 @@
     @endif
 
     @php
-        $hasPendingReschedule = $activity->reschedule_status === 'pending';
-
         $statusClass = match($activity->status) {
             'pending'              => 'b-pending',
             'ongoing'              => 'b-ongoing',
@@ -583,9 +552,6 @@
         $isForFinance        = in_array($activity->status, ['for approval finance','approved']);
         $isCompleted         = $activity->status === 'approved';
         $showAdvancePopup    = in_array($activity->status, ['pending','ongoing']);
-
-        // When reschedule is pending, Tab 2 is locked (approvals frozen)
-        $isApprovalFrozen = $hasPendingReschedule;
 
         $signatories = [
             ['field' => 'approval_dean_sa',      'remark' => 'remarks_dean_sa',      'budget' => 'budget_dean_sa',      'role' => 'Dean for Student Affairs'],
@@ -675,7 +641,7 @@
             $activeTab = $isApprovalUnlocked ? 2 : 1;
         }
 
-        if ($activeTab === 2 && (!$isApprovalUnlocked || $isApprovalFrozen)) {
+        if ($activeTab === 2 && !$isApprovalUnlocked) {
             $activeTab = 1;
         }
     @endphp
@@ -737,11 +703,6 @@
                 <span class="badge {{ $statusClass }}" style="margin-left:8px; font-size:11px;">
                     {{ ucfirst($activity->status) }}
                 </span>
-                @if($hasPendingReschedule)
-                <span class="badge" style="margin-left:4px; font-size:11px; background:#fef3c7; color:#92400e; border:1px solid #fbbf24; padding:3px 10px; border-radius:20px;">
-                    <i class="fas fa-calendar-alt" style="font-size:9px;"></i> Rescheduling
-                </span>
-                @endif
             </div>
             <div class="panel-controls">
                 <div class="sarf-code-display sarf-code-display--header">
@@ -783,17 +744,6 @@
                         @endif
                     </div>
                 @endforeach
-
-                {{-- Rescheduling indicator in pipeline --}}
-                @if($hasPendingReschedule)
-                <div style="margin-left:12px; flex-shrink:0;">
-                    <div style="display:flex; align-items:center; gap:6px; background:#fef3c7;
-                        border:1.5px solid #fbbf24; border-radius:8px; padding:6px 14px;">
-                        <i class="fas fa-pause-circle" style="color:#d97706; font-size:14px; animation:pulse 1.5s infinite;"></i>
-                        <span style="font-size:11px; font-weight:700; color:#92400e;">RESCHEDULING</span>
-                    </div>
-                </div>
-                @endif
             </div>
             @endif
 
@@ -822,162 +772,17 @@
                     </form>
                 @endif
                 @if(in_array($activity->status, ['ongoing','for approval','for approval finance']))
-                    <div class="workflow-spacer" style="flex:1;"></div>
-                    <div class="workflow-side-actions">
-                        @if(!$hasPendingReschedule)
-                            <button type="button" class="btn-quick-action btn-quick-action--reschedule" onclick="toggleRescheduleForm()">
-                                <i class="fas fa-calendar-plus"></i> Request Reschedule
-                            </button>
-                        @endif
-                        <form action="{{ route('dean_osa.approval.status', $activity->id) }}" method="POST"
-                            onsubmit="return confirm('Cancel this activity?');">
-                            @csrf
-                            <input type="hidden" name="status" value="cancelled">
-                            <input type="hidden" name="current_tab" value="1">
-                            <button type="submit" class="btn-quick-action btn-quick-action--danger">
-                                <i class="fas fa-times"></i> Cancel Activity
-                            </button>
-                        </form>
-                    </div>
-                @endif
-            </div>
-            @endif
-
-            {{-- ══════════════════════════════════════
-                 RESCHEDULE SECTION
-            ══════════════════════════════════════ --}}
-            @php $hasPendingReschedule = $activity->reschedule_status === 'pending'; @endphp
-
-            {{-- Freeze banner when reschedule is pending --}}
-            @if($hasPendingReschedule)
-            <div style="display:flex; align-items:flex-start; gap:14px; padding:16px 20px;
-                background:#fef3c7; border:1.5px solid #fbbf24; border-radius:12px;
-                margin-bottom:20px;">
-                <div style="width:42px; height:42px; border-radius:10px; background:#fffbeb;
-                    display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                    <i class="fas fa-calendar-exclamation" style="color:#d97706; font-size:18px;"></i>
-                </div>
-                <div style="flex:1;">
-                    <div style="font-weight:800; font-size:14px; color:#92400e; margin-bottom:4px;">
-                        <i class="fas fa-pause-circle"></i> Reschedule Pending — Approvals Paused
-                    </div>
-                    <div style="font-size:13px; color:#78350f; line-height:1.6;">
-                        A reschedule request has been submitted. All signatory approvals are <strong>frozen</strong>
-                        until this reschedule is approved or rejected. Existing progress will <strong>not</strong> be reset.
-                    </div>
-
-                    <div style="margin-top:14px; padding:14px 16px; background:#fff; border:1px solid #fde68a;
-                        border-radius:10px;">
-                        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:10px;">
-                            <div>
-                                <div class="show-label">Proposed Date</div>
-                                <div class="show-value" style="font-weight:700; color:#b45309;">
-                                    <i class="fas fa-calendar-alt" style="font-size:12px;"></i>
-                                    {{ $activity->reschedule_date?->format('M j, Y') }}
-                                </div>
-                            </div>
-                            @if(filled($activity->reschedule_time))
-                            <div>
-                                <div class="show-label">Proposed Time</div>
-                                <div class="show-value">{{ $activity->reschedule_time }}</div>
-                            </div>
-                            @endif
-                            @if(filled($activity->reschedule_venue))
-                            <div>
-                                <div class="show-label">Proposed Venue</div>
-                                <div class="show-value">{{ $activity->reschedule_venue }}</div>
-                            </div>
-                            @endif
-                            <div>
-                                <div class="show-label">Requested</div>
-                                <div class="show-value">{{ $activity->reschedule_requested_at?->format('M j, Y g:i A') }}</div>
-                            </div>
-                        </div>
-                        <div style="margin-bottom:14px;">
-                            <div class="show-label">Reason</div>
-                            <div class="show-value">{{ $activity->reschedule_reason }}</div>
-                        </div>
-
-                        {{-- Approve / Reject forms --}}
-                        <div style="display:flex; gap:10px; flex-wrap:wrap; padding-top:10px; border-top:1px solid #fde68a;">
-                            <div style="flex:1; min-width:200px;">
-                                <input type="text" id="reschedule-remarks-input" class="form-control"
-                                    placeholder="Optional remarks…" style="font-size:12.5px;">
-                            </div>
-                            <form action="{{ route('dean_osa.approval.reschedule.approve', $activity->id) }}"
-                                method="POST" style="display:inline;" id="reschedule-approve-form">
-                                @csrf
-                                <input type="hidden" name="reschedule_remarks" id="reschedule-approve-remarks">
-                                <button type="submit" class="btn btn-success"
-                                    onclick="document.getElementById('reschedule-approve-remarks').value = document.getElementById('reschedule-remarks-input').value;"
-                                    style="font-size:12.5px;">
-                                    <i class="fas fa-check"></i> Approve Reschedule
-                                </button>
-                            </form>
-                            <form action="{{ route('dean_osa.approval.reschedule.reject', $activity->id) }}"
-                                method="POST" style="display:inline;" id="reschedule-reject-form">
-                                @csrf
-                                <input type="hidden" name="reschedule_remarks" id="reschedule-reject-remarks">
-                                <button type="submit" class="btn btn-danger"
-                                    onclick="document.getElementById('reschedule-reject-remarks').value = document.getElementById('reschedule-remarks-input').value;"
-                                    style="font-size:12.5px;">
-                                    <i class="fas fa-times"></i> Reject Reschedule
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            @endif
-
-            {{-- Reschedule request form (hidden by default) --}}
-            @if(!$hasPendingReschedule && in_array($activity->status, ['ongoing','for approval','for approval finance']))
-            <div id="reschedule-form-panel" style="display:none; margin-bottom:24px;">
-                <div style="border:1.5px solid #93c5fd; border-radius:12px; overflow:hidden;">
-                    <div style="display:flex; align-items:center; gap:10px; padding:14px 18px;
-                        background:#eff6ff; border-bottom:1px solid #bfdbfe;">
-                        <i class="fas fa-calendar-alt" style="color:#2563eb; font-size:14px;"></i>
-                        <span style="font-size:14px; font-weight:700; color:#1e40af;">Request Reschedule</span>
-                        <button type="button" onclick="toggleRescheduleForm()" style="margin-left:auto;
-                            background:none; border:none; color:#64748b; cursor:pointer; font-size:16px;">
-                            <i class="fas fa-times"></i>
+                    <div style="flex:1;"></div>
+                    <form action="{{ route('dean_osa.approval.status', $activity->id) }}" method="POST"
+                        onsubmit="return confirm('Cancel this activity?');">
+                        @csrf
+                        <input type="hidden" name="status" value="cancelled">
+                        <input type="hidden" name="current_tab" value="1">
+                        <button type="submit" class="btn-quick-action btn-quick-action--danger">
+                            <i class="fas fa-times"></i> Cancel Activity
                         </button>
-                    </div>
-                    <div style="padding:18px 20px;">
-                        <form action="{{ route('dean_osa.approval.reschedule.request', $activity->id) }}" method="POST">
-                            @csrf
-                            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:14px;">
-                                <div class="form-group" style="margin-bottom:0;">
-                                    <label class="form-label">New Date <span style="color:#dc2626;">*</span></label>
-                                    <input type="date" name="reschedule_date" class="form-control" required
-                                        value="{{ old('reschedule_date') }}" min="{{ date('Y-m-d') }}">
-                                </div>
-                                <div class="form-group" style="margin-bottom:0;">
-                                    <label class="form-label">New Time</label>
-                                    <input type="text" name="reschedule_time" class="form-control"
-                                        placeholder="e.g. 9:00 AM - 5:00 PM" value="{{ old('reschedule_time') }}">
-                                </div>
-                                <div class="form-group" style="margin-bottom:0;">
-                                    <label class="form-label">New Venue</label>
-                                    <input type="text" name="reschedule_venue" class="form-control"
-                                        placeholder="Leave blank to keep current" value="{{ old('reschedule_venue') }}">
-                                </div>
-                            </div>
-                            <div class="form-group" style="margin-bottom:14px;">
-                                <label class="form-label">Reason for Rescheduling <span style="color:#dc2626;">*</span></label>
-                                <textarea name="reschedule_reason" class="form-control" rows="3" required
-                                    placeholder="Explain why this activity needs to be rescheduled…"
-                                    style="resize:vertical;">{{ old('reschedule_reason') }}</textarea>
-                            </div>
-                            <div style="display:flex; gap:10px; justify-content:flex-end;">
-                                <button type="button" onclick="toggleRescheduleForm()" class="btn btn-filter">Cancel</button>
-                                <button type="submit" class="btn btn-add">
-                                    <i class="fas fa-paper-plane"></i> Submit Reschedule Request
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                    </form>
+                @endif
             </div>
             @endif
 
@@ -991,12 +796,10 @@
                     <i class="fas fa-info-circle"></i> 1. Event Details
                 </button>
                 <button type="button" id="step-indicator-2"
-                    class="step-indicator-btn {{ $isCompleted ? 'completed' : '' }} {{ (!$isApprovalUnlocked || $isApprovalFrozen) ? 'step-locked' : '' }} {{ $activeTab === 2 ? 'active' : '' }}"
-                    onclick="{{ ($isApprovalUnlocked && !$isApprovalFrozen) ? 'showTab(2)' : 'return false' }}"
-                    title="{{ $isApprovalFrozen ? 'Approvals frozen — resolve the pending reschedule first.' : (!$isApprovalUnlocked ? 'Advance to For Approval status first.' : '') }}">
-                    @if($isApprovalFrozen)
-                        <i class="fas fa-pause-circle" style="font-size:10px; color:#d97706;"></i>
-                    @elseif(!$isApprovalUnlocked)
+                    class="step-indicator-btn {{ $isCompleted ? 'completed' : '' }} {{ !$isApprovalUnlocked ? 'step-locked' : '' }} {{ $activeTab === 2 ? 'active' : '' }}"
+                    onclick="{{ $isApprovalUnlocked ? 'showTab(2)' : 'return false' }}"
+                    title="{{ !$isApprovalUnlocked ? 'Advance to For Approval status first.' : '' }}">
+                    @if(!$isApprovalUnlocked)
                         <i class="fas fa-lock" style="font-size:10px;"></i>
                     @else
                         <i class="fas fa-stamp"></i>
@@ -1336,13 +1139,9 @@
                 @endif
 
                 <div style="display:flex; justify-content:flex-end; margin-top:20px;">
-                    @if($isApprovalUnlocked && !$isApprovalFrozen)
+                    @if($isApprovalUnlocked)
                         <button type="button" onclick="showTab(2)" class="btn btn-add">
                             Approval <i class="fas fa-arrow-right"></i>
-                        </button>
-                    @elseif($isApprovalFrozen)
-                        <button type="button" class="btn btn-filter" disabled title="Resolve the pending reschedule first.">
-                            <i class="fas fa-pause-circle"></i> Approval Paused
                         </button>
                     @endif
                 </div>
@@ -1355,17 +1154,6 @@
             ══════════════════════════════════════ --}}
             <div id="tab-2" style="{{ $activeTab === 2 ? '' : 'display:none;' }}">
                 <div id="approval-workflow"></div>
-
-                @if($hasPendingReschedule)
-                    <div class="notice-card notice-card--warn">
-                        <i class="fas fa-pause-circle"></i>
-                        <div>
-                            <strong>Approvals Paused</strong> — A reschedule request is pending review.
-                            All signatory approvals are frozen until the reschedule is approved or rejected.
-                            Scroll up to review the reschedule request.
-                        </div>
-                    </div>
-                @endif
 
                 @if(!$isApprovalUnlocked)
                     <div class="notice-card notice-card--blue">
@@ -1395,7 +1183,7 @@
                         @foreach($signatories as $sig)
                             @php
                                 $skipped = !in_array($sig['field'], $applicableMainFields, true);
-                                $locked  = !$skipped && ($mainLocked[$sig['field']] || !$isApprovalUnlocked || $isApprovalFrozen);
+                                $locked  = !$skipped && ($mainLocked[$sig['field']] || !$isApprovalUnlocked);
                                 $current = $activity->{$sig['field']} ?? 'pending';
                             @endphp
                             @continue($skipped)
@@ -1434,11 +1222,9 @@
                                     @if($locked)
                                         <span class="td-muted" style="font-size:12px;">
                                             <i class="fas fa-lock"></i>
-                                            {{ $isApprovalFrozen
-                                                ? 'Approvals are paused while the reschedule request is pending.'
-                                                : (!$isApprovalUnlocked
-                                                    ? 'Unlock by advancing status to For Approval.'
-                                                    : 'Waiting for previous signatory.') }}
+                                            {{ !$isApprovalUnlocked
+                                                ? 'Unlock by advancing status to For Approval.'
+                                                : 'Waiting for previous signatory.' }}
                                         </span>
                                     @else
                                         <form action="{{ route('dean_osa.approval.approve', $activity->id) }}"
@@ -1496,7 +1282,7 @@
                         @foreach($financeSignatories as $sig)
                             @php
                                 $skipped = !in_array($sig['field'], $applicableFinanceFields, true);
-                                $locked  = !$skipped && ($financeLocked[$sig['field']] || !$isForFinance || $isApprovalFrozen);
+                                $locked  = !$skipped && ($financeLocked[$sig['field']] || !$isForFinance);
                                 $current = $activity->{$sig['field']} ?? 'pending';
                             @endphp
                             @continue($skipped)
@@ -1529,11 +1315,9 @@
                                     @if($locked)
                                         <span class="td-muted" style="font-size:12px;">
                                             <i class="fas fa-lock"></i>
-                                            {{ $isApprovalFrozen
-                                                ? 'Approvals are paused while the reschedule request is pending.'
-                                                : (!$isForFinance
-                                                    ? 'Unlocks after all signatories are approved.'
-                                                    : 'Waiting for previous signatory.') }}
+                                            {{ !$isForFinance
+                                                ? 'Unlocks after all signatories are approved.'
+                                                : 'Waiting for previous signatory.' }}
                                         </span>
                                     @else
                                         <form action="{{ route('dean_osa.approval.approve', $activity->id) }}"
@@ -1604,93 +1388,102 @@
                         All signatories have approved this activity.
                     </div>
 
-                    <div style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background:#fff; padding:20px;">
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-                            <div style="width:32px; height:32px; border-radius:8px; background:#eff6ff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                                <i class="fas fa-file-pdf" style="color:#3b82f6; font-size:14px;"></i>
-                            </div>
-                            <div>
-                                <div style="font-weight:700; font-size:13.5px; color:#0f172a;">Approved SARF</div>
-                                <div style="font-size:12px; color:#94a3b8;">
-                                    @if($approvedSarfDoc)
-                                        {{ $approvedSarfDoc->original_filename }}
-                                    @else
-                                        No file uploaded yet
-                                    @endif
-                                </div>
-                            </div>
+                    <div id="approved-sarf-section" class="show-section">
+                        <div class="show-section-header green">
+                            <i class="fas fa-cloud-upload-alt"></i> Approved SARF
                         </div>
+                        <div style="padding:16px 20px;">
+                            <form action="{{ route('dean_osa.approval.document.store', $activity->id) }}"
+                                method="POST" enctype="multipart/form-data"
+                                style="display:flex; flex-direction:column; gap:16px;">
+                                @csrf
+                                <input type="hidden" name="current_tab" value="3">
 
-                        <form action="{{ route('dean_osa.approval.document.store', $activity->id) }}"
-                            method="POST" enctype="multipart/form-data"
-                            style="display:flex; flex-direction:column; gap:16px;">
-                            @csrf
-                            <input type="hidden" name="current_tab" value="3">
+                                <p class="td-muted" style="margin:0;">
+                                    Upload one final approved SARF PDF for this activity.
+                                </p>
 
-                            <label class="approved-dropzone is-visible" for="approved_sarf_file">
-                                <input type="file" name="approved_sarf_file"
-                                    id="approved_sarf_file" accept=".pdf"
-                                    onchange="updateApprovedFileName('sarf', this)">
-                                <span class="approved-dropzone-inner">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                    <span class="approved-dropzone-main">Choose a file or drag and drop it here</span>
-                                    <span class="approved-dropzone-sub">PDF format, up to 10MB</span>
-                                    <span class="approved-file-chip">
-                                        <i class="fas fa-file-pdf"></i>
-                                        <span id="approved_fname_sarf">
-                                            @if($approvedSarfDoc)
-                                                {{ $approvedSarfDoc->original_filename }}
-                                            @else
-                                                No file chosen
-                                            @endif
+                                <div class="approved-upload-card is-selected" id="approved-card-sarf">
+                                    <div class="approved-upload-head">
+                                        <span class="sarf-badge">SARF</span>
+                                        <label for="approved_sarf_file" class="approved-upload-title">
+                                            <strong>Approved SARF Attachment</strong>
+                                            <span>
+                                                @if($approvedSarfDoc)
+                                                    Current: {{ $approvedSarfDoc->original_filename }}
+                                                @else
+                                                    No approved SARF uploaded yet
+                                                @endif
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <label class="approved-dropzone is-visible"
+                                        for="approved_sarf_file">
+                                        <input type="file" name="approved_sarf_file"
+                                            id="approved_sarf_file" accept=".pdf"
+                                            onchange="updateApprovedFileName('sarf', this)">
+                                        <span class="approved-dropzone-inner">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                            <span class="approved-dropzone-main">Choose a file or drag and drop it here</span>
+                                            <span class="approved-dropzone-sub">PDF format, up to 10MB</span>
+                                            <span class="approved-file-chip">
+                                                <i class="fas fa-file-pdf"></i>
+                                                <span id="approved_fname_sarf">
+                                                    @if($approvedSarfDoc)
+                                                        {{ $approvedSarfDoc->original_filename }}
+                                                    @else
+                                                        No file chosen
+                                                    @endif
+                                                </span>
+                                            </span>
                                         </span>
-                                    </span>
-                                </span>
-                            </label>
+                                    </label>
 
-                            <div class="document-check-row">
-                                <a href="#"
-                                    target="_blank"
-                                    class="document-check-btn document-preview-btn"
-                                    id="preview_btn_sarf">
-                                    <i class="fas fa-eye"></i> Preview Selected File
-                                </a>
-                                @if($approvedSarfDoc)
-                                    <a href="{{ route('dean_osa.sarf-documents.show', $approvedSarfDoc) }}"
-                                        target="_blank" class="document-check-btn">
-                                        <i class="fas fa-file-pdf"></i> View Document
-                                    </a>
-                                    <a href="{{ route('dean_osa.sarf-documents.show', ['document' => $approvedSarfDoc, 'download' => 1]) }}"
-                                        class="document-check-btn document-download-btn">
-                                        <i class="fas fa-download"></i> Download File
-                                    </a>
-                                @endif
-                            </div>
-
-                            @error('approved_sarf_file')
-                                <div style="color:#b91c1c; font-size:12px;">{{ $message }}</div>
-                            @enderror
-
-                            <div class="approved-remark-box">
-                                <label for="approved_remark" style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:8px;">
-                                    Remark for approved SARF
-                                </label>
-                                <textarea id="approved_remark" name="approved_remark"
-                                    placeholder="Add a remark for the approved SARF...">{{ $approvedDocRemark }}</textarea>
-                                @error('approved_remark')
-                                    <div style="margin-top:8px; color:#b91c1c; font-size:12px;">{{ $message }}</div>
+                                    {{-- ✅ NEW: document action buttons (mirrors accomplishment view) --}}
+                                    <div class="document-check-row">
+                                        <a href="#"
+                                            target="_blank"
+                                            class="document-check-btn document-preview-btn"
+                                            id="preview_btn_sarf">
+                                            <i class="fas fa-eye"></i> Preview Selected File
+                                        </a>
+                                        @if($approvedSarfDoc)
+                                            <a href="{{ route('dean_osa.sarf-documents.show', $approvedSarfDoc) }}"
+                                                target="_blank" class="document-check-btn">
+                                                <i class="fas fa-file-pdf"></i> View Document
+                                            </a>
+                                            <a href="{{ route('dean_osa.sarf-documents.show', ['document' => $approvedSarfDoc, 'download' => 1]) }}"
+                                                class="document-check-btn document-download-btn">
+                                                <i class="fas fa-download"></i> Download File
+                                            </a>
+                                        @endif
+                                    </div>
+                                </div>
+                                @error('approved_sarf_file')
+                                    <div style="margin-top:-6px; color:#b91c1c; font-size:12px;">{{ $message }}</div>
                                 @enderror
-                            </div>
 
-                            <div style="display:flex; justify-content:flex-end;">
-                                <button type="submit" class="btn btn-add" style="font-size:12px;">
-                                    <i class="fas fa-save"></i> Save
-                                </button>
-                            </div>
-                        </form>
-                        @error('approved_doc')
-                            <div style="color:#b91c1c; font-size:12px;">{{ $message }}</div>
-                        @enderror
+                                <div class="approved-remark-box">
+                                    <label for="approved_remark" style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:8px;">
+                                        Remark for approved SARF
+                                    </label>
+                                    <textarea id="approved_remark" name="approved_remark"
+                                        placeholder="Add a remark for the approved SARF...">{{ $approvedDocRemark }}</textarea>
+                                    @error('approved_remark')
+                                        <div style="margin-top:8px; color:#b91c1c; font-size:12px;">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div style="display:flex; justify-content:flex-end;">
+                                    <button type="submit" class="btn btn-add" style="font-size:12px;">
+                                        <i class="fas fa-save"></i> Save Approved SARF
+                                    </button>
+                                </div>
+                            </form>
+                            @error('approved_doc')
+                                <div style="margin-top:8px; color:#b91c1c; font-size:12px;">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
                 @endif
 
@@ -1839,16 +1632,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 @endif
-
-/* ── Reschedule form toggle ── */
-function toggleRescheduleForm() {
-    const panel = document.getElementById('reschedule-form-panel');
-    if (panel) {
-        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-        if (panel.style.display === 'block') {
-            panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }
-}
 </script>
 @endsection

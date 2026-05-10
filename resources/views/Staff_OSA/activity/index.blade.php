@@ -23,15 +23,11 @@
                         placeholder="Search title, code, status…">
                 </div>
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
-                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => 'dean_osa.activity.index'])
-                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'button', 'filterRoute' => 'dean_osa.activity.index'])
                 <a href="{{ route('dean_osa.activity.create') }}" class="btn btn-add">
                     <i class="fas fa-plus"></i> New Activity
                 </a>
             </form>
         </div>
-
-        @include('Dean_OSA.partials.sarf-filters', ['filterRoute' => 'dean_osa.activity.index'])
 
         <div class="table-wrap">
             <table>
@@ -232,7 +228,6 @@
                     @if(request('search'))
                         <input type="hidden" name="search" value="{{ request('search') }}">
                     @endif
-                    @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => 'dean_osa.activity.index'])
                     Show
                     <select name="per_page" onchange="this.form.submit()">
                         <option value="10" @selected(request('per_page', 10) == 10)>10</option>

@@ -19,21 +19,17 @@
     <p class="sb-section">SARF</p>
     <ul class="sb-list">
         <li>
-            <a title="SARF Activities">
-                <i class="fas fa-file-alt"></i><span>SARF Activities</span>
+            <a href="{{ route('staff_osa.activity.index') }}" class="sb-item {{ request()->routeIs('staff_osa.activity.*') ? 'active' : '' }}" title="Activities">
+                <i class="fas fa-file-alt"></i><span>Activities</span>
             </a>
         </li>
-    </ul>
-
-    <p class="sb-section">Management</p>
-    <ul class="sb-list">
         <li>
-            <a title="Approvals">
+            <a href="{{ route('staff_osa.approval.index') }}" class="sb-item {{ request()->routeIs('staff_osa.approval.*') ? 'active' : '' }}" title="Approvals">
                 <i class="fas fa-check-circle"></i><span>Approvals</span>
             </a>
         </li>
         <li>
-            <a title="PAAR">
+            <a href="{{ route('staff_osa.paar.index') }}" class="sb-item {{ request()->routeIs('staff_osa.paar.*') ? 'active' : '' }}" title="PAAR">
                 <i class="fas fa-file-medical"></i><span>Post-Activity Report</span>
             </a>
         </li>

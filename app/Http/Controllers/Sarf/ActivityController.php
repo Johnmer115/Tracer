@@ -10,6 +10,7 @@ use App\Models\Activity;
 use App\Models\Branch;
 use App\Models\SarfDocument;
 use App\Models\SchoolYear;
+use App\Support\SarfListFilters;
 
 class ActivityController extends Controller
 {
@@ -22,19 +23,26 @@ class ActivityController extends Controller
             $perPage = 10;
         }
 
-        $activities = Activity::with('sarfDocuments')
+        $filters = SarfListFilters::fromRequest($request);
+        $query = Activity::with(['sarfDocuments', 'branch'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('title',  'like', "%{$search}%")
                           ->orWhere('code',   'like', "%{$search}%")
                           ->orWhere('status', 'like', "%{$search}%");
                 });
-            })
-            ->latest()
-            ->paginate($perPage)
-            ->withQueryString();
+            });
 
-        return view('Dean_OSA.activity.index', compact('activities'));
+        SarfListFilters::apply($query, $filters);
+
+        $filteredActivities = SarfListFilters::applyInsideStatus($query->latest()->get(), $filters);
+        $activities = SarfListFilters::paginateCollection($filteredActivities, $request, $perPage);
+
+        return view('Dean_OSA.activity.index', [
+            'activities' => $activities,
+            'filters' => $filters,
+            ...SarfListFilters::viewData(),
+        ]);
     }
 
     public function create()
@@ -59,8 +67,9 @@ class ActivityController extends Controller
             'mode_of_conduct'    => 'required|in:Face to Face,Online,Hybrid',
             'date_of_activity'   => 'required|date',
             'funds'              => 'required|in:With Budget,ATC,No Fee',
+            'amount'             => 'required_if:funds,With Budget,ATC|nullable|numeric|min:0',
             'types'              => 'nullable|array',
-            'types.*'            => 'in:A1,A2,A3,A4,A5,A6,A7,A8,A10',
+            'types.*'            => 'in:A0,A1,A2,A3,A4,A5,A6,A7,A8,A10',
             'participants_count' => 'nullable|integer|min:0',
         ]);
 
@@ -108,7 +117,7 @@ class ActivityController extends Controller
                 'platform'               => $hasPlatform ? $request->input('platform')   : null,
                 'funds'                  => $funds,
                 'source'                 => $funds === 'With Budget'                       ? $request->input('source')              : null,
-                'amount'                 => $funds === 'ATC'                               ? $request->input('amount')              : null,
+                'amount'                 => in_array($funds, ['With Budget', 'ATC'], true) ? $request->input('amount')              : null,
                 'expected_collection'    => $funds === 'ATC'                               ? $request->input('expected_collection') : null,
                 'canteen'                => in_array($funds, ['With Budget', 'ATC'], true) ? $request->input('canteen')             : null,
                 'procurement'            => in_array($funds, ['With Budget', 'ATC'], true) ? $request->input('procurement')         : null,
@@ -140,6 +149,7 @@ class ActivityController extends Controller
     /**
      * FIX 1: Returns view.blade.php (not show.blade.php)
      * FIX 2: Eager-loads branch, receivedBy, encodedBy for the view
+     * FIX 3: Auto-redirect to approval view if activity is approved
      */
     public function show(string $id)
     {
@@ -149,6 +159,11 @@ class ActivityController extends Controller
             'receivedBy',
             'encodedBy',
         ])->findOrFail($id);
+
+        // If activity is approved, redirect to approval view instead
+        if ($activity->status === 'approved') {
+            return redirect()->route('dean_osa.approval.show', $id);
+        }
 
         return view('Dean_OSA.activity.view', compact('activity'));
     }
@@ -174,8 +189,9 @@ class ActivityController extends Controller
             'mode_of_conduct'    => 'required|in:Face to Face,Online,Hybrid',
             'date_of_activity'   => 'required|date',
             'funds'              => 'required|in:With Budget,ATC,No Fee',
+            'amount'             => 'required_if:funds,With Budget,ATC|nullable|numeric|min:0',
             'types'              => 'nullable|array',
-            'types.*'            => 'in:A1,A2,A3,A4,A5,A6,A7,A8,A10',
+            'types.*'            => 'in:A0,A1,A2,A3,A4,A5,A6,A7,A8,A10',
             'participants_count' => 'nullable|integer|min:0',
         ]);
 
@@ -184,7 +200,24 @@ class ActivityController extends Controller
         $hasPlatform   = in_array($modeOfConduct, ['Online', 'Hybrid'], true);
         $funds         = $request->input('funds');
 
-        $activity->update([
+        // When updating from 'for revision', reset disapproved approvals to 'pending'
+        $resetData = [];
+        if ($activity->status === 'for revision') {
+            foreach ([
+                'approval_dean_sa', 'approval_avp_sps', 'approval_dir_basic_ed',
+                'approval_vp_acad', 'approval_vp_hrd_legal',
+                'approval_auditing', 'approval_comptroller_initial', 'approval_finance_initial',
+                'approval_osa_finance', 'approval_finance_final', 'approval_comptroller_final',
+            ] as $field) {
+                if ($activity->{$field} === 'disapproved') {
+                    $resetData[$field] = 'pending';
+                }
+            }
+            // Return to 'for approval' stage so approvals can continue without re-advancing
+            $resetData['status'] = 'for approval';
+        }
+
+        $updateData = array_merge([
             'branch_id'              => $request->input('branch_id'),
             'level'                  => $request->input('level'),
             'department'             => $request->input('department', []),
@@ -205,13 +238,15 @@ class ActivityController extends Controller
             'platform'               => $hasPlatform ? $request->input('platform')   : null,
             'funds'                  => $funds,
             'source'                 => $funds === 'With Budget'                       ? $request->input('source')              : null,
-            'amount'                 => $funds === 'ATC'                               ? $request->input('amount')              : null,
+            'amount'                 => in_array($funds, ['With Budget', 'ATC'], true) ? $request->input('amount')              : null,
             'expected_collection'    => $funds === 'ATC'                               ? $request->input('expected_collection') : null,
             'canteen'                => in_array($funds, ['With Budget', 'ATC'], true) ? $request->input('canteen')             : null,
             'procurement'            => in_array($funds, ['With Budget', 'ATC'], true) ? $request->input('procurement')         : null,
             'late_submission_reason' => $request->input('late_submission_reason'),
             // received_by / encoded_by intentionally not updated — keep original recorder
-        ]);
+        ], $resetData);
+
+        $activity->update($updateData);
 
         foreach ($request->input('types', []) as $type) {
             $fileKey = 'file_' . $type;

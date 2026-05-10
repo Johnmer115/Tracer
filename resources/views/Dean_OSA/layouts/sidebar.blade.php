@@ -29,12 +29,12 @@
             </a>
         </li>
         <li>
-            <a title="PAAR">
+            <a href="{{ route('dean_osa.paar.index') }}" class="sb-item {{ request()->routeIs('dean_osa.paar.*') ? 'active' : '' }}" title="PAAR">
                 <i class="fas fa-file-medical"></i><span>Post-Activity Report</span>
             </a>
         </li>
          <li>
-            <a title="Tracer">
+            <a href="{{ route('dean_osa.tracer.index') }}" class="sb-item {{ request()->routeIs('dean_osa.tracer.*') ? 'active' : '' }}" title="Tracer">
                 <i class="fas fa-file-medical"></i><span>Tracer</span>
             </a>
         </li>
@@ -63,7 +63,7 @@
     <ul class="sb-list">
         
         <li>
-            <a title="System Logs">
+            <a href="{{ route('dean_osa.system-logs.index') }}" class="sb-item {{ request()->routeIs('dean_osa.system-logs.*') ? 'active' : '' }}" title="System Logs">
                 <i class="fas fa-history"></i><span>System Logs</span>
             </a>
         </li>

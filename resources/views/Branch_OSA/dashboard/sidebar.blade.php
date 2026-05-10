@@ -19,17 +19,8 @@
     <p class="sb-section">SARF</p>
     <ul class="sb-list">
         <li>
-            <a title="SARF Activities">
-                <i class="fas fa-file-alt"></i><span>SARF Activities</span>
-            </a>
-        </li>
-    </ul>
-
-    <p class="sb-section">Management</p>
-    <ul class="sb-list">
-        <li>
-            <a title="Activities">
-                <i class="fas fa-file-alt"></i><span>Activities</span>
+            <a href="{{ route('branch_osa.tracer.index') }}" class="sb-item {{ request()->routeIs('branch_osa.tracer.*') ? 'active' : '' }}" title="Tracer">
+                <i class="fas fa-route"></i><span>Tracer</span>
             </a>
         </li>
     </ul>
