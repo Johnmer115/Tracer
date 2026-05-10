@@ -9,7 +9,7 @@ use App\Http\Controllers\Sarf\ActivityController;
 use App\Http\Controllers\Usertype\Dean_OSA_Controller;
 use App\Http\Controllers\Usertype\Staff_OSA_Controller;
 use App\Http\Controllers\Usertype\Branch_OSA_Controller;
-
+use App\Http\Controllers\Sarf\ApprovalController;
 
 
 Route::get('/', fn() => view('log.login'))->name('login');
@@ -33,8 +33,18 @@ Route::middleware(['auth', 'Dean_OSA'])->prefix('dean_osa')
         // Branch Management
         Route::resource('branch', BranchController::class);
 
-        // Activity Management
+        // Activity
         Route::resource('activity', ActivityController::class);
+
+        // Approval
+        Route::prefix('approval')->name('approval.')->group(function () {
+            Route::get('/',                [ApprovalController::class, 'index'])        ->name('index');
+            Route::get('/{id}/review',     [ApprovalController::class, 'review'])       ->name('review'); 
+            Route::get('/{id}',            [ApprovalController::class, 'show'])         ->name('show');
+            Route::patch('/{id}/status',   [ApprovalController::class, 'updateStatus']) ->name('status');
+            Route::patch('/{id}/approve',  [ApprovalController::class, 'approve'])      ->name('approve');
+            Route::post('/{id}/document',  [ApprovalController::class, 'storeDocument'])->name('document.store');
+        });
 
     });
 

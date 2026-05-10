@@ -44,23 +44,21 @@ class Activity extends Model
         'encoded_by',
         'status',
 
-        // Approvals (keep these if you still need them)
-        'approval_dean',
+        // Signatory approvals
+        'approval_dean_sa',
         'approval_avp_sps',
-        'approval_director',
-        'approval_vp_academic',
-        'approval_vp_hrd',
-        'approval_vp_auditor',
-        'approval_comptroller',
-        'approval_finance',
-        'remarks_dean',
+        'approval_dir_basic_ed',
+        'approval_vp_acad',
+        'approval_vp_hrd_legal',
+        'approval_vp_comptroller',
+        'approval_avp_finance',
+        'remarks_dean_sa',
         'remarks_avp_sps',
-        'remarks_director',
-        'remarks_vp_academic',
-        'remarks_vp_hrd',
-        'remarks_vp_auditor',
-        'remarks_comptroller',
-        'remarks_finance',
+        'remarks_dir_basic_ed',
+        'remarks_vp_acad',
+        'remarks_vp_hrd_legal',
+        'remarks_vp_comptroller',
+        'remarks_avp_finance',
     ];
 
     protected $casts = [

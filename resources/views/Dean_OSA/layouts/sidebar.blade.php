@@ -24,7 +24,7 @@
             </a>
         </li>
         <li>
-            <a title="Approvals">
+            <a href="{{ route('dean_osa.approval.index') }}" class="sb-item {{ request()->routeIs('dean_osa.approval.index') ? 'active' : '' }}" title="Approvals">
                 <i class="fas fa-check-circle"></i><span>Approvals</span>
             </a>
         </li>
