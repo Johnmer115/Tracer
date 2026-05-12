@@ -1,4 +1,4 @@
-@extends('Staff_OSA.dashboard.layout')
+@extends('Staff_OSA.layouts.layout')
 
 @section('title', 'Dashboard | SARF Tracking')
 @section('page-title', 'Dashboard')

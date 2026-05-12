@@ -1,4 +1,4 @@
-@extends('Branch_OSA.dashboard.layout')
+@extends('Branch_OSA.layouts.layout')
 
 @section('title', 'Tracer | SARF Tracking')
 @section('page-title', 'Activity Tracer')

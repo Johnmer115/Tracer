@@ -149,7 +149,7 @@ class ActivityController extends Controller
     /**
      * FIX 1: Returns view.blade.php (not show.blade.php)
      * FIX 2: Eager-loads branch, receivedBy, encodedBy for the view
-     * FIX 3: Auto-redirect to approval view if activity is approved
+     * FIX 3: Auto-redirect to approval view if activity is approved or completed
      */
     public function show(string $id)
     {
@@ -160,8 +160,8 @@ class ActivityController extends Controller
             'encodedBy',
         ])->findOrFail($id);
 
-        // If activity is approved, redirect to approval view instead
-        if ($activity->status === 'approved') {
+        // Approved/completed activities should keep their approval history visible.
+        if (in_array($activity->status, ['approved', 'completed'], true)) {
             return redirect()->route('dean_osa.approval.show', $id);
         }
 

@@ -1,4 +1,4 @@
-@extends('Dean_OSA.layouts.layout')
+@extends('Staff_OSA.layouts.layout')
 
 @section('title', 'Org Activities | SARF Tracking')
 @section('page-title', 'Org Activities')

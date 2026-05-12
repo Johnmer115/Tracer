@@ -155,7 +155,7 @@ class ApprovalController extends Controller
         $activity = Activity::findOrFail($id);
 
         $request->validate([
-            'status' => 'required|in:pending,ongoing,for approval,for approval finance,approved,for revision,cancelled',
+            'status' => 'required|in:pending,ongoing,for approval,for approval finance,approved,completed,for revision,cancelled',
             'current_tab' => 'nullable|integer|in:1,2,3',
             'focus' => 'nullable|string|max:80|regex:/^[A-Za-z0-9_-]+$/',
         ]);
@@ -356,7 +356,7 @@ class ApprovalController extends Controller
         $activity = Activity::findOrFail($id);
         $approvedSarfType = 'APPROVED_SARF';
 
-        if ($activity->status !== 'approved') {
+        if (! in_array($activity->status, ['approved', 'completed'], true)) {
             return back()->withErrors([
                 'approved_sarf_file' => 'You can only upload the approved SARF once the activity is approved.',
             ]);

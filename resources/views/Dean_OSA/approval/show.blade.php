@@ -565,6 +565,7 @@
             'for approval'         => 'b-for-approval',
             'for approval finance' => 'b-for-approval',
             'approved'             => 'b-approved',
+            'completed'            => 'b-completed',
             'for revision'         => 'b-revision',
             'cancelled'            => 'b-cancelled',
             default                => 'b-pending',
@@ -578,10 +579,11 @@
         ];
         $pipeIdx = collect($pipeline)->search(fn($s) => $s['val'] === $activity->status) ?? -1;
         if ($activity->status === 'for approval finance') $pipeIdx = 2;
+        if ($activity->status === 'completed') $pipeIdx = 3;
 
-        $isApprovalUnlocked  = in_array($activity->status, ['for approval','for approval finance','approved']);
-        $isForFinance        = in_array($activity->status, ['for approval finance','approved']);
-        $isCompleted         = $activity->status === 'approved';
+        $isApprovalUnlocked  = in_array($activity->status, ['for approval','for approval finance','approved','completed']);
+        $isForFinance        = in_array($activity->status, ['for approval finance','approved','completed']);
+        $isCompleted         = in_array($activity->status, ['approved','completed']);
         $showAdvancePopup    = in_array($activity->status, ['pending','ongoing']);
 
         // When reschedule is pending, Tab 2 is locked (approvals frozen)
