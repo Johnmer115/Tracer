@@ -34,18 +34,6 @@
 
                 <input type="hidden" name="code" id="code" value="{{ old('code') }}">
 
-                <div class="form-group">
-                    <label class="form-label">Start Date</label>
-                    <input type="date" class="form-control" name="start_date"
-                        value="{{ old('start_date') }}" required>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">End Date</label>
-                    <input type="date" class="form-control" name="end_date"
-                        value="{{ old('end_date') }}" required>
-                </div>
-
                 <div class="form-actions">
                     <a class="btn btn-filter" href="{{ route('dean_osa.schoolyear.index') }}">Back</a>
                     <button type="submit" class="btn btn-add">Save School Year</button>

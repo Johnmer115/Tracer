@@ -41,18 +41,6 @@
                         value="{{ old('code', $schoolYear->code) }}" placeholder="e.g. 2526" readonly>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Start Date</label>
-                    <input type="date" class="form-control" name="start_date"
-                        value="{{ old('start_date', $schoolYear->start_date?->format('Y-m-d')) }}" required>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">End Date</label>
-                    <input type="date" class="form-control" name="end_date"
-                        value="{{ old('end_date', $schoolYear->end_date?->format('Y-m-d')) }}" required>
-                </div>
-
                 <div class="form-actions">
                     <a class="btn btn-filter" href="{{ route('dean_osa.schoolyear.index') }}">Back</a>
                     <button type="submit" class="btn btn-add">Save Changes</button>

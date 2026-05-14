@@ -1103,6 +1103,12 @@
                         <span style="margin-left:auto; font-size:12px; font-weight:400; color:#64748b;">
                             {{ $docs->count() }} of {{ count($sarfLabels) }} types attached
                         </span>
+                        @if($docs->isNotEmpty())
+                            <a href="{{ route('staff_osa.sarf-documents.print-activity', $activity) }}"
+                                target="_blank" class="attachment-view-btn">
+                                <i class="fas fa-print"></i> Print All
+                            </a>
+                        @endif
                     </div>
                     @if($docs->isEmpty())
                         <div style="padding:20px; text-align:center; color:#94a3b8; font-style:italic; font-size:13px;">
@@ -1123,10 +1129,12 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <a href="{{ route('dean_osa.sarf-documents.show', $docs[$type]) }}"
-                                        target="_blank" class="attachment-view-btn">
-                                        <i class="fas fa-file-pdf"></i> View PDF
-                                    </a>
+                                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                        <a href="{{ route('staff_osa.sarf-documents.show', $docs[$type]) }}"
+                                            target="_blank" class="attachment-view-btn">
+                                            <i class="fas fa-file-pdf"></i> View PDF
+                                        </a>
+                                    </div>
                                 </div>
                             @endif
                         @endforeach
@@ -1448,11 +1456,11 @@
                                             <i class="fas fa-eye"></i> Preview Selected File
                                         </a>
                                         @if($approvedSarfDoc)
-                                            <a href="{{ route('dean_osa.sarf-documents.show', $approvedSarfDoc) }}"
+                                            <a href="{{ route('staff_osa.sarf-documents.show', $approvedSarfDoc) }}"
                                                 target="_blank" class="document-check-btn">
                                                 <i class="fas fa-file-pdf"></i> View Document
                                             </a>
-                                            <a href="{{ route('dean_osa.sarf-documents.show', ['document' => $approvedSarfDoc, 'download' => 1]) }}"
+                                            <a href="{{ route('staff_osa.sarf-documents.show', ['document' => $approvedSarfDoc, 'download' => 1]) }}"
                                                 class="document-check-btn document-download-btn">
                                                 <i class="fas fa-download"></i> Download File
                                             </a>

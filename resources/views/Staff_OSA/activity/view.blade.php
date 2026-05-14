@@ -58,6 +58,7 @@
         font-size: 13.5px;
         color: #1e293b;
         line-height: 1.5;
+        font-weight: 500;
     }
     .show-value.muted { color: #94a3b8; font-style: italic; }
 
@@ -76,6 +77,19 @@
     }
     .tag-display .tag.green  { background: #dcfce7; color: #15803d; }
     .tag-display .tag.purple { background: #ede9fe; color: #6d28d9; }
+    .inline-tag {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        background: #e2e8f0;
+        color: #475569;
+        border-radius: 5px;
+        padding: 2px 8px;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+    .amount-green { font-weight: 700; color: #16a34a; font-size: 15px; }
+    .amount-amber { font-weight: 700; color: #d97706; font-size: 15px; }
 
     /* Objectives */
     .obj-display {
@@ -252,7 +266,7 @@
                         <div class="show-value">{{ $activity->school_year_code ?? '—' }}</div>
                     </div>
 
-                    <div class="show-field">
+                    <div class="show-field full">
                         <div class="show-label">Level(s)</div>
                         @php
                             $levels = is_array($activity->level)
@@ -270,7 +284,7 @@
                         @endif
                     </div>
 
-                    <div class="show-field">
+                    <div class="show-field full">
                         <div class="show-label">Department / Organization(s)</div>
                         @php
                             $depts = is_array($activity->department)
@@ -302,14 +316,14 @@
 
                     <div class="show-field full">
                         <div class="show-label">Activity Title</div>
-                        <div class="show-value" style="font-size:15px; font-weight:700;">
+                        <div class="show-value" style="font-size:15px; font-weight:700; color:#0f172a;">
                             {{ $activity->title ?? '—' }}
                         </div>
                     </div>
 
                     <div class="show-field full">
                         <div class="show-label">Short Description</div>
-                        <div class="show-value">{{ $activity->description ?? '—' }}</div>
+                        <div class="show-value">{{ $activity->description ?: '—' }}</div>
                     </div>
 
                     <div class="show-field full">
@@ -346,8 +360,8 @@
                     </div>
 
                     <div class="show-field">
-                        <div class="show-label">Submitted</div>
-                        <div class="show-value">{{ $activity->created_at?->format('F d, Y') ?? '—' }}</div>
+                        <div class="show-label">Public Poster</div>
+                        <div class="show-value">{{ $activity->public_poster ?? '—' }}</div>
                     </div>
 
                 </div>
@@ -387,9 +401,7 @@
                             <div class="show-value">
                                 {{ $activity->venue ?? '—' }}
                                 @if($activity->venue_type ?? null)
-                                    <span class="tag green" style="font-size:11px; padding:2px 8px; margin-left:6px;">
-                                        {{ $activity->venue_type }}
-                                    </span>
+                                    <span class="inline-tag">{{ $activity->venue_type }}</span>
                                 @endif
                             </div>
                         </div>
@@ -398,23 +410,21 @@
                     @if(in_array($activity->mode_of_conduct, ['Online','Hybrid']))
                         <div class="show-field">
                             <div class="show-label">Platform</div>
-                            <div class="show-value">{{ $activity->platform ?? '—' }}</div>
+                            <div class="show-value">
+                                <i class="fas fa-video" style="color:#3b82f6; font-size:12px;"></i>
+                                {{ $activity->platform ?? '—' }}
+                            </div>
                         </div>
                     @endif
 
                     <div class="show-field">
                         <div class="show-label">Number of Participants</div>
-                        <div class="show-value">{{ $activity->participants_count ?? '—' }}</div>
+                        <div class="show-value">{{ $activity->participants_count ? number_format($activity->participants_count) : '—' }}</div>
                     </div>
 
                     <div class="show-field">
                         <div class="show-label">Participant Profile</div>
                         <div class="show-value">{{ $activity->participants_profile ?? '—' }}</div>
-                    </div>
-
-                    <div class="show-field">
-                        <div class="show-label">Public Poster</div>
-                        <div class="show-value">{{ $activity->public_poster ?? '—' }}</div>
                     </div>
 
                 </div>
@@ -434,23 +444,26 @@
                         <div class="show-value">{{ $activity->funds ?? '—' }}</div>
                     </div>
 
-                    @if($activity->funds === 'With Budget')
+                    @if($activity->funds === 'With Budget' && $activity->source)
                         <div class="show-field">
                             <div class="show-label">Source</div>
-                            <div class="show-value">{{ $activity->source ?? '—' }}</div>
+                            <div class="show-value">{{ $activity->source }}</div>
+                        </div>
+                    @endif
+
+                    @if(in_array($activity->funds, ['With Budget','ATC']))
+                        <div class="show-field">
+                            <div class="show-label">Amount</div>
+                            <div class="show-value amount-green">
+                                {{ $activity->amount !== null ? '₱ ' . number_format($activity->amount, 2) : '—' }}
+                            </div>
                         </div>
                     @endif
 
                     @if($activity->funds === 'ATC')
                         <div class="show-field">
-                            <div class="show-label">Amount</div>
-                            <div class="show-value">
-                                {{ $activity->amount ? '₱ ' . number_format($activity->amount, 2) : '—' }}
-                            </div>
-                        </div>
-                        <div class="show-field">
                             <div class="show-label">Expected Collection</div>
-                            <div class="show-value">
+                            <div class="show-value amount-amber">
                                 {{ $activity->expected_collection
                                     ? '₱ ' . number_format($activity->expected_collection, 2)
                                     : '—' }}
@@ -458,7 +471,7 @@
                         </div>
                     @endif
 
-                    @if(in_array($activity->funds, ['With Budget','ATC']))
+                    @if(in_array($activity->funds, ['With Budget','ATC']) || filled($activity->canteen) || filled($activity->procurement))
                         <div class="show-field">
                             <div class="show-label">Canteen</div>
                             <div class="show-value">{{ $activity->canteen ?? '—' }}</div>
@@ -508,6 +521,13 @@
                     <span style="margin-left:auto; font-size:12px; font-weight:400; color:#64748b;">
                         {{ $docs->count() }} of {{ count($sarfLabels) }} types attached
                     </span>
+                    @if($docs->isNotEmpty())
+                        <a href="{{ route('staff_osa.sarf-documents.print-activity', $activity) }}"
+                           target="_blank"
+                           class="attachment-view-btn">
+                            <i class="fas fa-print"></i> Print All
+                        </a>
+                    @endif
                 </div>
 
                 @if($docs->isEmpty())
@@ -522,11 +542,13 @@
                                     <span class="sarf-badge">{{ $type }}</span>
                                     <span>{{ $label }}</span>
                                 </div>
-                                <a href="{{ route('dean_osa.sarf-documents.show', $docs[$type]) }}"
-                                   target="_blank"
-                                   class="attachment-view-btn">
-                                    <i class="fas fa-file-pdf"></i> View PDF
-                                </a>
+                                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                    <a href="{{ route('staff_osa.sarf-documents.show', $docs[$type]) }}"
+                                       target="_blank"
+                                       class="attachment-view-btn">
+                                        <i class="fas fa-file-pdf"></i> View PDF
+                                    </a>
+                                </div>
                             </div>
                         @endif
                     @endforeach

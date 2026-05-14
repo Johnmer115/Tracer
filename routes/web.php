@@ -68,7 +68,8 @@ Route::middleware(['auth', 'Dean_OSA'])->prefix('dean_osa')
         // System Logs
         Route::get('system-logs', [SystemLogController::class, 'index'])->name('system-logs.index');
 
-        // SARF Documents (view/download)
+        // SARF Documents (view/download/print)
+        Route::get('sarf-documents/activity/{activity}/print', [SarfDocumentController::class, 'printActivity'])->name('sarf-documents.print-activity');
         Route::get('sarf-documents/{document}', [SarfDocumentController::class, 'show'])->name('sarf-documents.show');
 
     });
@@ -88,6 +89,10 @@ Route::middleware(['auth', 'Staff_OSA'])->prefix('staff_osa')
         // Approvals
         Route::get('approval', [Staff_OSA_Controller::class, 'approvalIndex'])->name('approval.index');
 
+        // SARF Documents (view/download/print)
+        Route::get('sarf-documents/activity/{activity}/print', [SarfDocumentController::class, 'printActivity'])->name('sarf-documents.print-activity');
+        Route::get('sarf-documents/{document}', [SarfDocumentController::class, 'show'])->name('sarf-documents.show');
+
         // PAAR (Post-Activity Accomplishment Report)
         Route::get('paar', [Staff_OSA_Controller::class, 'paarIndex'])->name('paar.index');
 
@@ -104,5 +109,9 @@ Route::middleware(['auth', 'Branch_OSA'])->prefix('branch_osa')
         // Tracer (scoped to user's designated branch)
         Route::get('tracer', [Branch_OSA_Controller::class, 'tracerIndex'])->name('tracer.index');
         Route::get('tracer/{id}', [Branch_OSA_Controller::class, 'tracerShow'])->name('tracer.show');
+
+        // SARF Documents (view/download/print)
+        Route::get('sarf-documents/activity/{activity}/print', [SarfDocumentController::class, 'printActivity'])->name('sarf-documents.print-activity');
+        Route::get('sarf-documents/{document}', [SarfDocumentController::class, 'show'])->name('sarf-documents.show');
 
     });

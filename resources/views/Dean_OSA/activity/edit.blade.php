@@ -249,9 +249,19 @@
 
                             <div class="form-group mode-platform" id="platform-block" style="display:none;">
                                 <label class="form-label">Platform <span class="req" id="platform-req" style="display:none;">*</span></label>
-                                <input type="text" name="platform" class="form-control" id="platform-input"
-                                    placeholder="e.g. Zoom, Google Meet"
-                                    value="{{ old('platform', $activity->platform) }}">
+                                @php
+                                    $platformOptions = ['Zoom', 'Google Meet', 'Microsoft Teams', 'Facebook Live', 'YouTube Live', 'Google Classroom', 'Moodle', 'Canvas', 'Other'];
+                                    $selectedPlatform = old('platform', $activity->platform);
+                                @endphp
+                                <select name="platform" class="form-control" id="platform-input">
+                                    <option value="">— Select Platform —</option>
+                                    @foreach($platformOptions as $platform)
+                                        <option value="{{ $platform }}" @selected($selectedPlatform === $platform)>{{ $platform }}</option>
+                                    @endforeach
+                                    @if(filled($selectedPlatform) && !in_array($selectedPlatform, $platformOptions, true))
+                                        <option value="{{ $selectedPlatform }}" selected>{{ $selectedPlatform }}</option>
+                                    @endif
+                                </select>
                                 <span class="field-error" id="err-platform">Platform is required for Online / Hybrid.</span>
                             </div>
 
@@ -264,11 +274,37 @@
                                 <span class="field-error" id="err-date_of_activity">Date of activity is required.</span>
                             </div>
 
+                            @php
+                                $storedTimeRange = (string) old('time_of_activity', $activity->time_of_activity);
+                                $storedTimeParts = preg_split('/\s*(?:-|–|—|to)\s*/i', $storedTimeRange);
+                                $toTimeInput = function ($value) {
+                                    if (! filled($value)) {
+                                        return null;
+                                    }
+
+                                    $value = str_ireplace('NN', 'PM', trim($value));
+                                    $timestamp = strtotime($value);
+
+                                    return $timestamp ? date('H:i', $timestamp) : null;
+                                };
+                                $storedStartTime = $toTimeInput($storedTimeParts[0] ?? null);
+                                $storedEndTime = $toTimeInput($storedTimeParts[1] ?? null);
+                            @endphp
+
                             <div class="form-group">
-                                <label class="form-label">Time of Activity</label>
-                                <input type="text" name="time_of_activity" class="form-control"
-                                    placeholder="e.g. 9:00 AM – 12:00 NN"
-                                    value="{{ old('time_of_activity', $activity->time_of_activity) }}">
+                                <label class="form-label">Start Time</label>
+                                <input type="time" name="time_start" class="form-control"
+                                    id="time-start-input"
+                                    value="{{ old('time_start', $storedStartTime) }}">
+                                <span class="field-error" id="err-time_start">Please enter a start time.</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">End Time</label>
+                                <input type="time" name="time_end" class="form-control"
+                                    id="time-end-input"
+                                    value="{{ old('time_end', $storedEndTime) }}">
+                                <span class="field-error" id="err-time_end">Please enter an end time after the start time.</span>
                             </div>
 
                             <div class="form-group">
@@ -557,6 +593,22 @@ function markInvalid(field, invalid = true) {
     if (!field) return;
     invalid ? field.classList.add('is-invalid') : field.classList.remove('is-invalid');
 }
+function focusFirstInvalidInStep(step) {
+    const stepEl = document.getElementById('step-' + step);
+    if (!stepEl) return;
+
+    const visibleError = Array.from(stepEl.querySelectorAll('.field-error'))
+        .find(el => el.style.display !== 'none');
+    const target = stepEl.querySelector('.is-invalid') ||
+        visibleError?.closest('.form-group')?.querySelector('input, select, textarea, button');
+
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (typeof target.focus === 'function') {
+        target.focus({ preventScroll: true });
+    }
+}
 
 /* ── Step navigation ── */
 const TOTAL_STEPS = 3;
@@ -635,6 +687,17 @@ function validateStep(step, jumpOnFail = false) {
         markInvalid(dateAct, !dateActOk); showError('err-date_of_activity', !dateActOk);
         if (!dateActOk) valid = false;
 
+        const timeStart = document.querySelector('[name="time_start"]');
+        const timeEnd = document.querySelector('[name="time_end"]');
+        const hasTimeStart = timeStart && timeStart.value.trim() !== '';
+        const hasTimeEnd = timeEnd && timeEnd.value.trim() !== '';
+        const timeRangeOk = (!hasTimeStart && !hasTimeEnd) || (hasTimeStart && hasTimeEnd && timeEnd.value > timeStart.value);
+        markInvalid(timeStart, !timeRangeOk && !hasTimeStart);
+        markInvalid(timeEnd, !timeRangeOk && (!hasTimeEnd || timeEnd.value <= timeStart.value));
+        showError('err-time_start', hasTimeEnd && !hasTimeStart);
+        showError('err-time_end', hasTimeStart && (!hasTimeEnd || timeEnd.value <= timeStart.value));
+        if (!timeRangeOk) valid = false;
+
         const modeChecked = document.querySelector('[name="mode_of_conduct"]:checked');
         const modeOk      = !!modeChecked;
         showError('err-mode_of_conduct', !modeOk);
@@ -711,7 +774,10 @@ function validateStep(step, jumpOnFail = false) {
         });
     }
 
-    if (!valid && jumpOnFail) displayStep(step);
+    if (!valid) {
+        if (jumpOnFail) displayStep(step);
+        setTimeout(() => focusFirstInvalidInStep(step), jumpOnFail ? 250 : 0);
+    }
     return valid;
 }
 
@@ -969,7 +1035,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ── Jump to first failing step on server-side errors ── */
     @if($errors->any())
         for (let s = 1; s <= TOTAL_STEPS; s++) {
-            if (!validateStep(s)) { displayStep(s); break; }
+            if (!validateStep(s, true)) break;
         }
     @endif
 

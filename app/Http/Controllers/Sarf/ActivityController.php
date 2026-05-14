@@ -66,11 +66,20 @@ class ActivityController extends Controller
             'activity_level'     => 'required|in:Organization,Local,Interbranch,Off-Campus',
             'mode_of_conduct'    => 'required|in:Face to Face,Online,Hybrid',
             'date_of_activity'   => 'required|date',
+            'time_start'         => 'nullable|required_with:time_end|date_format:H:i',
+            'time_end'           => 'nullable|required_with:time_start|date_format:H:i|after:time_start',
             'funds'              => 'required|in:With Budget,ATC,No Fee',
             'amount'             => 'required_if:funds,With Budget,ATC|nullable|numeric|min:0',
             'types'              => 'nullable|array',
             'types.*'            => 'in:A0,A1,A2,A3,A4,A5,A6,A7,A8,A10',
             'participants_count' => 'nullable|integer|min:0',
+        ], [
+            'time_start.required_with' => 'Please enter the activity start time.',
+            'time_end.required_with'   => 'Please enter the activity end time.',
+            'time_end.after'           => 'The activity end time must be after the start time.',
+        ], [
+            'time_start' => 'start time',
+            'time_end'   => 'end time',
         ]);
 
         $activeSchoolYear = SchoolYear::current();
@@ -85,8 +94,9 @@ class ActivityController extends Controller
         $hasVenue      = in_array($modeOfConduct, ['Face to Face', 'Hybrid'], true);
         $hasPlatform   = in_array($modeOfConduct, ['Online', 'Hybrid'], true);
         $funds         = $request->input('funds');
+        $timeOfActivity = $this->formatActivityTimeRange($request);
 
-        $activity = DB::transaction(function () use ($request, $activeSchoolYear, $modeOfConduct, $hasVenue, $hasPlatform, $funds) {
+        $activity = DB::transaction(function () use ($request, $activeSchoolYear, $modeOfConduct, $hasVenue, $hasPlatform, $funds, $timeOfActivity) {
             $lockedSchoolYear = SchoolYear::whereKey($activeSchoolYear->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -109,7 +119,7 @@ class ActivityController extends Controller
                 'participants_profile'   => $request->input('participants_profile'),
                 'participants_count'     => $request->input('participants_count'),
                 'date_of_activity'       => $request->input('date_of_activity'),
-                'time_of_activity'       => $request->input('time_of_activity'),
+                'time_of_activity'       => $timeOfActivity,
                 'public_poster'          => $request->input('public_poster'),
                 'mode_of_conduct'        => $modeOfConduct,
                 'venue'                  => $hasVenue    ? $request->input('venue')      : null,
@@ -188,17 +198,27 @@ class ActivityController extends Controller
             'activity_level'     => 'required|in:Organization,Local,Interbranch,Off-Campus',
             'mode_of_conduct'    => 'required|in:Face to Face,Online,Hybrid',
             'date_of_activity'   => 'required|date',
+            'time_start'         => 'nullable|required_with:time_end|date_format:H:i',
+            'time_end'           => 'nullable|required_with:time_start|date_format:H:i|after:time_start',
             'funds'              => 'required|in:With Budget,ATC,No Fee',
             'amount'             => 'required_if:funds,With Budget,ATC|nullable|numeric|min:0',
             'types'              => 'nullable|array',
             'types.*'            => 'in:A0,A1,A2,A3,A4,A5,A6,A7,A8,A10',
             'participants_count' => 'nullable|integer|min:0',
+        ], [
+            'time_start.required_with' => 'Please enter the activity start time.',
+            'time_end.required_with'   => 'Please enter the activity end time.',
+            'time_end.after'           => 'The activity end time must be after the start time.',
+        ], [
+            'time_start' => 'start time',
+            'time_end'   => 'end time',
         ]);
 
         $modeOfConduct = $request->input('mode_of_conduct');
         $hasVenue      = in_array($modeOfConduct, ['Face to Face', 'Hybrid'], true);
         $hasPlatform   = in_array($modeOfConduct, ['Online', 'Hybrid'], true);
         $funds         = $request->input('funds');
+        $timeOfActivity = $this->formatActivityTimeRange($request);
 
         // When updating from 'for revision', reset disapproved approvals to 'pending'
         $resetData = [];
@@ -230,7 +250,7 @@ class ActivityController extends Controller
             'participants_profile'   => $request->input('participants_profile'),
             'participants_count'     => $request->input('participants_count'),
             'date_of_activity'       => $request->input('date_of_activity'),
-            'time_of_activity'       => $request->input('time_of_activity'),
+            'time_of_activity'       => $timeOfActivity,
             'public_poster'          => $request->input('public_poster'),
             'mode_of_conduct'        => $modeOfConduct,
             'venue'                  => $hasVenue    ? $request->input('venue')      : null,
@@ -290,5 +310,17 @@ class ActivityController extends Controller
         }
 
         return $maxSequence + 1;
+    }
+
+    private function formatActivityTimeRange(Request $request): ?string
+    {
+        $start = $request->input('time_start');
+        $end = $request->input('time_end');
+
+        if (! $start && ! $end) {
+            return null;
+        }
+
+        return date('g:i A', strtotime($start)) . ' - ' . date('g:i A', strtotime($end));
     }
 }

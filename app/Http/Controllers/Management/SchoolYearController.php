@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Management;
 use Illuminate\Http\Request;
 use App\Models\SchoolYear;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Schema;
 
 class SchoolYearController extends Controller
 {
@@ -46,20 +47,44 @@ class SchoolYearController extends Controller
         $request->validate([
             'name'       => 'required|string|unique:school_years,name',
             'code'       => 'required|string|unique:school_years,code',
-            'start_date' => 'required|date',
-            'end_date'   => 'required|date|after:start_date',
         ]);
 
-        SchoolYear::create([
-            'name'       => $request->name,
-            'code'       => $request->code,
-            'is_current' => false,
-            'start_date' => $request->start_date,
-            'end_date'   => $request->end_date,
-        ]);
+        SchoolYear::create($this->schoolYearPayload($request) + ['is_current' => false]);
 
         return redirect()->route('dean_osa.schoolyear.index')
                          ->with('success', 'School year created successfully.');
+    }
+
+    private function schoolYearPayload(Request $request): array
+    {
+        $payload = [
+            'name'       => $request->name,
+            'code'       => $request->code,
+        ];
+
+        if (Schema::hasColumn('school_years', 'start_date')) {
+            $payload['start_date'] = $this->fallbackStartDate($request->name);
+        }
+
+        if (Schema::hasColumn('school_years', 'end_date')) {
+            $payload['end_date'] = $this->fallbackEndDate($request->name);
+        }
+
+        return $payload;
+    }
+
+    private function fallbackStartDate(string $name): string
+    {
+        return preg_match('/(\d{4})/', $name, $matches)
+            ? $matches[1] . '-01-01'
+            : now()->format('Y-m-d');
+    }
+
+    private function fallbackEndDate(string $name): string
+    {
+        return preg_match('/\d{4}\D+(\d{4})/', $name, $matches)
+            ? $matches[1] . '-12-31'
+            : now()->format('Y-m-d');
     }
 
     public function show(string $id)
@@ -79,17 +104,10 @@ class SchoolYearController extends Controller
         $request->validate([
             'name'       => 'required|string|unique:school_years,name,' . $id,
             'code'       => 'required|string|unique:school_years,code,' . $id,
-            'start_date' => 'required|date',
-            'end_date'   => 'required|date|after:start_date',
         ]);
 
         $schoolYear = SchoolYear::findOrFail($id);
-        $schoolYear->update([
-            'name'       => $request->name,
-            'code'       => $request->code,
-            'start_date' => $request->start_date,
-            'end_date'   => $request->end_date,
-        ]);
+        $schoolYear->update($this->schoolYearPayload($request));
 
         return redirect()->route('dean_osa.schoolyear.index')
                          ->with('success', 'School year updated successfully.');

@@ -88,26 +88,33 @@
                     <i class="fas fa-info-circle"></i> Activity Details
                 </div>
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;">
-                    @foreach([
-                        ['Branch', $activity->branch->name ?? null],
-                        ['School Year', $activity->school_year_code],
-                        ['Date', $activity->date_of_activity?->format('M d, Y')],
-                        ['Time', $activity->time_of_activity],
-                        ['Venue', $activity->venue],
-                        ['Type', $activity->type_of_activity],
-                        ['Mode', $activity->mode_of_conduct],
-                        ['Level', count($levels) ? implode(', ', $levels) : null],
-                        ['Department', count($departments) ? implode(', ', $departments) : null],
-                        ['Funds', $activity->funds],
-                        ['Requested Budget', $activity->amount !== null ? 'PHP ' . number_format($activity->amount, 2) : null],
-                        ['Source', $activity->source],
-                        ['Canteen', $activity->canteen],
-                        ['Procurement', $activity->procurement],
-                        ['Submitted', $activity->created_at?->format('M d, Y g:i A')],
-                    ] as [$label, $value])
+                    @php
+                        $hasVenue = in_array($activity->mode_of_conduct, ['Face to Face', 'Hybrid'], true);
+                        $hasPlatform = in_array($activity->mode_of_conduct, ['Online', 'Hybrid'], true);
+                        $hasBudgetInfo = in_array($activity->funds, ['With Budget', 'ATC'], true);
+                        $detailRows = array_filter([
+                            ['Branch', $activity->branch->name ?? null],
+                            ['School Year', $activity->school_year_code],
+                            ['Date', $activity->date_of_activity?->format('M d, Y')],
+                            ['Time', $activity->time_of_activity],
+                            $hasVenue ? ['Venue', trim(($activity->venue ?? '') . ($activity->venue_type ? " ({$activity->venue_type})" : ''))] : null,
+                            $hasPlatform ? ['Platform', $activity->platform] : null,
+                            ['Type', $activity->type_of_activity],
+                            ['Mode', $activity->mode_of_conduct],
+                            ['Level', count($levels) ? implode(', ', $levels) : null],
+                            ['Department', count($departments) ? implode(', ', $departments) : null],
+                            ['Funds', $activity->funds],
+                            $hasBudgetInfo && $activity->amount !== null ? ['Requested Budget', 'PHP ' . number_format($activity->amount, 2)] : null,
+                            $activity->funds === 'With Budget' ? ['Source', $activity->source] : null,
+                            $hasBudgetInfo ? ['Canteen', $activity->canteen] : null,
+                            $hasBudgetInfo ? ['Procurement', $activity->procurement] : null,
+                            ['Submitted', $activity->created_at?->format('M d, Y g:i A')],
+                        ], fn ($row) => $row && filled($row[1]));
+                    @endphp
+                    @foreach($detailRows as [$label, $value])
                         <div>
                             <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:3px;">{{ $label }}</div>
-                            <div style="font-size:13px;font-weight:500;color:#1e293b;">{{ filled($value) ? $value : '-' }}</div>
+                            <div style="font-size:13px;font-weight:500;color:#1e293b;">{{ $value }}</div>
                         </div>
                     @endforeach
                 </div>
@@ -205,6 +212,12 @@
             <div>
                 <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:#374151;">
                     <i class="fas fa-paperclip"></i> SARF Documents
+                    @if($activity->sarfDocuments->isNotEmpty())
+                        <a href="{{ route('dean_osa.sarf-documents.print-activity', $activity) }}"
+                            target="_blank" class="abtn abtn-view" title="Print All" style="margin-left:8px;">
+                            <i class="fas fa-print"></i>
+                        </a>
+                    @endif
                 </div>
                 @forelse($activity->sarfDocuments as $doc)
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;margin-bottom:8px;border:1px solid var(--border);border-radius:8px;background:#fff;flex-wrap:wrap;">

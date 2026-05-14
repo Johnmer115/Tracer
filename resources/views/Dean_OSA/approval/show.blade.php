@@ -1184,10 +1184,6 @@
                             <div class="show-value">{{ $activity->participants_profile ?? '—' }}</div>
                         </div>
 
-                        <div class="show-field">
-                            <div class="show-label">Public Poster</div>
-                            <div class="show-value">{{ $activity->public_poster ?? '—' }}</div>
-                        </div>
 
                     </div>
                 </div>
@@ -1302,6 +1298,12 @@
                         <span style="margin-left:auto; font-size:12px; font-weight:400; color:#64748b;">
                             {{ $docs->count() }} of {{ count($sarfLabels) }} types attached
                         </span>
+                        @if($docs->isNotEmpty())
+                            <a href="{{ route('dean_osa.sarf-documents.print-activity', $activity) }}"
+                                target="_blank" class="attachment-view-btn">
+                                <i class="fas fa-print"></i> Print All
+                            </a>
+                        @endif
                     </div>
                     @if($docs->isEmpty())
                         <div style="padding:20px; text-align:center; color:#94a3b8; font-style:italic; font-size:13px;">
@@ -1322,10 +1324,12 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <a href="{{ route('dean_osa.sarf-documents.show', $docs[$type]) }}"
-                                        target="_blank" class="attachment-view-btn">
-                                        <i class="fas fa-file-pdf"></i> View PDF
-                                    </a>
+                                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                        <a href="{{ route('dean_osa.sarf-documents.show', $docs[$type]) }}"
+                                            target="_blank" class="attachment-view-btn">
+                                            <i class="fas fa-file-pdf"></i> View PDF
+                                        </a>
+                                    </div>
                                 </div>
                             @endif
                         @endforeach

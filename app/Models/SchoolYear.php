@@ -11,14 +11,10 @@ class SchoolYear extends Model
         'name',
         'code',
         'is_current',
-        'start_date',
-        'end_date',
     ];
 
     protected $casts = [
         'is_current' => 'boolean',
-        'start_date' => 'date',
-        'end_date'   => 'date',
     ];
 
     public static function current()

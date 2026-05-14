@@ -51,30 +51,34 @@
                             <div class="td-sub">Date</div>
                             <div class="td-main">{{ $activity->date_of_activity?->format('M j, Y') ?? '—' }}</div>
                         </div>
+                        @if($activity->time_of_activity)
                         <div>
                             <div class="td-sub">Time</div>
-                            <div class="td-main">{{ $activity->time_of_activity ?? '—' }}</div>
+                            <div class="td-main">{{ $activity->time_of_activity }}</div>
                         </div>
+                        @endif
                         <div>
                             <div class="td-sub">Mode of Conduct</div>
                             <div class="td-main">{{ $activity->mode_of_conduct ?? '—' }}</div>
                         </div>
-                        @if($activity->venue)
+                        @if(in_array($activity->mode_of_conduct, ['Face to Face','Hybrid']) && $activity->venue)
                         <div>
                             <div class="td-sub">Venue</div>
                             <div class="td-main">{{ $activity->venue }} {{ $activity->venue_type ? "({$activity->venue_type})" : '' }}</div>
                         </div>
                         @endif
-                        @if($activity->platform)
+                        @if(in_array($activity->mode_of_conduct, ['Online','Hybrid']) && $activity->platform)
                         <div>
                             <div class="td-sub">Platform</div>
                             <div class="td-main">{{ $activity->platform }}</div>
                         </div>
                         @endif
+                        @if($activity->participants_count)
                         <div>
                             <div class="td-sub">Participants</div>
-                            <div class="td-main">{{ $activity->participants_count ? number_format($activity->participants_count) : '—' }}</div>
+                            <div class="td-main">{{ number_format($activity->participants_count) }}</div>
                         </div>
+                        @endif
                         <div>
                             <div class="td-sub">Status</div>
                             @php
@@ -119,10 +123,10 @@
                             <div class="td-sub">Funds</div>
                             <div class="td-main">{{ $activity->funds ?? '—' }}</div>
                         </div>
-                        @if($activity->source)
+                        @if($activity->funds === 'With Budget' && $activity->source)
                         <div><div class="td-sub">Source</div><div class="td-main">{{ $activity->source }}</div></div>
                         @endif
-                        @if($activity->amount)
+                        @if(in_array($activity->funds, ['With Budget','ATC']) && $activity->amount !== null)
                         <div><div class="td-sub">Amount</div><div class="td-main">₱{{ number_format($activity->amount, 2) }}</div></div>
                         @endif
                     </div>
@@ -134,15 +138,20 @@
             <div class="show-section">
                 <div class="show-section-header" style="background:#fefce8; border-color:#fde68a;">
                     <i class="fas fa-paperclip" style="color:#d97706;"></i> Attachments
+                    <a href="{{ route('branch_osa.sarf-documents.print-activity', $activity) }}" target="_blank" class="attachment-view-btn" style="margin-left:auto;">
+                        <i class="fas fa-print"></i> Print All
+                    </a>
                 </div>
                 <div style="padding:16px 20px;">
                     @foreach($activity->sarfDocuments as $doc)
                         <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f3f4f6;">
                             <span class="sarf-badge">{{ $doc->type }}</span>
                             <span style="font-size:13px; color:#374151;">{{ $doc->original_filename }}</span>
-                            <a href="{{ asset('storage/' . $doc->file_path) }}" target="_blank" class="attachment-view-btn" style="margin-left:auto;">
-                                <i class="fas fa-external-link-alt"></i> View
-                            </a>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;">
+                                <a href="{{ route('branch_osa.sarf-documents.show', $doc) }}" target="_blank" class="attachment-view-btn">
+                                    <i class="fas fa-external-link-alt"></i> View
+                                </a>
+                            </div>
                         </div>
                     @endforeach
                 </div>

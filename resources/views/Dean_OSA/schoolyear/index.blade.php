@@ -42,8 +42,6 @@
                     <tr>
                         <th>Name</th>
                         <th>Code</th>
-                        <th>Start Date</th>
-                        <th>End Date</th>
                         <th>Status</th>
                         <th style="text-align:center;">Actions</th>
                     </tr>
@@ -53,8 +51,6 @@
                         <tr>
                             <td><div class="td-name">{{ $sy->name }}</div></td>
                             <td><span class="row-id">{{ $sy->code }}</span></td>
-                            <td class="td-muted">{{ $sy->start_date?->format('m/d/Y') }}</td>
-                            <td class="td-muted">{{ $sy->end_date?->format('m/d/Y') }}</td>
                             <td>
                                 @if($sy->is_current)
                                     <span class="badge b-active">Current</span>
@@ -76,11 +72,6 @@
                                         </form>
                                     @endif
 
-                                    <a href="{{ route('dean_osa.schoolyear.edit', $sy->id) }}"
-                                        class="abtn abtn-edit" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-
                                     @if(!$sy->is_current)
                                         <form action="{{ route('dean_osa.schoolyear.destroy', $sy->id) }}"
                                             method="POST" style="display:inline;"
@@ -98,7 +89,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="td-muted" style="text-align:center;">No school years found.</td>
+                            <td colspan="4" class="td-muted" style="text-align:center;">No school years found.</td>
                         </tr>
                     @endforelse
                 </tbody>

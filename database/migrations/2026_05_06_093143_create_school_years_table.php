@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('name'); // 2025-2026
             $table->string('code'); // 2526
             $table->boolean('is_current')->default(false);
-            $table->date('start_date');
-            $table->date('end_date');
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
             $table->timestamps();
         });
     }
