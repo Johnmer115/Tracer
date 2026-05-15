@@ -285,7 +285,7 @@
                     </div>
 
                     <div class="show-field full">
-                        <div class="show-label">Department / Organization(s)</div>
+                        <div class="show-label">Department(s)</div>
                         @php
                             $depts = is_array($activity->department)
                                 ? $activity->department
@@ -295,6 +295,24 @@
                             <div class="tag-display">
                                 @foreach($depts as $dept)
                                     <span class="tag purple">{{ $dept }}</span>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="show-value muted">Not specified</div>
+                        @endif
+                    </div>
+
+                    <div class="show-field full">
+                        <div class="show-label">Organization(s)</div>
+                        @php
+                            $orgs = is_array($activity->organizations)
+                                ? $activity->organizations
+                                : (filled($activity->organizations) ? [$activity->organizations] : []);
+                        @endphp
+                        @if(count($orgs))
+                            <div class="tag-display">
+                                @foreach($orgs as $org)
+                                    <span class="tag green">{{ $org }}</span>
                                 @endforeach
                             </div>
                         @else

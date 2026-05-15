@@ -41,7 +41,7 @@ class BranchController extends Controller
     public function create()
     {
         //
-        return view('Dean_osa.branch.create');
+        return view('Dean_OSA.branch.create');
     }
 
      public function store(Request $request)
@@ -81,7 +81,7 @@ class BranchController extends Controller
         //
         $branch = Branch::findOrFail($id);
 
-        return view('Dean_osa.branch.edit', compact('branch'));
+        return view('Dean_OSA.branch.edit', compact('branch'));
     }
 
     /**
@@ -112,6 +112,6 @@ class BranchController extends Controller
         //
         Branch::destroy($id);
 
-        return redirect()->route('Dean_osa.branch.index')->with('success', 'Branch deleted successfully.');
+        return redirect()->route('dean_osa.branch.index')->with('success', 'Branch deleted successfully.');
     }
 }

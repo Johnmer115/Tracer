@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Activity;
 use App\Models\Branch;
+use App\Models\Department;
+use App\Models\Organization;
 use App\Models\SarfDocument;
 use App\Models\SchoolYear;
 use App\Support\SarfListFilters;
@@ -48,12 +50,30 @@ class ActivityController extends Controller
     public function create()
     {
         $branches = Branch::orderBy('name')->get();
+        $departments = Department::with('branch')->orderBy('name')->get();
+        $organizations = Organization::with('department.branch')->orderBy('name')->get();
+        $levels = [
+            'Elementary',
+            'Junior High School',
+            'Senior High School',
+            'College/ETEEAP',
+            'Graduate School',
+            'All Levels',
+            'Basic Education',
+        ];
         $activeSchoolYear = SchoolYear::current();
         $nextSequence = $activeSchoolYear
             ? $this->nextSequenceForSchoolYear($activeSchoolYear->code)
             : null;
 
-        return view('Dean_OSA.activity.create', compact('branches', 'activeSchoolYear', 'nextSequence'));
+        return view('Dean_OSA.activity.create', compact(
+            'branches',
+            'departments',
+            'organizations',
+            'levels',
+            'activeSchoolYear',
+            'nextSequence',
+        ));
     }
 
     public function store(Request $request)
@@ -61,6 +81,12 @@ class ActivityController extends Controller
         $request->validate([
             'title'              => 'required|string|max:255',
             'branch_id'          => 'nullable|exists:branches,id',
+            'level'              => 'required|array|min:1',
+            'level.*'            => 'string|max:255',
+            'department'         => 'nullable|array',
+            'department.*'       => 'string|max:255',
+            'organizations'      => 'nullable|array',
+            'organizations.*'    => 'string|max:255',
             'type_of_activity'   => 'required|in:Extra-Curricular,Co-Curricular',
             'event_type'         => 'required|in:Internal,External',
             'activity_level'     => 'required|in:Organization,Local,Interbranch,Off-Campus',
@@ -95,8 +121,10 @@ class ActivityController extends Controller
         $hasPlatform   = in_array($modeOfConduct, ['Online', 'Hybrid'], true);
         $funds         = $request->input('funds');
         $timeOfActivity = $this->formatActivityTimeRange($request);
+        $departments = $this->cleanArrayInput($request->input('department', []));
+        $organizations = $this->cleanArrayInput($request->input('organizations', []));
 
-        $activity = DB::transaction(function () use ($request, $activeSchoolYear, $modeOfConduct, $hasVenue, $hasPlatform, $funds, $timeOfActivity) {
+        $activity = DB::transaction(function () use ($request, $activeSchoolYear, $modeOfConduct, $hasVenue, $hasPlatform, $funds, $timeOfActivity, $departments, $organizations) {
             $lockedSchoolYear = SchoolYear::whereKey($activeSchoolYear->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -108,8 +136,9 @@ class ActivityController extends Controller
                 'code'                   => $activityCode,
                 'school_year_code'       => $lockedSchoolYear->code,
                 'branch_id'              => $request->input('branch_id'),
-                'level'                  => $request->input('level'),
-                'department'             => $request->input('department', []),
+                'level'                  => $request->input('level', []),
+                'department'             => $departments,
+                'organizations'          => $organizations,
                 'title'                  => $request->input('title'),
                 'description'            => $request->input('description'),
                 'objectives'             => $request->input('objectives', []),
@@ -193,6 +222,12 @@ class ActivityController extends Controller
         $request->validate([
             'title'              => 'required|string|max:255',
             'branch_id'          => 'nullable|exists:branches,id',
+            'level'              => 'required|array|min:1',
+            'level.*'            => 'string|max:255',
+            'department'         => 'nullable|array',
+            'department.*'       => 'string|max:255',
+            'organizations'      => 'nullable|array',
+            'organizations.*'    => 'string|max:255',
             'type_of_activity'   => 'required|in:Extra-Curricular,Co-Curricular',
             'event_type'         => 'required|in:Internal,External',
             'activity_level'     => 'required|in:Organization,Local,Interbranch,Off-Campus',
@@ -219,6 +254,10 @@ class ActivityController extends Controller
         $hasPlatform   = in_array($modeOfConduct, ['Online', 'Hybrid'], true);
         $funds         = $request->input('funds');
         $timeOfActivity = $this->formatActivityTimeRange($request);
+        $departments = $this->cleanArrayInput($request->input('department', []));
+        $organizations = $request->has('organizations')
+            ? $this->cleanArrayInput($request->input('organizations', []))
+            : ($activity->organizations ?? []);
 
         // When updating from 'for revision', reset disapproved approvals to 'pending'
         $resetData = [];
@@ -239,8 +278,9 @@ class ActivityController extends Controller
 
         $updateData = array_merge([
             'branch_id'              => $request->input('branch_id'),
-            'level'                  => $request->input('level'),
-            'department'             => $request->input('department', []),
+            'level'                  => $request->input('level', []),
+            'department'             => $departments,
+            'organizations'          => $organizations,
             'title'                  => $request->input('title'),
             'description'            => $request->input('description'),
             'objectives'             => $request->input('objectives', []),
@@ -310,6 +350,17 @@ class ActivityController extends Controller
         }
 
         return $maxSequence + 1;
+    }
+
+    private function cleanArrayInput($values): array
+    {
+        if (! is_array($values)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map(function ($value) {
+            return is_string($value) ? trim($value) : $value;
+        }, $values), fn ($value) => filled($value))));
     }
 
     private function formatActivityTimeRange(Request $request): ?string

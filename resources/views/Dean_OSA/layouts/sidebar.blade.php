@@ -53,8 +53,18 @@
             </a>
         </li>
         <li>
-            <a href="{{ route('dean_osa.branch.index') }}" class="sb-item {{ request()->routeIs('dean_osa.branch.index') ? 'active' : '' }}" title="Branch">
+            <a href="{{ route('dean_osa.branch.index') }}" class="sb-item {{ request()->routeIs('dean_osa.branch.*') ? 'active' : '' }}" title="Branch">
                 <i class="fas fa-users"></i><span>Branch</span>
+            </a>
+        </li>
+        <li>
+            <a href="{{ route('dean_osa.department.index') }}" class="sb-item {{ request()->routeIs('dean_osa.department.*') ? 'active' : '' }}" title="Department">
+                <i class="fas fa-sitemap"></i><span>Department</span>
+            </a>
+        </li>
+        <li>
+            <a href="{{ route('dean_osa.orgs.index') }}" class="sb-item {{ request()->routeIs('dean_osa.orgs.*') ? 'active' : '' }}" title="Organization">
+                <i class="fas fa-user-friends"></i><span>Organization</span>
             </a>
         </li>
     </ul>

@@ -34,6 +34,7 @@
 
         $levels = is_array($activity->level) ? $activity->level : (filled($activity->level) ? [$activity->level] : []);
         $departments = is_array($activity->department) ? $activity->department : (filled($activity->department) ? [$activity->department] : []);
+        $orgs = is_array($activity->organizations) ? $activity->organizations : (filled($activity->organizations) ? [$activity->organizations] : []);
         $needsBasicEd = collect($levels)->contains(function ($level) {
             $level = Str::lower((string) $level);
             return Str::contains($level, ['elementary', 'junior high', 'senior high', 'basic', 'all levels']);
@@ -103,6 +104,7 @@
                             ['Mode', $activity->mode_of_conduct],
                             ['Level', count($levels) ? implode(', ', $levels) : null],
                             ['Department', count($departments) ? implode(', ', $departments) : null],
+                            ['Organization', count($orgs) ? implode(', ', $orgs) : null],
                             ['Funds', $activity->funds],
                             $hasBudgetInfo && $activity->amount !== null ? ['Requested Budget', 'PHP ' . number_format($activity->amount, 2)] : null,
                             $activity->funds === 'With Budget' ? ['Source', $activity->source] : null,

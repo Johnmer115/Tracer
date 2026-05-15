@@ -12,6 +12,7 @@ class Activity extends Model
         'branch_id',
         'level',
         'department',
+        'organizations',
 
         // SARF Detail
         'title',
@@ -110,6 +111,7 @@ class Activity extends Model
     protected $casts = [
         'date_of_activity' => 'date',
         'department'       => 'array',
+        'organizations'    => 'array',
         'objectives'       => 'array',
         'level'            => 'array',
         'approved_at_dean_sa' => 'datetime',

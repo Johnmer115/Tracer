@@ -112,7 +112,7 @@
                             </div>
 
                             <div class="form-group full">
-                                <label class="form-label">Department / Organization(s)</label>
+                                <label class="form-label">Department(s)</label>
                                 <p class="field-hint">Press <kbd>Enter</kbd> or click <strong>Add</strong> after each entry.</p>
                                 <div class="tag-input-wrap" id="dept-wrap">
                                     <div class="tag-list" id="dept-tags"></div>
@@ -125,6 +125,22 @@
                                     </div>
                                 </div>
                                 <div id="dept-hidden"></div>
+                            </div>
+
+                            <div class="form-group full">
+                                <label class="form-label">Organization(s) <span class="muted">(optional)</span></label>
+                                <p class="field-hint">Enter organizations separately from departments. Leave blank when not applicable.</p>
+                                <div class="tag-input-wrap" id="org-wrap">
+                                    <div class="tag-list" id="org-tags"></div>
+                                    <div class="tag-row">
+                                        <input type="text" id="org-input" class="form-control tag-input"
+                                            placeholder="e.g. Student Council">
+                                        <button type="button" class="btn btn-filter btn-sm" onclick="addTag('org')">
+                                            <i class="fas fa-plus"></i> Add
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="org-hidden"></div>
                             </div>
 
                         </div>
@@ -893,7 +909,7 @@ function updateFileName(type, input) {
 }
 
 /* ── Tag inputs ── */
-const tags = { dept: [], level: [] };
+const tags = { dept: [], level: [], org: [] };
 
 function addTag(key) {
     const input = document.getElementById(key + '-input');
@@ -909,7 +925,7 @@ function removeTag(key, val) {
 function renderTags(key) {
     const list   = document.getElementById(key + '-tags');
     const hidden = document.getElementById(key + '-hidden');
-    const name   = key === 'dept' ? 'department[]' : 'level[]';
+    const name   = key === 'dept' ? 'department[]' : (key === 'org' ? 'organizations[]' : 'level[]');
     if (list)   list.innerHTML   = tags[key].map(t =>
         `<span class="tag">${escapeHtml(t)}<button type="button" class="tag-remove"
             onclick="removeTag('${key}','${escapeHtml(t)}')">&times;</button></span>`
@@ -931,6 +947,9 @@ document.getElementById('dept-input')?.addEventListener('keydown', e => {
 });
 document.getElementById('level-input')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); addTag('level'); syncLevelPresetButtons(); }
+});
+document.getElementById('org-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addTag('org'); }
 });
 
 /* ── Objectives ── */
@@ -1014,6 +1033,23 @@ document.addEventListener('DOMContentLoaded', () => {
         @endforeach
     @endif
     renderTags('dept');
+
+    /* ── Org tags ── */
+    @if(old('organizations'))
+        @foreach(old('organizations', []) as $org)
+            tags['org'].push(@json($org));
+        @endforeach
+    @else
+        @php
+            $dbOrgs = is_array($activity->organizations)
+                ? $activity->organizations
+                : (filled($activity->organizations) ? [$activity->organizations] : []);
+        @endphp
+        @foreach($dbOrgs as $org)
+            tags['org'].push(@json($org));
+        @endforeach
+    @endif
+    renderTags('org');
 
     /* ── Objectives ── */
     @if(old('objectives'))

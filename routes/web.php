@@ -5,6 +5,8 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\AccountController;
 use App\Http\Controllers\Management\SchoolYearController;
 use App\Http\Controllers\Management\BranchController;
+use App\Http\Controllers\Management\DepartmentController;
+use App\Http\Controllers\Management\OrganizationController;
 use App\Http\Controllers\Management\SystemLogController;
 use App\Http\Controllers\Sarf\ActivityController;
 use App\Http\Controllers\Sarf\ApprovalController;
@@ -37,6 +39,13 @@ Route::middleware(['auth', 'Dean_OSA'])->prefix('dean_osa')
 
         // Branch Management
         Route::resource('branch', BranchController::class);
+
+        // Department Management
+        Route::get('department/by-branch', [DepartmentController::class, 'byBranch'])->name('department.by-branch');
+        Route::resource('department', DepartmentController::class)->except(['show']);
+
+        // Organization Management
+        Route::resource('orgs', OrganizationController::class);
 
         // Activity Management
         Route::resource('activity', ActivityController::class);

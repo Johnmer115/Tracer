@@ -610,6 +610,7 @@
 
         $levels     = is_array($activity->level)     ? $activity->level     : (filled($activity->level)     ? [$activity->level]     : []);
         $depts      = is_array($activity->department) ? $activity->department : (filled($activity->department) ? [$activity->department] : []);
+        $orgs       = is_array($activity->organizations) ? $activity->organizations : (filled($activity->organizations) ? [$activity->organizations] : []);
         $objectives = is_array($activity->objectives) ? $activity->objectives : (filled($activity->objectives) ? [$activity->objectives] : []);
 
         $requiresBasicEdApproval = collect($levels)->contains(function ($level) {
@@ -1056,11 +1057,24 @@
                         </div>
 
                         <div class="show-field full">
-                            <div class="show-label">Department / Organization(s)</div>
+                            <div class="show-label">Department(s)</div>
                             @if(count($depts))
                                 <div class="tag-display">
                                     @foreach($depts as $dept)
                                         <span class="tag purple">{{ $dept }}</span>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="show-value muted">Not specified</div>
+                            @endif
+                        </div>
+
+                        <div class="show-field full">
+                            <div class="show-label">Organization(s)</div>
+                            @if(count($orgs))
+                                <div class="tag-display">
+                                    @foreach($orgs as $org)
+                                        <span class="tag green">{{ $org }}</span>
                                     @endforeach
                                 </div>
                             @else

@@ -88,7 +88,7 @@
                             {{-- Branch --}}
                             <div class="form-group">
                                 <label class="form-label">Branch <span class="req">*</span></label>
-                                <select name="branch_id" class="form-control searchable-select" required
+                                <select name="branch_id" id="activity-branch-id" class="form-control searchable-select" required
                                     data-label="Branch">
                                     <option value="">— Select Branch —</option>
                                     @foreach($branches as $branch)
@@ -108,7 +108,7 @@
                                 <div class="tag-input-wrap" id="level-wrap">
                                     <div class="tag-list" id="level-tags"></div>
                                     <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-                                        @foreach(['Elementary','Junior High School','Senior High School','College/ETEEAP','Graduate School','All Levels'] as $lvl)
+                                        @foreach($levels as $lvl)
                                             <button type="button" class="level-preset-btn"
                                                 onclick="addPresetLevel('{{ $lvl }}')">
                                                 {{ $lvl }}
@@ -128,15 +128,24 @@
                                 <span class="field-error" id="err-level">Please add at least one level.</span>
                             </div>
 
-                            {{-- Department / Organisation (multi-tag) --}}
+                            {{-- Department / Organization (multi-tag) --}}
                             <div class="form-group full">
-                                <label class="form-label">Department / Organization(s)</label>
-                                <p class="field-hint">Press <kbd>Enter</kbd> or click <strong>Add</strong> after each entry.</p>
+                                <label class="form-label">Department(s)</label>
+                                <p class="field-hint">Choose from the current branch records, or add manual departments one at a time.</p>
                                 <div class="tag-input-wrap" id="dept-wrap">
                                     <div class="tag-list" id="dept-tags"></div>
+                                    <div class="tag-row" style="margin-bottom:8px;">
+                                        <select id="department-select" class="form-control searchable-select">
+                                            <option value="">Select department from branch</option>
+                                        </select>
+                                        <button type="button" class="btn btn-filter btn-sm"
+                                            onclick="addSelectedDepartment()">
+                                            <i class="fas fa-plus"></i> Add
+                                        </button>
+                                    </div>
                                     <div class="tag-row">
                                         <input type="text" id="dept-input" class="form-control tag-input"
-                                            placeholder="e.g. Computer Science">
+                                            placeholder="Manual department">
                                         <button type="button" class="btn btn-filter btn-sm"
                                             onclick="addTag('dept')">
                                             <i class="fas fa-plus"></i> Add
@@ -144,6 +153,32 @@
                                     </div>
                                 </div>
                                 <div id="dept-hidden"></div>
+                            </div>
+
+                            <div class="form-group full">
+                                <label class="form-label">Organization(s) <span class="muted">(optional)</span></label>
+                                <p class="field-hint">Select or enter organizations separately from departments. Leave blank when not applicable.</p>
+                                <div class="tag-input-wrap" id="org-wrap">
+                                    <div class="tag-list" id="org-tags"></div>
+                                    <div class="tag-row" style="margin-bottom:8px;">
+                                        <select id="organization-select" class="form-control searchable-select">
+                                            <option value="">Select organization from branch</option>
+                                        </select>
+                                        <button type="button" class="btn btn-filter btn-sm"
+                                            onclick="addSelectedOrganization()">
+                                            <i class="fas fa-plus"></i> Add
+                                        </button>
+                                    </div>
+                                    <div class="tag-row">
+                                        <input type="text" id="org-input" class="form-control tag-input"
+                                            placeholder="Manual organization">
+                                        <button type="button" class="btn btn-filter btn-sm"
+                                            onclick="addTag('org')">
+                                            <i class="fas fa-plus"></i> Add
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="org-hidden"></div>
                             </div>
 
                         </div>
@@ -932,8 +967,86 @@ function updateFileName(type, input) {
     if (errEl) errEl.style.display = (input.files.length > 0) ? 'none' : 'inline';
 }
 
-/* ── Tag input: Dept & Level ─────────────────────────── */
-const tags = { dept: [], level: [] };
+@php
+    $activityDepartments = $departments->map(function ($department) {
+        return [
+            'id' => $department->id,
+            'branch_id' => $department->branch_id,
+            'name' => $department->name,
+            'code' => $department->code,
+        ];
+    })->values();
+
+    $activityOrganizations = $organizations->map(function ($organization) {
+        return [
+            'id' => $organization->id,
+            'branch_id' => optional($organization->department)->branch_id,
+            'department_id' => $organization->department_id,
+            'name' => $organization->name,
+            'code' => $organization->code,
+            'level' => $organization->level,
+            'department_name' => optional($organization->department)->name,
+        ];
+    })->values();
+@endphp
+
+const activityDepartments = @json($activityDepartments);
+const activityOrganizations = @json($activityOrganizations);
+
+function optionLabel(item) {
+    return item.name;
+}
+
+function populateActivityContextOptions() {
+    const branchId = document.getElementById('activity-branch-id')?.value || '';
+    const departmentSelect = document.getElementById('department-select');
+    const organizationSelect = document.getElementById('organization-select');
+
+    if (!departmentSelect || !organizationSelect) return;
+
+    const matchingDepartments = activityDepartments.filter(department => String(department.branch_id) === String(branchId));
+    const matchingOrganizations = activityOrganizations.filter(organization => String(organization.branch_id) === String(branchId));
+
+    departmentSelect.innerHTML = '<option value="">Select department from branch</option>' +
+        matchingDepartments.map(department =>
+            `<option value="${department.id}" data-name="${escapeHtml(department.name)}">${escapeHtml(optionLabel(department))}</option>`
+        ).join('');
+
+    organizationSelect.innerHTML = '<option value="">Select organization from branch</option>' +
+        matchingOrganizations.map(organization => {
+            const suffix = organization.department_name ? ` - ${organization.department_name}` : '';
+            return `<option value="${organization.id}" data-name="${escapeHtml(organization.name)}" data-level="${escapeHtml(organization.level || '')}">${escapeHtml(optionLabel(organization) + suffix)}</option>`;
+        }).join('');
+
+    departmentSelect.disabled = !branchId || matchingDepartments.length === 0;
+    organizationSelect.disabled = !branchId || matchingOrganizations.length === 0;
+}
+
+function addValueTag(key, val) {
+    if (!val || tags[key].includes(val)) return;
+    tags[key].push(val);
+    renderTags(key);
+    if (key === 'level') {
+        syncLevelPresetButtons();
+        showError('err-level', false);
+    }
+}
+
+function addSelectedDepartment() {
+    const selected = document.getElementById('department-select')?.selectedOptions[0];
+    addValueTag('dept', selected?.dataset.name || '');
+}
+
+function addSelectedOrganization() {
+    const selected = document.getElementById('organization-select')?.selectedOptions[0];
+    addValueTag('org', selected?.dataset.name || '');
+    addValueTag('level', selected?.dataset.level || '');
+}
+
+document.getElementById('activity-branch-id')?.addEventListener('change', populateActivityContextOptions);
+
+/* ── Tag input: Department, Organization & Level ─────────────────────────── */
+const tags = { dept: [], org: [], level: [] };
 
 function addTag(key) {
     const input = document.getElementById(key + '-input');
@@ -956,7 +1069,13 @@ function removeTag(key, val) {
 function renderTags(key) {
     const list   = document.getElementById(key + '-tags');
     const hidden = document.getElementById(key + '-hidden');
-    const name   = key === 'dept' ? 'department[]' : 'level[]';
+    const nameMap = {
+        dept: 'department[]',
+        org: 'organizations[]',
+        level: 'level[]',
+    };
+    const name = nameMap[key];
+    if (!name) return;
     if (list)   list.innerHTML   = tags[key].map(t =>
         `<span class="tag">${escapeHtml(t)}<button type="button" class="tag-remove"
             onclick="removeTag('${key}','${escapeHtml(t)}')">&times;</button></span>`
@@ -984,6 +1103,9 @@ function syncLevelPresetButtons() {
 
 document.getElementById('dept-input')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); addTag('dept'); }
+});
+document.getElementById('org-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addTag('org'); }
 });
 document.getElementById('level-input')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); addTag('level'); syncLevelPresetButtons(); }
@@ -1060,6 +1182,7 @@ function saveActivityDraft() {
         checked: {},
         tags: {
             dept: [...tags.dept],
+            org: [...tags.org],
             level: [...tags.level],
         },
         objectives: [...objectives],
@@ -1067,7 +1190,7 @@ function saveActivityDraft() {
 
     form.querySelectorAll('input, select, textarea').forEach(field => {
         if (!field.name || field.type === 'file' || field.name === '_token') return;
-        if (field.closest('#dept-hidden, #level-hidden, #obj-hidden')) return;
+        if (field.closest('#dept-hidden, #org-hidden, #level-hidden, #obj-hidden')) return;
 
         if (field.type === 'checkbox') {
             if (!draft.checked[field.name]) draft.checked[field.name] = [];
@@ -1105,7 +1228,7 @@ function restoreActivityDraft() {
 
     form.querySelectorAll('input, select, textarea').forEach(field => {
         if (!field.name || field.type === 'file' || field.name === '_token') return;
-        if (field.closest('#dept-hidden, #level-hidden, #obj-hidden')) return;
+        if (field.closest('#dept-hidden, #org-hidden, #level-hidden, #obj-hidden')) return;
 
         if (field.type === 'checkbox') {
             field.checked = (draft.checked?.[field.name] ?? []).includes(field.value);
@@ -1123,10 +1246,12 @@ function restoreActivityDraft() {
     });
 
     tags.dept = Array.isArray(draft.tags?.dept) ? draft.tags.dept : [];
+    tags.org = Array.isArray(draft.tags?.org) ? draft.tags.org : [];
     tags.level = Array.isArray(draft.tags?.level) ? draft.tags.level : [];
     objectives.splice(0, objectives.length, ...(Array.isArray(draft.objectives) ? draft.objectives : []));
 
     renderTags('dept');
+    renderTags('org');
     renderTags('level');
     syncLevelPresetButtons();
     renderObjectives();
@@ -1164,6 +1289,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     @endif
 
+    populateActivityContextOptions();
+
     /* Mode of conduct */
     const modeChecked = document.querySelector('[name="mode_of_conduct"]:checked');
     if (modeChecked) handleMode(modeChecked.value);
@@ -1178,6 +1305,14 @@ document.addEventListener('DOMContentLoaded', () => {
             tags['dept'].push(@json($dept));
         @endforeach
         renderTags('dept');
+    @endif
+
+    /* Organization tags */
+    @if(old('organizations'))
+        @foreach(old('organizations', []) as $organization)
+            tags['org'].push(@json($organization));
+        @endforeach
+        renderTags('org');
     @endif
 
     /* Level tags */

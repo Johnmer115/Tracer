@@ -16,4 +16,9 @@ class Branch extends Model
     {
         return $this->hasMany(Account::class);
     }
+
+    public function departments(): HasMany
+    {
+        return $this->hasMany(Department::class);
+    }
 }

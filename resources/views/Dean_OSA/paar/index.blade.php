@@ -88,12 +88,18 @@
                                     $departments = is_array($activity->department)
                                         ? $activity->department
                                         : (filled($activity->department) ? [$activity->department] : []);
+                                    $orgs = is_array($activity->organizations)
+                                        ? $activity->organizations
+                                        : (filled($activity->organizations) ? [$activity->organizations] : []);
                                 @endphp
                                 @if(count($levels))
                                     <div class="td-sub">{{ implode(', ', $levels) }}</div>
                                 @endif
                                 @if(count($departments))
-                                    <div class="td-sub" >{{implode(', ', $departments)}}</div>
+                                    <div class="td-sub">{{ implode(', ', $departments) }}</div>
+                                @endif
+                                @if(count($orgs))
+                                    <div class="td-sub" style="color:#8b5cf6;">{{ implode(', ', $orgs) }}</div>
                                 @endif
                             </td>
 

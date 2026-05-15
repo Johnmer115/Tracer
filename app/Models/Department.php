@@ -3,27 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Account extends Authenticatable
+class Department extends Model
 {
     protected $fillable = [
-        'username',
-        'usertype',
-        'password',
-        'status',
         'branch_id',
+        'name',
+        'description',
+        'code',
     ];
 
-    protected $hidden = [
-        'password',
-    ];
-
-    /**
-     * Get the branch that the account belongs to.
-     */
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
