@@ -63,10 +63,10 @@
                                     @if(!$sy->is_current)
                                         <form action="{{ route('dean_osa.schoolyear.set-current', $sy->id) }}"
                                             method="POST" style="display:inline;"
-                                            onsubmit="return confirm('Set {{ $sy->name }} as current school year?');">
+                                            onsubmit="return confirm('Set {{ $sy->name }} as the current school year?');">
                                             @csrf
                                             @method('PATCH')
-                                            <button type="submit" class="abtn abtn-approve" title="Set as Current">
+                                            <button type="submit" class="abtn abtn-approve" title="Set as Current School Year">
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         </form>
@@ -78,9 +78,9 @@
                                             id="delete-form-{{ $sy->id }}">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="button" class="abtn abtn-del" title="Delete"
+                                            <button type="button" class="abtn abtn-del" title="Delete School Year"
                                                 onclick="confirmDelete('{{ $sy->id }}', '{{ $sy->name }}')">
-                                                <i class="fas fa-trash"></i>
+                                                <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </form>
                                     @endif

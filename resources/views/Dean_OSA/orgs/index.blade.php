@@ -73,17 +73,17 @@
                                 <div class="action-cell">
 
                                     <a href="{{ route('dean_osa.orgs.edit', $organization->id) }}"
-                                        class="abtn abtn-edit" title="Edit">
-                                        <i class="fas fa-edit"></i>
+                                        class="abtn abtn-edit" title="Edit Organization">
+                                        <i class="fas fa-pencil-alt"></i>
                                     </a>
 
                                     <form action="{{ route('dean_osa.orgs.destroy', $organization->id) }}"
                                         method="POST" style="display:inline;"
-                                        onsubmit="return confirm('Are you sure you want to delete this Organization?');">
+                                        onsubmit="return confirm('Are you sure you want to delete this organization? This action cannot be undone.');">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="abtn abtn-del" title="Delete">
-                                            <i class="fas fa-trash"></i>
+                                        <button type="submit" class="abtn abtn-del" title="Delete Organization">
+                                            <i class="fas fa-trash-alt"></i>
                                         </button>
                                     </form>
 

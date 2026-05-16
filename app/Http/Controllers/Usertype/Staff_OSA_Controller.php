@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use App\Models\Branch;
+use App\Models\DashboardMessage;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class Staff_OSA_Controller extends Controller
@@ -73,6 +74,13 @@ class Staff_OSA_Controller extends Controller
 
         $insideStatuses = collect($this->insideStatusOptions());
 
+        // Dashboard messages — shared across all user types
+        $messages = DashboardMessage::with('account')
+            ->orderByDesc('is_pinned')
+            ->latest()
+            ->take(50)
+            ->get();
+
         return view('Staff_OSA.dashboard.index', [
             'activities'     => $paginatedActivities,
             'counts'         => $counts,
@@ -80,6 +88,7 @@ class Staff_OSA_Controller extends Controller
             'levels'         => $levels,
             'insideStatuses' => $insideStatuses,
             'filters'        => $filters,
+            'messages'       => $messages,
         ]);
     }
 

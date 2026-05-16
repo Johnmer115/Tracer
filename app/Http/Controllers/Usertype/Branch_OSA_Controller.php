@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Usertype;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Activity;
+use App\Models\DashboardMessage;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class Branch_OSA_Controller extends Controller
@@ -25,16 +26,6 @@ class Branch_OSA_Controller extends Controller
                 return $activity;
             });
 
-        $page    = LengthAwarePaginator::resolveCurrentPage();
-        $perPage = 10;
-        $paginatedActivities = new LengthAwarePaginator(
-            $activities->forPage($page, $perPage)->values(),
-            $activities->count(),
-            $perPage,
-            $page,
-            ['path' => $request->url(), 'query' => $request->query()]
-        );
-
         $counts = [
             'total'        => $activities->count(),
             'pending'      => $activities->where('status', 'pending')->count(),
@@ -45,10 +36,17 @@ class Branch_OSA_Controller extends Controller
 
         $branchName = auth()->user()->branch->name ?? 'Your Branch';
 
+        // Dashboard messages — shared across all user types
+        $messages = DashboardMessage::with('account')
+            ->orderByDesc('is_pinned')
+            ->latest()
+            ->take(50)
+            ->get();
+
         return view('Branch_OSA.dashboard.index', [
-            'activities' => $paginatedActivities,
             'counts'     => $counts,
             'branchName' => $branchName,
+            'messages'   => $messages,
         ]);
     }
 

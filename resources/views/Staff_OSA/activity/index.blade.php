@@ -185,21 +185,21 @@
                             <td>
                                 <div class="action-cell">
                                     <a href="{{ route('dean_osa.activity.show', $activity->id) }}"
-                                        class="abtn abtn-view" title="View">
+                                        class="abtn abtn-view" title="View Activity Details">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     @if(in_array($activity->status, ['pending', 'for revision']))
                                         <a href="{{ route('dean_osa.activity.edit', $activity->id) }}"
-                                            class="abtn abtn-edit" title="Edit">
-                                            <i class="fas fa-edit"></i>
+                                            class="abtn abtn-edit" title="Edit Activity">
+                                            <i class="fas fa-pencil-alt"></i>
                                         </a>
                                         <form action="{{ route('dean_osa.activity.destroy', $activity->id) }}"
                                             method="POST" style="display:inline;"
-                                            onsubmit="return confirm('Delete this activity?');">
+                                            onsubmit="return confirm('Are you sure you want to delete this activity? This action cannot be undone.');">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="abtn abtn-del" title="Delete">
-                                                <i class="fas fa-trash"></i>
+                                            <button type="submit" class="abtn abtn-del" title="Delete Activity">
+                                                <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </form>
                                     @endif

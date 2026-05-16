@@ -103,17 +103,17 @@
                             <td>
                                 <div class="action-cell">
                                     <a href="{{ route('dean_osa.paar.show', $activity->id) }}"
-                                        class="abtn abtn-view" title="View">
+                                        class="abtn abtn-view" title="View PAAR Details">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     <a href="{{ route('dean_osa.paar.edit', $activity->id) }}"
-                                        class="abtn abtn-edit" title="Edit">
-                                        <i class="fas fa-edit"></i>
+                                        class="abtn abtn-edit" title="Edit PAAR">
+                                        <i class="fas fa-pencil-alt"></i>
                                     </a>
                                     <a href="{{ route('dean_osa.paar.act', $activity->id) }}"
-                                        class="abtn abtn-view"
-                                        title="{{ $activity->status === 'completed' ? 'Open Accomplishment Files' : 'Act for Accomplishment' }}">
-                                        <i class="fas fa-clipboard-check"></i>
+                                        class="abtn abtn-approve"
+                                        title="{{ $activity->status === 'completed' ? 'View Accomplishment Files' : 'Add Accomplishment' }}">
+                                        <i class="fas fa-check-circle"></i>
                                     </a>
                                 </div>
                             </td>

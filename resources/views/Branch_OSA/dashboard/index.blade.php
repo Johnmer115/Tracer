@@ -109,60 +109,6 @@
         </div>
     </div>
 
-    <div class="panel">
-        <div class="panel-header">
-            <div class="panel-title"><i class="fas fa-list"></i> Recent Activities</div>
-        </div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Activity</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th style="text-align:center;">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($activities as $activity)
-                        @php $badge = $statusBadge($activity); @endphp
-                        <tr>
-                            <td><span class="row-id">{{ $activity->code }}</span></td>
-                            <td>
-                                <div class="td-name">{{ $activity->title }}</div>
-                                <div class="td-sub">{{ $activity->type_of_activity ?? '' }}</div>
-                            </td>
-                            <td style="white-space:nowrap;">
-                                <div class="td-main">{{ $activity->date_of_activity?->format('M j, Y') ?? '—' }}</div>
-                            </td>
-                            <td>
-                                <span class="badge {{ $badge['class'] }}">
-                                    <i class="fas {{ $badge['icon'] }}"></i> {{ $badge['label'] }}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="action-cell">
-                                    <a href="{{ route('branch_osa.tracer.show', $activity->id) }}" class="abtn abtn-view" title="Open Tracer"><i class="fas fa-route"></i></a>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="5" class="td-muted" style="text-align:center; padding:40px;">No activities for your branch yet.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="panel-footer">
-            <span class="footer-info">Showing {{ $activities->firstItem() ?? 0 }}–{{ $activities->lastItem() ?? 0 }} of {{ $activities->total() }}</span>
-            <div class="pagi">
-                @if($activities->onFirstPage())<span class="pbtn pd">&#8249; Prev</span>@else<a class="pbtn" href="{{ $activities->previousPageUrl() }}">&#8249; Prev</a>@endif
-                @foreach($activities->getUrlRange(1, $activities->lastPage()) as $p => $u)
-                    @if($p == $activities->currentPage())<span class="pbtn pa">{{ $p }}</span>@else<a class="pbtn" href="{{ $u }}">{{ $p }}</a>@endif
-                @endforeach
-                @if($activities->hasMorePages())<a class="pbtn" href="{{ $activities->nextPageUrl() }}">Next &#8250;</a>@else<span class="pbtn pd">Next &#8250;</span>@endif
-            </div>
-        </div>
-    </div>
+   
 </section>
 @endsection

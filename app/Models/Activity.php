@@ -106,6 +106,10 @@ class Activity extends Model
         'reschedule_remarks',
         'reschedule_requested_at',
         'reschedule_decided_at',
+
+        // Modification tracking (from Approval → Activity)
+        'modification_type',       // null | revision | rescheduling
+        'modification_remarks',    // admin notes about what to modify
     ];
 
     protected $casts = [

@@ -61,20 +61,20 @@
                                             <!-- EDIT -->
                                             <a href="{{ route('dean_osa.department.edit', $department->id) }}" 
                                             class="abtn abtn-edit" 
-                                            title="Edit">
-                                                <i class="fas fa-edit"></i>
+                                            title="Edit Department">
+                                                <i class="fas fa-pencil-alt"></i>
                                             </a>
 
                                             <!-- DELETE -->
                                             <form action="{{ route('dean_osa.department.destroy', $department->id) }}" 
                                                 method="POST" 
                                                 style="display:inline;"
-                                                onsubmit="return confirm('Are you sure you want to delete this Department?');">
+                                                onsubmit="return confirm('Are you sure you want to delete this department? This action cannot be undone.');">
                                                 @csrf
                                                 @method('DELETE')
 
-                                                <button type="submit" class="abtn abtn-del" title="Delete">
-                                                    <i class="fas fa-trash"></i>
+                                                <button type="submit" class="abtn abtn-del" title="Delete Department">
+                                                    <i class="fas fa-trash-alt"></i>
                                                 </button>
                                             </form>
 

@@ -173,6 +173,7 @@
                                         'for approval'         => 'b-for-approval',
                                         'for approval finance' => 'b-for-approval',
                                         'for revision'         => 'b-revision',
+                                        'for reschedule'       => 'b-revision',
                                         'approved'             => 'b-approved',
                                         'completed'            => 'b-completed',
                                         'cancelled'            => 'b-cancelled',
@@ -181,6 +182,12 @@
                                     };
                                 @endphp
                                 <span class="badge {{ $statusClass }}">{{ ucfirst($activity->status) }}</span>
+                                @if($activity->modification_type)
+                                    <span class="mini-pill {{ $activity->modification_type === 'rescheduling' ? 'pill-amber' : 'pill-blue' }}" style="margin-left:3px;">
+                                        <i class="fas {{ $activity->modification_type === 'rescheduling' ? 'fa-calendar-alt' : 'fa-edit' }}" style="font-size:9px;"></i>
+                                        {{ ucfirst($activity->modification_type) }}
+                                    </span>
+                                @endif
                                 @if($activity->created_at)
                                     <div class="td-sub" style="margin-top:4px;">
                                         {{ $activity->created_at->format('M j, Y') }}
@@ -195,21 +202,21 @@
                             <td>
                                 <div class="action-cell">
                                     <a href="{{ route('dean_osa.activity.show', $activity->id) }}"
-                                        class="abtn abtn-view" title="View">
+                                        class="abtn abtn-view" title="View Activity Details">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    @if(in_array($activity->status, ['pending', 'for revision']))
+                                    @if(in_array($activity->status, ['pending', 'for revision', 'for reschedule']))
                                         <a href="{{ route('dean_osa.activity.edit', $activity->id) }}"
-                                            class="abtn abtn-edit" title="Edit">
-                                            <i class="fas fa-edit"></i>
+                                            class="abtn abtn-edit" title="Edit Activity">
+                                            <i class="fas fa-pencil-alt"></i>
                                         </a>
                                         <form action="{{ route('dean_osa.activity.destroy', $activity->id) }}"
                                             method="POST" style="display:inline;"
-                                            onsubmit="return confirm('Delete this activity?');">
+                                            onsubmit="return confirm('Are you sure you want to delete this activity? This action cannot be undone.');">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="abtn abtn-del" title="Delete">
-                                                <i class="fas fa-trash"></i>
+                                            <button type="submit" class="abtn abtn-del" title="Delete Activity">
+                                                <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </form>
                                     @endif

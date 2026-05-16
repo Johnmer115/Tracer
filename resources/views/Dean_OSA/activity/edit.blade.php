@@ -35,6 +35,55 @@
             </div>
         </div>
 
+        {{-- ── Modification Remark Banner ── --}}
+        @if($activity->modification_type)
+            @php
+                $isRescheduling = $activity->modification_type === 'rescheduling';
+                $bannerIcon  = $isRescheduling ? 'fa-calendar-alt' : 'fa-edit';
+                $bannerTitle = $isRescheduling ? 'Rescheduling Requested' : 'Revision Requested';
+                $bannerDesc  = $isRescheduling
+                    ? 'This activity has been sent back for schedule changes. Please update the date, time, and/or venue as needed. After saving, the new schedule will require approval before the activity returns to the approval pipeline.'
+                    : 'This activity has been sent back for revision. Please make the necessary content changes. After saving, the activity will return to the approval pipeline.';
+                $bannerBg    = $isRescheduling ? '#fef3c7' : '#dbeafe';
+                $bannerBorder = $isRescheduling ? '#f59e0b' : '#3b82f6';
+                $bannerColor = $isRescheduling ? '#92400e' : '#1e40af';
+                $bannerIconBg = $isRescheduling ? '#fbbf24' : '#60a5fa';
+            @endphp
+            <div class="mod-remark-banner" style="
+                margin:0; padding:18px 24px;
+                background:{{ $bannerBg }};
+                border-left:5px solid {{ $bannerBorder }};
+                display:flex; align-items:flex-start; gap:14px;
+                border-bottom:1px solid {{ $bannerBorder }}33;">
+                <div style="
+                    width:42px; height:42px; border-radius:10px;
+                    background:{{ $bannerIconBg }}; color:#fff;
+                    display:flex; align-items:center; justify-content:center;
+                    font-size:18px; flex-shrink:0;">
+                    <i class="fas {{ $bannerIcon }}"></i>
+                </div>
+                <div>
+                    <div style="font-size:15px; font-weight:700; color:{{ $bannerColor }}; margin-bottom:4px;">
+                        <i class="fas fa-exclamation-circle" style="font-size:13px;"></i>
+                        {{ $bannerTitle }}
+                    </div>
+                    <div style="font-size:12.5px; color:{{ $bannerColor }}; line-height:1.5; opacity:0.85;">
+                        {{ $bannerDesc }}
+                    </div>
+                    @if($activity->modification_remarks)
+                        <div style="
+                            margin-top:10px; padding:10px 14px;
+                            background:rgba(255,255,255,0.7); border-radius:8px;
+                            font-size:12.5px; color:#334155; line-height:1.5;
+                            border:1px solid {{ $bannerBorder }}44;">
+                            <strong style="color:{{ $bannerColor }};">Admin Remarks:</strong>
+                            {{ $activity->modification_remarks }}
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
+
         <div style="padding: 24px;">
 
             {{-- ── Step Indicators ── --}}
@@ -799,6 +848,13 @@ function validateStep(step, jumpOnFail = false) {
 
 function submitForm() {
     if (!validateStep(3)) return;
+    document.getElementById('commitOverlay').classList.add('active');
+}
+function closeCommitModal() {
+    document.getElementById('commitOverlay').classList.remove('active');
+}
+function confirmCommit() {
+    closeCommitModal();
     document.getElementById('sarf-form').submit();
 }
 
@@ -1078,4 +1134,102 @@ document.addEventListener('DOMContentLoaded', () => {
     checkLateSubmission();
 });
 </script>
+
+{{-- ══════════════════════════════════════════════
+     COMMIT CONFIRMATION MODAL
+══════════════════════════════════════════════ --}}
+@php
+    $isModRevision = $activity->modification_type === 'revision';
+    $isModResched  = $activity->modification_type === 'rescheduling';
+    $commitIcon    = $isModResched ? 'fa-calendar-check' : ($isModRevision ? 'fa-file-import' : 'fa-save');
+    $commitTitle   = $isModResched ? 'Commit Rescheduling Changes?' : ($isModRevision ? 'Commit Revision Changes?' : 'Save Changes?');
+    $commitDesc    = $isModResched
+        ? 'The new schedule will require approval before the activity returns to the approval pipeline. Existing approval progress will be preserved.'
+        : ($isModRevision
+            ? 'The activity will return to the approval pipeline after saving. Any disapproved signatories will be reset to pending.'
+            : 'Are you sure you want to save all changes to this activity?');
+    $commitBtnLabel = $isModResched ? 'Yes, Submit Rescheduling' : ($isModRevision ? 'Yes, Submit Revision' : 'Yes, Save Changes');
+    $commitIconBg   = $isModResched ? '#fbbf24' : ($isModRevision ? '#60a5fa' : '#22c55e');
+    $commitHeaderBg = $isModResched ? 'linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%)' : ($isModRevision ? 'linear-gradient(135deg,#f0f9ff 0%,#e0f2fe 100%)' : 'linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%)');
+    $commitHeaderBorder = $isModResched ? '#fde68a' : ($isModRevision ? '#bfdbfe' : '#bbf7d0');
+@endphp
+<div class="commit-overlay" id="commitOverlay" onclick="closeCommitModal()">
+    <div class="commit-modal" onclick="event.stopPropagation()">
+        <div class="commit-modal-header" style="background:{{ $commitHeaderBg }}; border-bottom:1px solid {{ $commitHeaderBorder }};">
+            <div class="commit-modal-icon" style="background:{{ $commitIconBg }};">
+                <i class="fas {{ $commitIcon }}"></i>
+            </div>
+            <div>
+                <h3 class="commit-modal-title">{{ $commitTitle }}</h3>
+                <p class="commit-modal-subtitle">SARF Code: {{ $activity->code }}</p>
+            </div>
+            <button type="button" class="commit-close" onclick="closeCommitModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="commit-modal-body">
+            <p style="font-size:13.5px; color:#475569; line-height:1.7; margin:0;">
+                {{ $commitDesc }}
+            </p>
+            @if($isModResched)
+            <div style="margin-top:14px; padding:10px 14px; background:#fef3c7; border-radius:8px; border:1px solid #fde68a;">
+                <div style="font-size:11.5px; font-weight:600; color:#92400e; display:flex; align-items:center; gap:6px;">
+                    <i class="fas fa-info-circle"></i> Schedule changes will be submitted for approval
+                </div>
+            </div>
+            @endif
+        </div>
+        <div class="commit-modal-footer">
+            <button type="button" class="btn btn-filter" onclick="closeCommitModal()">
+                <i class="fas fa-arrow-left"></i> Go Back
+            </button>
+            <button type="button" class="btn btn-add" onclick="confirmCommit()">
+                <i class="fas fa-check"></i> {{ $commitBtnLabel }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.commit-overlay {
+    display:none; position:fixed; inset:0; z-index:9999;
+    background:rgba(15,23,42,0.55); backdrop-filter:blur(4px);
+    align-items:center; justify-content:center;
+    animation:commitFade .2s ease;
+}
+.commit-overlay.active { display:flex; }
+@keyframes commitFade  { from{opacity:0} to{opacity:1} }
+@keyframes commitSlide { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+.commit-modal {
+    background:#fff; border-radius:16px;
+    box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);
+    width:460px; max-width:94vw; overflow:hidden;
+    animation:commitSlide .25s ease;
+}
+.commit-modal-header {
+    display:flex; align-items:center; gap:14px;
+    padding:20px 24px; position:relative;
+}
+.commit-modal-icon {
+    width:46px; height:46px; border-radius:12px; color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; flex-shrink:0;
+}
+.commit-modal-title { font-size:17px; font-weight:700; color:#0f172a; margin:0; }
+.commit-modal-subtitle { font-size:12px; color:#64748b; margin:2px 0 0; font-weight:500; }
+.commit-close {
+    position:absolute; top:16px; right:16px;
+    background:none; border:none; cursor:pointer; color:#94a3b8; font-size:16px;
+    width:32px; height:32px; border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    transition:all .15s;
+}
+.commit-close:hover { background:#e2e8f0; color:#334155; }
+.commit-modal-body { padding:20px 24px; }
+.commit-modal-footer {
+    display:flex; justify-content:flex-end; gap:10px;
+    padding:16px 24px; background:#f8fafc; border-top:1px solid #e5e7eb;
+}
+</style>
 @endsection

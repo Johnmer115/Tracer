@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Usertype;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
+use App\Models\DashboardMessage;
 use App\Support\SarfListFilters;
 
 class Dean_OSA_Controller extends Controller
@@ -31,12 +32,71 @@ class Dean_OSA_Controller extends Controller
             'completed' => $activities->where('status', 'completed')->count(),
         ];
 
+        // Dashboard messages — pinned first, then newest
+        $messages = DashboardMessage::with('account')
+            ->orderByDesc('is_pinned')
+            ->latest()
+            ->take(50)
+            ->get();
+
         return view('Dean_OSA.dashboard.index', [
             'activities' => $paginatedActivities,
             'counts' => $counts,
             'filters' => $filters,
+            'messages' => $messages,
             ...SarfListFilters::viewData(),
         ]);
+    }
+
+    /* ══════════════════════════════════════════════
+       DASHBOARD MESSAGES
+    ══════════════════════════════════════════════ */
+
+    /**
+     * Store a new dashboard message / remark.
+     */
+    public function storeMessage(Request $request)
+    {
+        $request->validate([
+            'message' => 'required|string|max:2000',
+            'type'    => 'required|in:general,announcement,reminder',
+        ]);
+
+        DashboardMessage::create([
+            'message'    => $request->input('message'),
+            'type'       => $request->input('type'),
+            'account_id' => auth()->id(),
+        ]);
+
+        return redirect()
+            ->route('dean_osa.index')
+            ->with('success', 'Message posted successfully.');
+    }
+
+    /**
+     * Delete a dashboard message.
+     */
+    public function deleteMessage(string $id)
+    {
+        $message = DashboardMessage::findOrFail($id);
+        $message->delete();
+
+        return redirect()
+            ->route('dean_osa.index')
+            ->with('success', 'Message deleted.');
+    }
+
+    /**
+     * Toggle pin status of a dashboard message.
+     */
+    public function togglePinMessage(string $id)
+    {
+        $message = DashboardMessage::findOrFail($id);
+        $message->update(['is_pinned' => !$message->is_pinned]);
+
+        return redirect()
+            ->route('dean_osa.index')
+            ->with('success', $message->is_pinned ? 'Message pinned.' : 'Message unpinned.');
     }
 
     /**

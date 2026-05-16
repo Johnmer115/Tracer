@@ -59,20 +59,20 @@
                                             <!-- EDIT -->
                                             <a href="{{ route('dean_osa.branch.edit', $branch->id) }}" 
                                             class="abtn abtn-edit" 
-                                            title="Edit">
-                                                <i class="fas fa-edit"></i>
+                                            title="Edit Branch">
+                                                <i class="fas fa-pencil-alt"></i>
                                             </a>
 
                                             <!-- DELETE -->
                                             <form action="{{ route('dean_osa.branch.destroy', $branch->id) }}" 
                                                 method="POST" 
                                                 style="display:inline;"
-                                                onsubmit="return confirm('Are you sure you want to delete this Branch?');">
+                                                onsubmit="return confirm('Are you sure you want to delete this branch? This action cannot be undone.');">
                                                 @csrf
                                                 @method('DELETE')
 
-                                                <button type="submit" class="abtn abtn-del" title="Delete">
-                                                    <i class="fas fa-trash"></i>
+                                                <button type="submit" class="abtn abtn-del" title="Delete Branch">
+                                                    <i class="fas fa-trash-alt"></i>
                                                 </button>
                                             </form>
 

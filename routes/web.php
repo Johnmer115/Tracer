@@ -30,6 +30,11 @@ Route::middleware(['auth', 'Dean_OSA'])->prefix('dean_osa')
         // Dashboard
         Route::get('/', [Dean_OSA_Controller::class, 'index'])->name('index');
 
+        // Dashboard Messages
+        Route::post('messages', [Dean_OSA_Controller::class, 'storeMessage'])->name('messages.store');
+        Route::delete('messages/{id}', [Dean_OSA_Controller::class, 'deleteMessage'])->name('messages.delete');
+        Route::patch('messages/{id}/pin', [Dean_OSA_Controller::class, 'togglePinMessage'])->name('messages.pin');
+
         // Account Management
         Route::resource('account', AccountController::class);
 
@@ -62,6 +67,9 @@ Route::middleware(['auth', 'Dean_OSA'])->prefix('dean_osa')
         Route::post('approval/{id}/reschedule', [ApprovalController::class, 'requestReschedule'])->name('approval.reschedule.request');
         Route::post('approval/{id}/reschedule/approve', [ApprovalController::class, 'approveReschedule'])->name('approval.reschedule.approve');
         Route::post('approval/{id}/reschedule/reject', [ApprovalController::class, 'rejectReschedule'])->name('approval.reschedule.reject');
+
+        // Modification (send back to Activities for revision or rescheduling)
+        Route::post('approval/{id}/modification', [ApprovalController::class, 'requestModification'])->name('approval.modification');
 
         // PAAR (Post-Activity Accomplishment Report)
         Route::get('paar', [PaarController::class, 'index'])->name('paar.index');

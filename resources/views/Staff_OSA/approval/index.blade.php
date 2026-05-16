@@ -366,7 +366,7 @@
                             <td>
                                 <div class="action-cell">
                                     <a href="{{ route('dean_osa.approval.review', $activity->id) }}"
-                                        class="abtn abtn-view" title="Review & Approve">
+                                        class="abtn abtn-view" title="Review & Approve Activity">
                                         <i class="fas fa-stamp"></i>
                                     </a>
                                 </div>

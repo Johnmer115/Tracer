@@ -27,6 +27,7 @@ class ActivityController extends Controller
 
         $filters = SarfListFilters::fromRequest($request);
         $query = Activity::with(['sarfDocuments', 'branch'])
+              ->whereIn('status', ['pending', 'for revision', 'for reschedule', 'reshedule'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('title',  'like', "%{$search}%")
@@ -35,7 +36,7 @@ class ActivityController extends Controller
                 });
             });
 
-        SarfListFilters::apply($query, $filters);
+        SarfListFilters::apply($query, $filters, ['pending', 'for revision', 'for reschedule', 'reshedule']);
 
         $filteredActivities = SarfListFilters::applyInsideStatus($query->latest()->get(), $filters);
         $activities = SarfListFilters::paginateCollection($filteredActivities, $request, $perPage);
@@ -45,6 +46,8 @@ class ActivityController extends Controller
             'filters' => $filters,
             ...SarfListFilters::viewData(),
         ]);
+
+        
     }
 
     public function create()
@@ -259,9 +262,9 @@ class ActivityController extends Controller
             ? $this->cleanArrayInput($request->input('organizations', []))
             : ($activity->organizations ?? []);
 
-        // When updating from 'for revision', reset disapproved approvals to 'pending'
+        // When updating from 'for revision' or 'for reschedule', reset disapproved approvals to 'pending'
         $resetData = [];
-        if ($activity->status === 'for revision') {
+        if (in_array($activity->status, ['for revision', 'for reschedule'])) {
             foreach ([
                 'approval_dean_sa', 'approval_avp_sps', 'approval_dir_basic_ed',
                 'approval_vp_acad', 'approval_vp_hrd_legal',
@@ -318,6 +321,36 @@ class ActivityController extends Controller
                     ['file_path' => $path, 'original_filename' => $file->getClientOriginalName()]
                 );
             }
+        }
+
+        // If modification was rescheduling + schedule was changed, create reschedule request
+        if ($activity->modification_type === 'rescheduling') {
+            $freshActivity = Activity::findOrFail($activity->id);
+
+            $freshActivity->update([
+                'reschedule_status'       => 'pending',
+                'reschedule_date'         => $freshActivity->date_of_activity,
+                'reschedule_time'         => $freshActivity->time_of_activity,
+                'reschedule_venue'        => $freshActivity->venue,
+                'reschedule_reason'       => $freshActivity->modification_remarks ?? 'Schedule modification requested.',
+                'reschedule_remarks'      => null,
+                'reschedule_requested_at' => now(),
+                'reschedule_decided_at'   => null,
+                'status'                  => 'for approval',
+                'modification_type'       => null,
+                'modification_remarks'    => null,
+            ]);
+
+            return redirect()->route('dean_osa.activity.index')
+                             ->with('success', 'Rescheduling changes submitted. The new schedule requires approval before the activity returns to the approval pipeline.');
+        }
+
+        // Clear modification fields after successful revision
+        if ($activity->modification_type === 'revision') {
+            Activity::where('id', $activity->id)->update([
+                'modification_type'    => null,
+                'modification_remarks' => null,
+            ]);
         }
 
         return redirect()->route('dean_osa.activity.index')

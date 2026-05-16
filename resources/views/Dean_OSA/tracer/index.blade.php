@@ -299,7 +299,7 @@
                             <td>
                                 <div class="action-cell">
                                     <a href="{{ route('dean_osa.tracer.show', $activity->id) }}"
-                                        class="abtn abtn-view" title="View Tracer">
+                                        class="abtn abtn-view" title="View Activity Tracer">
                                         <i class="fas fa-route"></i>
                                     </a>
                                 </div>

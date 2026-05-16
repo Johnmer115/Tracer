@@ -3,177 +3,27 @@
 @section('title', 'Dashboard | SARF Tracking')
 @section('page-title', 'Dashboard')
 
-@push('styles')
-<style>
-   .dash-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-    margin-bottom: 16px;
-}
-.dash-stat {
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    background: #fff;
-    padding: 16px;
-    position: relative;
-    overflow: hidden;
-}
-.dash-stat::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    border-radius: 12px 12px 0 0;
-}
-.dash-stat[data-color="purple"]::before { background: #7F77DD; }
-.dash-stat[data-color="amber"]::before  { background: #EF9F27; }
-.dash-stat[data-color="blue"]::before   { background: #378ADD; }
-.dash-stat[data-color="teal"]::before   { background: #1D9E75; }
-.dash-stat[data-color="green"]::before  { background: #639922; }
-
-.dash-stat-icon {
-    width: 36px; height: 36px;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    margin-bottom: 12px;
-}
-.dash-stat[data-color="purple"] .dash-stat-icon { background: #EEEDFE; color: #534AB7; }
-.dash-stat[data-color="amber"]  .dash-stat-icon { background: #FAEEDA; color: #854F0B; }
-.dash-stat[data-color="blue"]   .dash-stat-icon { background: #E6F1FB; color: #185FA5; }
-.dash-stat[data-color="teal"]   .dash-stat-icon { background: #E1F5EE; color: #0F6E56; }
-.dash-stat[data-color="green"]  .dash-stat-icon { background: #EAF3DE; color: #3B6D11; }
-
-.dash-stat-label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #64748b;
-    margin-bottom: 4px;
-}
-.dash-stat-value {
-    font-size: 28px;
-    font-weight: 800;
-    line-height: 1;
-    color: #1e293b;
-}
-.dash-stat-footer {
-    margin-top: 10px;
-    font-size: 11px;
-    color: #94a3b8;
-    display: flex; align-items: center; gap: 5px;
-}
-.dash-stat-footer .fa-circle { font-size: 6px; }
-    .filter-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, .35);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity .18s ease;
-        z-index: 70;
-    }
-    .filter-backdrop.is-open {
-        opacity: 1;
-        pointer-events: auto;
-    }
-    .filter-drawer {
-        position: fixed;
-        top: 0;
-        right: 0;
-        width: min(390px, 100%);
-        height: 100vh;
-        background: #fff;
-        border-left: 1px solid #e5e7eb;
-        box-shadow: -18px 0 40px rgba(15, 23, 42, .16);
-        transform: translateX(100%);
-        transition: transform .22s ease;
-        z-index: 80;
-        display: flex;
-        flex-direction: column;
-    }
-    .filter-drawer.is-open { transform: translateX(0); }
-    .filter-drawer-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 18px 20px;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    .filter-drawer-title {
-        font-size: 15px;
-        font-weight: 800;
-        color: #1e293b;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .drawer-close {
-        border: 0;
-        width: 34px;
-        height: 34px;
-        border-radius: 8px;
-        background: #f1f5f9;
-        color: #475569;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .filter-drawer-body {
-        padding: 18px 20px;
-        overflow: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-    .filter-group label {
-        display: block;
-        font-size: 11px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: .4px;
-        color: #64748b;
-        margin-bottom: 7px;
-    }
-    .filter-actions {
-        margin-top: auto;
-        padding: 16px 20px;
-        border-top: 1px solid #e5e7eb;
-        display: flex;
-        gap: 10px;
-        justify-content: flex-end;
-    }
-    .active-filter-strip {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        padding: 0 0 14px;
-    }
-    .filter-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        font-weight: 700;
-        color: #1d4ed8;
-        background: #dbeafe;
-        border-radius: 20px;
-        padding: 5px 10px;
-    }
-    @media (max-width: 720px) {
-        .dashboard-actions {
-            width: 100%;
-            justify-content: flex-start !important;
-        }
-    }
-</style>
-@endpush
 
 @php
     $activeFilters = collect($filters)->filter(fn($value) => filled($value));
+    $selectedLevels = collect((array) ($filters['level'] ?? []))
+        ->filter(fn($value) => filled($value))
+        ->map(fn($value) => (string) $value)
+        ->all();
+    $filterDisplayValue = function ($key, $value) use ($branches) {
+        if ($key === 'branch_id') {
+            return optional($branches->firstWhere('id', (int) $value))->name ?? 'Unknown branch';
+        }
+
+        if (is_array($value)) {
+            return collect($value)
+                ->flatten()
+                ->filter(fn($item) => filled($item))
+                ->implode(', ');
+        }
+
+        return $value;
+    };
     $statusBadge = function($activity) {
         if ($activity->dashboard_inside_status) {
             return ['label' => $activity->dashboard_inside_status, 'class' => 'b-ongoing', 'icon' => 'fa-map-marker-alt'];
@@ -193,12 +43,16 @@
 
 @section('content')
 <section class="panel" style="padding: 25px;">
+    @if ($message = Session::get('success'))
+        <div class="alert alert-success"><b>{{ $message }}</b></div>
+    @endif
+
     <div class="panel-header" style="margin-bottom:16px;">
         <div>
             <div class="panel-title">
-                <i class="fas fa-chart-line"></i> Staff OSA Dashboard
+                <i class="fas fa-chart-line"></i> SARF Dashboard
             </div>
-            <div class="td-sub" style="margin-top:4px;">Overview of all activities by branch, level, pipeline, and approval location.</div>
+            <div class="td-sub" style="margin-top:4px;">Overview of activities by branch, level, pipeline, and approval location.</div>
         </div>
         <div class="dashboard-actions" style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
             @if($activeFilters->isNotEmpty())
@@ -220,198 +74,253 @@
             @foreach($activeFilters as $key => $value)
                 <span class="filter-chip">
                     <i class="fas fa-filter"></i>
-                    {{ Str::headline($key) }}: {{ $key === 'branch_id' ? optional($branches->firstWhere('id', (int) $value))->name : $value }}
+                    {{ Str::headline($key) }}: {{ $filterDisplayValue($key, $value) }}
                 </span>
             @endforeach
         </div>
     @endif
-<div class="dash-grid">
-    <div class="dash-stat" data-color="purple">
-        <div class="dash-stat-icon"><i class="fas fa-layer-group"></i></div>
-        <div class="dash-stat-label">Total Activities</div>
-        <div class="dash-stat-value">{{ $counts['total'] }}</div>
-        <div class="dash-stat-footer"><i class="fas fa-calendar-alt"></i> all time</div>
-    </div>
-    <div class="dash-stat" data-color="amber">
-        <div class="dash-stat-icon"><i class="fas fa-clock"></i></div>
-        <div class="dash-stat-label">Pending</div>
-        <div class="dash-stat-value">{{ $counts['pending'] }}</div>
-        <div class="dash-stat-footer"><i class="fas fa-circle"></i> awaiting action</div>
-    </div>
-    <div class="dash-stat" data-color="blue">
-        <div class="dash-stat-icon"><i class="fas fa-clipboard-check"></i></div>
-        <div class="dash-stat-label">For Approval</div>
-        <div class="dash-stat-value">{{ $counts['for_approval'] }}</div>
-        <div class="dash-stat-footer"><i class="fas fa-circle"></i> in pipeline</div>
-    </div>
-    <div class="dash-stat" data-color="teal">
-        <div class="dash-stat-icon"><i class="fas fa-check-circle"></i></div>
-        <div class="dash-stat-label">Approved</div>
-        <div class="dash-stat-value">{{ $counts['approved'] }}</div>
-        <div class="dash-stat-footer"><i class="fas fa-circle"></i> cleared</div>
-    </div>
-    <div class="dash-stat" data-color="green">
-        <div class="dash-stat-icon"><i class="fas fa-check-double"></i></div>
-        <div class="dash-stat-label">Completed</div>
-        <div class="dash-stat-value">{{ $counts['completed'] }}</div>
-        <div class="dash-stat-footer"><i class="fas fa-circle"></i> done</div>
-    </div>
-</div>
 
-    <div class="panel">
-        <div class="panel-header">
-            <div class="panel-title">
-                <i class="fas fa-list"></i> Recent Activities
-            </div>
+    <div class="dash-grid">
+        <div class="dash-stat" data-color="purple">
+            <div class="dash-stat-icon"><i class="fas fa-layer-group"></i></div>
+            <div class="dash-stat-label">Total Activities</div>
+            <div class="dash-stat-value">{{ $counts['total'] }}</div>
+            <div class="dash-stat-footer"><i class="fas fa-calendar-alt"></i> all time</div>
         </div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Activity</th>
-                        <th>Branch / Level</th>
-                        <th>Activity Date</th>
-                        <th>Status</th>
-                        <th style="text-align:center;">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($activities as $activity)
-                        @php
-                            $badge = $statusBadge($activity);
-                            $levelsForRow = is_array($activity->level) ? $activity->level : (filled($activity->level) ? [$activity->level] : []);
-                        @endphp
-                        <tr>
-                            <td style="white-space:nowrap;"><span class="row-id">{{ $activity->code }}</span></td>
-                            <td>
-                                <div class="td-name">{{ $activity->title }}</div>
-                                <div class="td-sub">{{ $activity->type_of_activity ?? 'Activity' }}</div>
-                            </td>
-                            <td>
-                                <div class="td-main">{{ $activity->branch->name ?? '-' }}</div>
-                                <div class="td-sub">{{ count($levelsForRow) ? implode(', ', $levelsForRow) : '-' }}</div>
-                            </td>
-                            <td style="white-space:nowrap;">
-                                <div class="td-main">{{ $activity->date_of_activity?->format('M j, Y') ?? '-' }}</div>
-                                <div class="td-sub">{{ $activity->time_of_activity ?? '' }}</div>
-                            </td>
-                            <td>
-                                <span class="badge {{ $badge['class'] }}">
-                                    <i class="fas {{ $badge['icon'] }}"></i> {{ $badge['label'] }}
+        <div class="dash-stat" data-color="amber">
+            <div class="dash-stat-icon"><i class="fas fa-clock"></i></div>
+            <div class="dash-stat-label">Pending</div>
+            <div class="dash-stat-value">{{ $counts['pending'] }}</div>
+            <div class="dash-stat-footer"><i class="fas fa-circle"></i> awaiting action</div>
+        </div>
+        <div class="dash-stat" data-color="blue">
+            <div class="dash-stat-icon"><i class="fas fa-clipboard-check"></i></div>
+            <div class="dash-stat-label">For Approval</div>
+            <div class="dash-stat-value">{{ $counts['for_approval'] }}</div>
+            <div class="dash-stat-footer"><i class="fas fa-circle"></i> in pipeline</div>
+        </div>
+        <div class="dash-stat" data-color="teal">
+            <div class="dash-stat-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="dash-stat-label">Approved</div>
+            <div class="dash-stat-value">{{ $counts['approved'] }}</div>
+            <div class="dash-stat-footer"><i class="fas fa-circle"></i> cleared</div>
+        </div>
+        <div class="dash-stat" data-color="green">
+            <div class="dash-stat-icon"><i class="fas fa-check-double"></i></div>
+            <div class="dash-stat-label">Completed</div>
+            <div class="dash-stat-value">{{ $counts['completed'] }}</div>
+            <div class="dash-stat-footer"><i class="fas fa-circle"></i> done</div>
+        </div>
+    </div>
+
+    {{-- ══════════════════════════════════════════════
+         MESSAGE / REMARKS BOARD
+    ══════════════════════════════════════════════ --}}
+    <div class="msg-board">
+        <div class="msg-board-header">
+            <div class="msg-board-title">
+                <i class="fas fa-comment-dots"></i> Remarks Board
+            </div>
+            <button type="button" class="btn btn-add" onclick="openComposeModal()">
+                <i class="fas fa-plus"></i> New Remark
+            </button>
+        </div>
+
+        <div class="msg-board-body">
+            {{-- Static placeholder cards for template --}}
+            @php
+                $sampleMessages = [
+                    ['type' => 'announcement', 'text' => 'This is a sample announcement message.', 'author' => 'Dean', 'time' => '2 hours ago', 'pinned' => true],
+                    ['type' => 'reminder',     'text' => 'This is a sample reminder message.',     'author' => 'Staff',  'time' => '5 hours ago', 'pinned' => false],
+                    ['type' => 'general',      'text' => 'This is a sample general remark.',       'author' => 'Branch',   'time' => '1 day ago',   'pinned' => false],
+                ];
+                $typeConfigs = [
+                    'announcement' => ['icon' => 'fa-bullhorn',    'color' => '#dc2626', 'bg' => '#fef2f2', 'border' => '#fca5a5', 'label' => 'Announcement'],
+                    'reminder'     => ['icon' => 'fa-bell',        'color' => '#d97706', 'bg' => '#fffbeb', 'border' => '#fcd34d', 'label' => 'Reminder'],
+                    'general'      => ['icon' => 'fa-comment-alt', 'color' => '#014ea8', 'bg' => '#f0f6ff', 'border' => '#93c5fd', 'label' => 'General'],
+                ];
+            @endphp
+
+            @foreach($sampleMessages as $msg)
+                @php $typeConfig = $typeConfigs[$msg['type']]; @endphp
+                <div class="msg-card {{ $msg['pinned'] ? 'msg-pinned' : '' }}">
+                    <div class="msg-accent" style="background:{{ $typeConfig['color'] }};"></div>
+                    <div class="msg-content">
+                        <div class="msg-meta">
+                            <span class="msg-type-badge" style="background:{{ $typeConfig['bg'] }}; color:{{ $typeConfig['color'] }}; border:1px solid {{ $typeConfig['border'] }};">
+                                <i class="fas {{ $typeConfig['icon'] }}" style="font-size:9px;"></i>
+                                {{ $typeConfig['label'] }}
+                            </span>
+                            @if($msg['pinned'])
+                                <span class="msg-pin-badge">
+                                    <i class="fas fa-thumbtack"></i> Pinned
                                 </span>
-                            </td>
-                            <td>
-                                <div class="action-cell">
-                                    <a href="{{ route('staff_osa.activity.show', $activity->id) }}" class="abtn abtn-view" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="td-muted" style="text-align:center; padding:40px;">
-                                No activities match the selected filters.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                            @endif
+                            <span class="msg-time">
+                                <i class="fas fa-clock" style="font-size:9px;"></i>
+                                {{ $msg['time'] }}
+                            </span>
+                        </div>
+                        <div class="msg-text">{{ $msg['text'] }}</div>
+                        <div class="msg-footer">
+                            <div class="msg-author">
+                                <div class="msg-avatar">{{ strtoupper(substr($msg['author'], 0, 1)) }}</div>
+                                <span class="msg-author-name">{{ $msg['author'] }}</span>
+                            </div>
+                            <div class="msg-actions">
+                                <button type="button" class="msg-action-btn" title="Pin">
+                                    <i class="fas fa-thumbtack {{ $msg['pinned'] ? '' : '' }}" style="{{ $msg['pinned'] ? 'color:var(--primary);' : '' }}"></i>
+                                </button>
+                                <button type="button" class="msg-action-btn msg-action-del" title="Delete">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
         </div>
-        <div class="panel-footer">
-            <span class="footer-info">
-                Showing {{ $activities->firstItem() ?? 0 }}&ndash;{{ $activities->lastItem() ?? 0 }}
-                of {{ $activities->total() }} entries
-            </span>
-            <div class="pagi">
-                @if($activities->onFirstPage())
-                    <span class="pbtn pd">&#8249; Previous</span>
-                @else
-                    <a class="pbtn" href="{{ $activities->previousPageUrl() }}">&#8249; Previous</a>
-                @endif
-                @foreach($activities->getUrlRange(1, $activities->lastPage()) as $page => $url)
-                    @if($page == $activities->currentPage())
-                        <span class="pbtn pa">{{ $page }}</span>
-                    @else
-                        <a class="pbtn" href="{{ $url }}">{{ $page }}</a>
-                    @endif
-                @endforeach
-                @if($activities->hasMorePages())
-                    <a class="pbtn" href="{{ $activities->nextPageUrl() }}">Next &#8250;</a>
-                @else
-                    <span class="pbtn pd">Next &#8250;</span>
-                @endif
+    </div>
+
+    {{-- ══════════════════════════════════════════════
+         COMPOSE MODAL
+    ══════════════════════════════════════════════ --}}
+    <div class="compose-overlay" id="composeOverlay" onclick="closeComposeModal()">
+        <div class="compose-modal" onclick="event.stopPropagation()">
+            <div class="compose-header">
+                <div class="compose-header-icon">
+                    <i class="fas fa-pen"></i>
+                </div>
+                <div>
+                    <h3 class="compose-title">New Remark</h3>
+                    <p class="compose-subtitle">Post a message to the dashboard board</p>
+                </div>
+                <button type="button" class="compose-close" onclick="closeComposeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="compose-body">
+                {{-- Type selector --}}
+                <div style="margin-bottom:16px;">
+                    <label class="compose-label">Type</label>
+                    <div class="compose-type-group">
+                        <label class="compose-type-option">
+                            <input type="radio" name="type" value="general" checked>
+                            <span class="compose-type-chip" style="--chip-bg:#f0f6ff; --chip-color:#014ea8; --chip-border:#93c5fd;">
+                                <i class="fas fa-comment-alt"></i> General
+                            </span>
+                        </label>
+                        <label class="compose-type-option">
+                            <input type="radio" name="type" value="announcement">
+                            <span class="compose-type-chip" style="--chip-bg:#fef2f2; --chip-color:#dc2626; --chip-border:#fca5a5;">
+                                <i class="fas fa-bullhorn"></i> Announcement
+                            </span>
+                        </label>
+                        <label class="compose-type-option">
+                            <input type="radio" name="type" value="reminder">
+                            <span class="compose-type-chip" style="--chip-bg:#fffbeb; --chip-color:#d97706; --chip-border:#fcd34d;">
+                                <i class="fas fa-bell"></i> Reminder
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                {{-- Message input --}}
+                <div>
+                    <label class="compose-label" for="composeMsg">Message</label>
+                    <textarea name="message" id="composeMsg" class="form-control"
+                        rows="4" maxlength="2000"
+                        placeholder="Write your remark here…"
+                        style="resize:vertical; border-radius:10px; font-size:13px;"></textarea>
+                    <div style="text-align:right; font-size:10.5px; color:#94a3b8; margin-top:4px;">
+                        <span id="charCount">0</span>/2000
+                    </div>
+                </div>
+            </div>
+
+            <div class="compose-footer">
+                <button type="button" class="btn btn-filter" onclick="closeComposeModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-add">
+                    <i class="fas fa-paper-plane"></i> Post Remark
+                </button>
             </div>
         </div>
     </div>
-</section>
 
-<div id="dashboard-filter-backdrop" class="filter-backdrop" onclick="closeDashboardFilters()"></div>
-<aside id="dashboard-filter-drawer" class="filter-drawer" aria-hidden="true">
-    <form method="GET" action="{{ route('staff_osa.index') }}" style="display:flex; flex-direction:column; height:100%;">
-        <div class="filter-drawer-head">
-            <div class="filter-drawer-title">
-                <i class="fas fa-sliders-h"></i> Dashboard Filters
+    {{-- ══════════════════════════════════════════════
+         FILTER DRAWER
+    ══════════════════════════════════════════════ --}}
+    <div id="dashboard-filter-backdrop" class="filter-backdrop" onclick="closeDashboardFilters()"></div>
+    <aside id="dashboard-filter-drawer" class="filter-drawer" aria-hidden="true">
+        <form method="GET" action="{{ route('staff_osa.index') }}" style="display:flex; flex-direction:column; height:100%;">
+            <div class="filter-drawer-head">
+                <div class="filter-drawer-title">
+                    <i class="fas fa-sliders-h"></i> Dashboard Filters
+                </div>
+                <button type="button" class="drawer-close" onclick="closeDashboardFilters()" aria-label="Close filters">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <button type="button" class="drawer-close" onclick="closeDashboardFilters()" aria-label="Close filters">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="filter-drawer-body">
-            <div class="filter-group">
-                <label for="branch_id">Branch</label>
-                <select id="branch_id" name="branch_id" class="form-control">
-                    <option value="">All Branches</option>
-                    @foreach($branches as $branch)
-                        <option value="{{ $branch->id }}" @selected((string) $filters['branch_id'] === (string) $branch->id)>
-                            {{ $branch->name }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
+            <div class="filter-drawer-body">
+                <div class="filter-group">
+                    <label for="branch_id">Branch</label>
+                    <select id="branch_id" name="branch_id" class="form-control searchable-select">
+                        <option value="">All Branches</option>
+                        @foreach($branches as $branch)
+                            <option value="{{ $branch->id }}" @selected((string) $filters['branch_id'] === (string) $branch->id)>
+                                {{ $branch->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
-            <div class="filter-group">
-                <label for="level">Level</label>
-                <select id="level" name="level" class="form-control">
-                    <option value="">All Levels</option>
-                    @foreach($levels as $level)
-                        <option value="{{ $level }}" @selected($filters['level'] === $level)>{{ $level }}</option>
-                    @endforeach
-                </select>
-            </div>
+                <div class="filter-group">
+                    <label>Level</label>
+                    <div class="filter-checkbox-group">
+                        @foreach($levels as $level)
+                            <div class="filter-checkbox-item">
+                                <input type="checkbox" id="level_{{ $loop->index }}" name="level[]"
+                                    value="{{ $level }}"
+                                    @checked(in_array((string) $level, $selectedLevels, true))>
+                                <label for="level_{{ $loop->index }}">{{ $level }}</label>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
 
-            <div class="filter-group">
-                <label for="pipeline_status">Pipeline Status</label>
-                <select id="pipeline_status" name="pipeline_status" class="form-control">
-                    <option value="">All Pipeline Statuses</option>
-                    @foreach(['pending' => 'Pending', 'for approval' => 'For Approval', 'approved' => 'Approved', 'completed' => 'Completed'] as $value => $label)
-                        <option value="{{ $value }}" @selected($filters['pipeline_status'] === $value)>{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
+                <div class="filter-group">
+                    <label for="pipeline_status">Pipeline Status</label>
+                    <select id="pipeline_status" name="pipeline_status" class="form-control searchable-select">
+                        <option value="">All Pipeline Statuses</option>
+                        @foreach(['pending' => 'Pending', 'for approval' => 'For Approval', 'approved' => 'Approved', 'completed' => 'Completed'] as $value => $label)
+                            <option value="{{ $value }}" @selected($filters['pipeline_status'] === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
 
-            <div class="filter-group">
-                <label for="inside_status">Inside Status</label>
-                <select id="inside_status" name="inside_status" class="form-control">
-                    <option value="">All Inside Statuses</option>
-                    @foreach($insideStatuses as $insideStatus)
-                        <option value="{{ $insideStatus }}" @selected($filters['inside_status'] === $insideStatus)>{{ $insideStatus }}</option>
-                    @endforeach
-                </select>
+                <div class="filter-group">
+                    <label for="inside_status">Inside Status</label>
+                    <select id="inside_status" name="inside_status" class="form-control searchable-select">
+                        <option value="">All Inside Statuses</option>
+                        @foreach($insideStatuses as $insideStatus)
+                            <option value="{{ $insideStatus }}" @selected($filters['inside_status'] === $insideStatus)>{{ $insideStatus }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
-        </div>
-        <div class="filter-actions">
-            <a href="{{ route('staff_osa.index') }}" class="btn btn-filter">
-                <i class="fas fa-rotate-left"></i> Reset
-            </a>
-            <button type="submit" class="btn btn-add">
-                <i class="fas fa-check"></i> Apply
-            </button>
-        </div>
-    </form>
-</aside>
-@endsection
+            <div class="filter-actions">
+                <a href="{{ route('staff_osa.index') }}" class="btn btn-filter">
+                    <i class="fas fa-rotate-left"></i> Reset
+                </a>
+                <button type="submit" class="btn btn-add">
+                    <i class="fas fa-check"></i> Apply
+                </button>
+            </div>
+        </form>
+    </aside>
 
 @push('scripts')
 <script>
@@ -427,8 +336,27 @@ function closeDashboardFilters() {
     document.getElementById('dashboard-filter-drawer')?.setAttribute('aria-hidden', 'true');
 }
 
+function openComposeModal() {
+    document.getElementById('composeOverlay').classList.add('active');
+    setTimeout(() => document.getElementById('composeMsg')?.focus(), 200);
+}
+
+function closeComposeModal() {
+    document.getElementById('composeOverlay').classList.remove('active');
+}
+
+// Character counter
+document.getElementById('composeMsg')?.addEventListener('input', function() {
+    document.getElementById('charCount').textContent = this.value.length;
+});
+
 document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeDashboardFilters();
+    if (event.key === 'Escape') {
+        closeDashboardFilters();
+        closeComposeModal();
+    }
 });
 </script>
 @endpush
+
+@endsection

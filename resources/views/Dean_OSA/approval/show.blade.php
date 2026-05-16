@@ -6,546 +6,7 @@
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/sarf-create.css') }}">
     <style>
-    /* ══════════════════════════════════════════════
-       Show-section cards (mirrors activity/show.blade)
-    ══════════════════════════════════════════════ */
-    .show-section {
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        overflow: hidden;
-        margin-bottom: 16px;
-    }
-    .show-section-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 13px 20px;
-        font-size: 13.5px;
-        font-weight: 700;
-        color: #1e293b;
-        background: #f8fafc;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    .show-section-header i { color: #3b82f6; font-size: 14px; }
-    .show-section-header.purple { background: #faf5ff; border-bottom-color: #e9d5ff; }
-    .show-section-header.purple i { color: #8b5cf6; }
-    .show-section-header.green  { background: #f0fdf4; border-bottom-color: #bbf7d0; }
-    .show-section-header.green  i { color: #16a34a; }
-    .show-section-header.amber  { background: #fffbeb; border-bottom-color: #fde68a; }
-    .show-section-header.amber  i { color: #d97706; }
-
-    .show-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0;
-    }
-    .show-field {
-        padding: 14px 20px;
-        border-bottom: 1px solid #f1f5f9;
-    }
-    .show-field:nth-child(odd)  { border-right: 1px solid #f1f5f9; }
-    .show-field.full            { grid-column: 1 / -1; border-right: none; }
-    .show-field:last-child,
-    .show-field:nth-last-child(2):nth-child(odd) { border-bottom: none; }
-    .show-field.full:last-child { border-bottom: none; }
-    .show-label {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: .5px;
-        color: #94a3b8;
-        margin-bottom: 5px;
-    }
-    .show-value {
-        font-size: 13.5px;
-        color: #1e293b;
-        line-height: 1.5;
-        font-weight: 500;
-    }
-    .show-value.muted { color: #94a3b8; font-style: italic; }
-
-    /* Tags (levels, depts) */
-    .tag-display { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
-    .tag-display .tag {
-        background: #dbeafe; color: #1d4ed8;
-        border-radius: 20px; padding: 3px 10px;
-        font-size: 12.5px; font-weight: 600; cursor: default;
-    }
-    .tag-display .tag.purple { background: #ede9fe; color: #6d28d9; }
-    .tag-display .tag.green  { background: #dcfce7; color: #15803d; }
-    .tag-display .tag.slate  { background: #f1f5f9; color: #475569; }
-
-    /* Objectives */
-    .obj-display {
-        list-style: none; margin: 4px 0 0; padding: 0;
-        display: flex; flex-direction: column; gap: 6px;
-    }
-    .obj-display li {
-        display: flex; align-items: flex-start; gap: 8px;
-        font-size: 13.5px; color: #1e293b;
-    }
-    .obj-display li::before {
-        content: ''; flex-shrink: 0;
-        width: 7px; height: 7px; border-radius: 50%;
-        background: #3b82f6; margin-top: 6px;
-    }
-
-    /* Inline badge (venue type etc.) */
-    .inline-tag {
-        display: inline-block; font-size: 11px; font-weight: 700;
-        background: #e2e8f0; color: #475569;
-        border-radius: 5px; padding: 2px 8px;
-        margin-left: 8px; vertical-align: middle;
-    }
-
-    /* Amount highlights */
-    .amount-green { font-weight: 700; color: #16a34a; font-size: 15px; }
-    .amount-amber { font-weight: 700; color: #d97706; font-size: 15px; }
-
-    /* Late submission */
-    .late-notice {
-        display: flex; align-items: flex-start; gap: 12px;
-        background: #fef9c3; border: 1px solid #fde68a;
-        border-radius: 10px; padding: 14px 18px;
-        margin-bottom: 16px; font-size: 13.5px; color: #78350f;
-    }
-    .late-notice i { color: #f59e0b; font-size: 18px; margin-top: 1px; }
-
-    /* Attachment rows */
-    .attachment-view-row {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 16px; padding: 12px 20px;
-        border-bottom: 1px solid #f1f5f9;
-        transition: background .12s;
-    }
-    .attachment-view-row:last-child { border-bottom: none; }
-    .attachment-view-row:hover { background: #f8fafc; }
-    .attachment-view-left {
-        display: flex; align-items: center; gap: 10px;
-        font-size: 13.5px; color: #1e293b;
-    }
-    .attachment-view-btn {
-        display: inline-flex; align-items: center; gap: 6px;
-        font-size: 12px; font-weight: 600; color: #3b82f6;
-        background: #dbeafe; border-radius: 20px; padding: 4px 12px;
-        text-decoration: none; white-space: nowrap; transition: background .15s;
-    }
-    .attachment-view-btn:hover { background: #bfdbfe; color: #1d4ed8; }
-
-    /* ══════════════════════════════════════════════
-       Step indicators — BLUE theme
-    ══════════════════════════════════════════════ */
-    .step-indicators {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        justify-content: center;
-        margin-bottom: 28px;
-    }
-    .step-indicator-btn {
-        flex: 1;
-        min-width: 120px;
-        padding: 10px 8px;
-        border: 0;
-        border-radius: 8px;
-        background: #f1f5f9;
-        font-size: 13px;
-        font-weight: 600;
-        color: #64748b;
-        cursor: pointer;
-        font-family: inherit;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        transition: all .2s;
-    }
-    .step-indicator-btn:hover:not(.step-locked) {
-        background: #e2e8f0;
-        color: #475569;
-    }
-    .step-indicator-btn.active {
-        background: #3b82f6;
-        color: #fff;
-        box-shadow: 0 0 0 3px rgba(59,130,246,.16);
-    }
-    .step-indicator-btn.step-locked {
-        opacity: 0.45;
-        cursor: not-allowed;
-    }
-    .step-indicator-btn.completed {
-        background: #dcfce7;
-        color: #16a34a;
-    }
-    .step-indicator-btn.completed.active {
-        background: #3b82f6;
-        color: #fff;
-        box-shadow: 0 0 0 3px rgba(59,130,246,.12);
-    }
-
-    .btn-quick-action {
-        padding: 8px 14px;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 12.5px;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        border: 1px solid transparent;
-        transition: all .15s ease;
-        text-decoration: none;
-    }
-    .btn-quick-action:active { transform: translateY(1px); }
-
-    .btn-quick-action--danger {
-        background: #fff1f2;
-        color: #be123c;
-        border-color: #fda4af;
-    }
-    .btn-quick-action--danger:hover {
-        background: #ffe4e6;
-        border-color: #fb7185;
-        color: #9f1239;
-    }
-
-    .btn-quick-action--blue {
-        background: #eff6ff;
-        color: #1d4ed8;
-        border-color: #93c5fd;
-    }
-    .btn-quick-action--blue:hover {
-        background: #dbeafe;
-        border-color: #60a5fa;
-        color: #1e40af;
-    }
-
-    .btn-quick-action--reschedule {
-        background: #fffbeb;
-        color: #b45309;
-        border-color: #fbbf24;
-    }
-    .btn-quick-action--reschedule:hover {
-        background: #fef3c7;
-        border-color: #f59e0b;
-        color: #92400e;
-    }
-    @media (max-width: 720px) {
-        .workflow-spacer {
-            display: none;
-        }
-    }
-    .workflow-side-actions {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-left: auto;
-    }
-
-    /* ══════════════════════════════════════════════
-       Signatory cards
-    ══════════════════════════════════════════════ */
-    .signatory-card {
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        overflow: hidden;
-        background: #fff;
-        transition: opacity .2s;
-    }
-    .signatory-card--locked { opacity: 0.55; }
-    .signatory-header {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 11px 16px;
-        background: #f9fafb;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    .signatory-remark {
-        padding: 8px 16px; font-size: 12px;
-        background: #fffbeb; border-bottom: 1px solid #fde68a; color: #78350f;
-        display: flex; gap: 8px; align-items: flex-start;
-    }
-    .signatory-body { padding: 13px 16px; }
-    .budget-remark-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 10px;
-        border-radius: 8px;
-        background: #f0fdf4;
-        border: 1px solid #bbf7d0;
-        color: #15803d;
-        font-size: 12px;
-        font-weight: 700;
-        white-space: nowrap;
-    }
-    .approved-budget-input {
-        width: 150px;
-        min-width: 130px;
-        flex: 0 0 150px;
-    }
-    .approval-row-form {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-    .approval-row-form .filter-select {
-        flex: 0 0 150px;
-    }
-    .approval-remark-input {
-        flex: 1 1 260px;
-        min-width: 220px;
-    }
-    .approval-budget-title {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        height: 38px;
-        padding: 0 10px;
-        border-radius: 8px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        color: #475569;
-        font-size: 12px;
-        font-weight: 700;
-        white-space: nowrap;
-    }
-    .approved-budget-box {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 8px 16px;
-        background: #f0fdf4;
-        border-bottom: 1px solid #bbf7d0;
-        color: #15803d;
-    }
-    .approved-budget-label {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        font-size: 12px;
-        font-weight: 700;
-    }
-    .approved-budget-value {
-        font-size: 13px;
-        font-weight: 800;
-        color: #166534;
-        white-space: nowrap;
-    }
-
-    /* Notice banners */
-    .notice-card {
-        display: flex; align-items: flex-start; gap: 10px;
-        padding: 12px 16px; border-radius: 8px;
-        font-size: 13px; font-weight: 500; margin-bottom: 16px;
-    }
-    .notice-card--warn    { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
-    .notice-card--success { background: #dcfce7; border: 1px solid #86efac; color: #15803d; }
-    .notice-card--blue    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
-
-    /* Sarf badge */
-    .sarf-badge {
-        background: #e2e8f0; color: #334155; border-radius: 6px;
-        padding: 4px 10px; font-size: 13px; font-weight: 700;
-        flex-shrink: 0; display: inline-block;
-    }
-
-    /* Shared pill helpers */
-    .mini-pill {
-        display: inline-block; font-size: 11px; font-weight: 600;
-        border-radius: 20px; padding: 2px 8px; white-space: nowrap;
-    }
-    .pill-blue  { background: #dbeafe; color: #1d4ed8; }
-    .pill-slate { background: #f1f5f9; color: #475569; }
-    .pill-green { background: #dcfce7; color: #15803d; }
-    .pill-amber { background: #fef9c3; color: #92400e; }
-
-    .td-main { font-size: 13.5px; font-weight: 600; color: #1e293b; }
-    .td-sub  { font-size: 11.5px; color: #94a3b8; margin-top: 2px; line-height: 1.4; }
-    .td-muted { color: #94a3b8; }
-
-    .approved-upload-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 12px;
-    }
-    .approved-upload-card {
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        background: #fff;
-        overflow: hidden;
-    }
-    .approved-upload-card.is-selected {
-        border-color: #93c5fd;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, .12);
-    }
-    .approved-upload-head {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px 14px;
-        background: #f8fafc;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    .approved-upload-title {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        min-width: 0;
-    }
-    .approved-upload-title strong {
-        font-size: 13px;
-        color: #0f172a;
-    }
-    .approved-upload-title span {
-        font-size: 11.5px;
-        color: #94a3b8;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .approved-dropzone {
-        margin: 14px;
-        min-height: 150px;
-        border: 2px dashed #cbd5e1;
-        border-radius: 8px;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 18px;
-        background: #fff;
-    }
-    .approved-dropzone.is-visible {
-        display: flex;
-    }
-    .approved-dropzone input[type="file"] {
-        width: 1px;
-        height: 1px;
-        opacity: 0;
-        position: absolute;
-        pointer-events: none;
-    }
-    .approved-dropzone-inner {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-    }
-    .approved-dropzone-inner i {
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #eff6ff;
-        color: #2563eb;
-        font-size: 16px;
-    }
-    .approved-dropzone-main {
-        font-size: 13px;
-        font-weight: 700;
-        color: #1e293b;
-    }
-    .approved-dropzone-sub {
-        font-size: 11.5px;
-        color: #94a3b8;
-    }
-    .approved-file-chip {
-        max-width: 100%;
-        border-radius: 8px;
-        background: #f1f5f9;
-        color: #475569;
-        padding: 7px 10px;
-        font-size: 12px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .approved-file-chip span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .approved-remark-box {
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 14px;
-        background: #f8fafc;
-    }
-    .approved-remark-box textarea {
-        width: 100%;
-        min-height: 96px;
-        resize: vertical;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        padding: 10px 12px;
-        font-family: inherit;
-        font-size: 13px;
-        color: #1e293b;
-    }
-
-    .document-check-row {
-        display: flex;
-        justify-content: flex-end;
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 0 14px 14px;
-    }
-    .document-check-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        color: #3b82f6;
-        background: #dbeafe;
-        border-radius: 20px;
-        padding: 6px 12px;
-        text-decoration: none;
-        white-space: nowrap;
-        transition: background .15s;
-    }
-    .document-check-btn:hover {
-        background: #bfdbfe;
-        color: #1d4ed8;
-    }
-    .document-download-btn {
-        color: #15803d;
-        background: #dcfce7;
-    }
-    .document-download-btn:hover {
-        background: #bbf7d0;
-        color: #166534;
-    }
-    .document-preview-btn {
-        display: none;
-        color: #7c3aed;
-        background: #ede9fe;
-    }
-    .document-preview-btn.is-visible {
-        display: inline-flex;
-    }
-    .document-preview-btn:hover {
-        background: #ddd6fe;
-        color: #6d28d9;
-    }
-
-    @media (max-width: 640px) {
-        .show-grid { grid-template-columns: 1fr; }
-        .show-field.full,
-        .show-field:nth-child(odd) { border-right: none; }
-        .step-indicators { flex-direction: column; }
-    }
-
-    /* Rescheduling pulse animation */
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50%      { opacity: 0.4; }
-    }
+    
     </style>
 @endpush
 
@@ -828,8 +289,9 @@
                     <div class="workflow-spacer" style="flex:1;"></div>
                     <div class="workflow-side-actions">
                         @if(!$hasPendingReschedule)
-                            <button type="button" class="btn-quick-action btn-quick-action--reschedule" onclick="toggleRescheduleForm()">
-                                <i class="fas fa-calendar-plus"></i> Request Reschedule
+                            <button type="button" class="btn-quick-action btn-quick-action--mod"
+                                onclick="openModificationModal({{ $activity->id }}, '{{ addslashes($activity->code) }}')">
+                                <i class="ti ti-adjustments-horizontal"></i> Request Modification
                             </button>
                         @endif
                         <form action="{{ route('dean_osa.approval.status', $activity->id) }}" method="POST"
@@ -847,139 +309,26 @@
             @endif
 
             {{-- ══════════════════════════════════════
-                 RESCHEDULE SECTION
+                 RESCHEDULE PENDING BANNER
             ══════════════════════════════════════ --}}
             @php $hasPendingReschedule = $activity->reschedule_status === 'pending'; @endphp
 
-            {{-- Freeze banner when reschedule is pending --}}
             @if($hasPendingReschedule)
-            <div style="display:flex; align-items:flex-start; gap:14px; padding:16px 20px;
-                background:#fef3c7; border:1.5px solid #fbbf24; border-radius:12px;
-                margin-bottom:20px;">
-                <div style="width:42px; height:42px; border-radius:10px; background:#fffbeb;
-                    display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                    <i class="fas fa-calendar-exclamation" style="color:#d97706; font-size:18px;"></i>
+            <div class="resched-banner" onclick="openRescheduleReviewModal()" style="cursor:pointer;">
+                <div class="resched-banner-icon">
+                    <i class="fas fa-calendar-exclamation"></i>
                 </div>
-                <div style="flex:1;">
-                    <div style="font-weight:800; font-size:14px; color:#92400e; margin-bottom:4px;">
-                        <i class="fas fa-pause-circle"></i> Reschedule Pending — Approvals Paused
+                <div class="resched-banner-content">
+                    <div class="resched-banner-title">
+                        <i class="fas fa-pause-circle" style="animation:pulse 1.5s infinite;"></i>
+                        Reschedule Pending — Approvals Paused
                     </div>
-                    <div style="font-size:13px; color:#78350f; line-height:1.6;">
-                        A reschedule request has been submitted. All signatory approvals are <strong>frozen</strong>
-                        until this reschedule is approved or rejected. Existing progress will <strong>not</strong> be reset.
-                    </div>
-
-                    <div style="margin-top:14px; padding:14px 16px; background:#fff; border:1px solid #fde68a;
-                        border-radius:10px;">
-                        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:10px;">
-                            <div>
-                                <div class="show-label">Proposed Date</div>
-                                <div class="show-value" style="font-weight:700; color:#b45309;">
-                                    <i class="fas fa-calendar-alt" style="font-size:12px;"></i>
-                                    {{ $activity->reschedule_date?->format('M j, Y') }}
-                                </div>
-                            </div>
-                            @if(filled($activity->reschedule_time))
-                            <div>
-                                <div class="show-label">Proposed Time</div>
-                                <div class="show-value">{{ $activity->reschedule_time }}</div>
-                            </div>
-                            @endif
-                            @if(filled($activity->reschedule_venue))
-                            <div>
-                                <div class="show-label">Proposed Venue</div>
-                                <div class="show-value">{{ $activity->reschedule_venue }}</div>
-                            </div>
-                            @endif
-                            <div>
-                                <div class="show-label">Requested</div>
-                                <div class="show-value">{{ $activity->reschedule_requested_at?->format('M j, Y g:i A') }}</div>
-                            </div>
-                        </div>
-                        <div style="margin-bottom:14px;">
-                            <div class="show-label">Reason</div>
-                            <div class="show-value">{{ $activity->reschedule_reason }}</div>
-                        </div>
-
-                        {{-- Approve / Reject forms --}}
-                        <div style="display:flex; gap:10px; flex-wrap:wrap; padding-top:10px; border-top:1px solid #fde68a;">
-                            <div style="flex:1; min-width:200px;">
-                                <input type="text" id="reschedule-remarks-input" class="form-control"
-                                    placeholder="Optional remarks…" style="font-size:12.5px;">
-                            </div>
-                            <form action="{{ route('dean_osa.approval.reschedule.approve', $activity->id) }}"
-                                method="POST" style="display:inline;" id="reschedule-approve-form">
-                                @csrf
-                                <input type="hidden" name="reschedule_remarks" id="reschedule-approve-remarks">
-                                <button type="submit" class="btn btn-success"
-                                    onclick="document.getElementById('reschedule-approve-remarks').value = document.getElementById('reschedule-remarks-input').value;"
-                                    style="font-size:12.5px;">
-                                    <i class="fas fa-check"></i> Approve Reschedule
-                                </button>
-                            </form>
-                            <form action="{{ route('dean_osa.approval.reschedule.reject', $activity->id) }}"
-                                method="POST" style="display:inline;" id="reschedule-reject-form">
-                                @csrf
-                                <input type="hidden" name="reschedule_remarks" id="reschedule-reject-remarks">
-                                <button type="submit" class="btn btn-danger"
-                                    onclick="document.getElementById('reschedule-reject-remarks').value = document.getElementById('reschedule-remarks-input').value;"
-                                    style="font-size:12.5px;">
-                                    <i class="fas fa-times"></i> Reject Reschedule
-                                </button>
-                            </form>
-                        </div>
+                    <div class="resched-banner-desc">
+                        A rescheduling modification has been submitted. Click here to review the schedule changes and approve or reject.
                     </div>
                 </div>
-            </div>
-            @endif
-
-            {{-- Reschedule request form (hidden by default) --}}
-            @if(!$hasPendingReschedule && in_array($activity->status, ['ongoing','for approval','for approval finance']))
-            <div id="reschedule-form-panel" style="display:none; margin-bottom:24px;">
-                <div style="border:1.5px solid #93c5fd; border-radius:12px; overflow:hidden;">
-                    <div style="display:flex; align-items:center; gap:10px; padding:14px 18px;
-                        background:#eff6ff; border-bottom:1px solid #bfdbfe;">
-                        <i class="fas fa-calendar-alt" style="color:#2563eb; font-size:14px;"></i>
-                        <span style="font-size:14px; font-weight:700; color:#1e40af;">Request Reschedule</span>
-                        <button type="button" onclick="toggleRescheduleForm()" style="margin-left:auto;
-                            background:none; border:none; color:#64748b; cursor:pointer; font-size:16px;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div style="padding:18px 20px;">
-                        <form action="{{ route('dean_osa.approval.reschedule.request', $activity->id) }}" method="POST">
-                            @csrf
-                            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:14px;">
-                                <div class="form-group" style="margin-bottom:0;">
-                                    <label class="form-label">New Date <span style="color:#dc2626;">*</span></label>
-                                    <input type="date" name="reschedule_date" class="form-control" required
-                                        value="{{ old('reschedule_date') }}" min="{{ date('Y-m-d') }}">
-                                </div>
-                                <div class="form-group" style="margin-bottom:0;">
-                                    <label class="form-label">New Time</label>
-                                    <input type="text" name="reschedule_time" class="form-control"
-                                        placeholder="e.g. 9:00 AM - 5:00 PM" value="{{ old('reschedule_time') }}">
-                                </div>
-                                <div class="form-group" style="margin-bottom:0;">
-                                    <label class="form-label">New Venue</label>
-                                    <input type="text" name="reschedule_venue" class="form-control"
-                                        placeholder="Leave blank to keep current" value="{{ old('reschedule_venue') }}">
-                                </div>
-                            </div>
-                            <div class="form-group" style="margin-bottom:14px;">
-                                <label class="form-label">Reason for Rescheduling <span style="color:#dc2626;">*</span></label>
-                                <textarea name="reschedule_reason" class="form-control" rows="3" required
-                                    placeholder="Explain why this activity needs to be rescheduled…"
-                                    style="resize:vertical;">{{ old('reschedule_reason') }}</textarea>
-                            </div>
-                            <div style="display:flex; gap:10px; justify-content:flex-end;">
-                                <button type="button" onclick="toggleRescheduleForm()" class="btn btn-filter">Cancel</button>
-                                <button type="submit" class="btn btn-add">
-                                    <i class="fas fa-paper-plane"></i> Submit Reschedule Request
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                <div class="resched-banner-action">
+                    <i class="fas fa-chevron-right"></i>
                 </div>
             </div>
             @endif
@@ -1860,7 +1209,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 @endif
 
-/* ── Reschedule form toggle ── */
+/* ── Reschedule form toggle (kept for backward compat) ── */
 function toggleRescheduleForm() {
     const panel = document.getElementById('reschedule-form-panel');
     if (panel) {
@@ -1870,5 +1219,395 @@ function toggleRescheduleForm() {
         }
     }
 }
+
+/* ── Reschedule Review Modal ── */
+function openRescheduleReviewModal() {
+    document.getElementById('reschedReviewOverlay').classList.add('active');
+}
+function closeRescheduleReviewModal() {
+    document.getElementById('reschedReviewOverlay').classList.remove('active');
+}
+
+// Escape key for reschedule modal
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        closeRescheduleReviewModal();
+    }
+});
 </script>
+
+{{-- ══════════════════════════════════════════════
+     MODIFICATION MODAL (show page)
+══════════════════════════════════════════════ --}}
+<div class="mod-overlay" id="modOverlay" onclick="closeModificationModal()">
+    <div class="mod-modal" onclick="event.stopPropagation()">
+        <div class="mod-modal-header">
+            <div class="mod-modal-icon">
+                <i class="ti ti-adjustments-horizontal"></i>
+            </div>
+            <div>
+                <h3 class="mod-modal-title">Request Modification</h3>
+                <p class="mod-modal-subtitle" id="modSubtitle">SARF Code: —</p>
+            </div>
+            <button type="button" class="mod-close" onclick="closeModificationModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="modForm" method="POST" action="">
+            @csrf
+
+            <div class="mod-modal-body">
+                <p class="mod-label">What type of modification?</p>
+
+                <div class="mod-type-cards">
+                    <label class="mod-type-card">
+                        <input type="radio" name="modification_type" value="revision" required
+                            onchange="selectModType(this.value)">
+                        <div class="mod-type-card-inner">
+                            <div class="mod-type-icon" style="background:#dbeafe; color:#1d4ed8;">
+                                <i class="fas fa-edit"></i>
+                            </div>
+                            <div class="mod-type-label">Revision</div>
+                            <div class="mod-type-desc">
+                                Send back for content edits.<br>
+                                Activity returns to approval after changes.
+                            </div>
+                        </div>
+                    </label>
+
+                    <label class="mod-type-card">
+                        <input type="radio" name="modification_type" value="rescheduling" required
+                            onchange="selectModType(this.value)">
+                        <div class="mod-type-card-inner">
+                            <div class="mod-type-icon" style="background:#fef3c7; color:#92400e;">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="mod-type-label">Rescheduling</div>
+                            <div class="mod-type-desc">
+                                Change schedule details.<br>
+                                Requires schedule approval before returning.
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="mod-remarks-wrap">
+                    <label class="mod-label" for="modRemarks">Remarks / Instructions <span style="color:#94a3b8; font-weight:400;">(optional)</span></label>
+                    <textarea name="modification_remarks" id="modRemarks" class="form-control"
+                        rows="3" maxlength="1000"
+                        placeholder="Describe what needs to be modified…"></textarea>
+                </div>
+            </div>
+
+            <div class="mod-modal-footer">
+                <button type="button" class="btn btn-filter" onclick="closeModificationModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="submit" class="btn btn-add" id="modSubmitBtn" disabled>
+                    <i class="fas fa-paper-plane"></i> Send for Modification
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* ── Modification button (quick action bar) ── */
+.btn-quick-action--mod {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    color: #b45309;
+    border-color: #fcd34d;
+}
+.btn-quick-action--mod:hover {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-color: #f59e0b;
+    color: #92400e;
+    box-shadow: 0 3px 10px rgba(217,119,6,0.15);
+}
+
+/* ══════════════════════════════════════════════
+   MODIFICATION MODAL
+══════════════════════════════════════════════ */
+.mod-overlay {
+    display:none;
+    position:fixed; inset:0; z-index:9999;
+    background:rgba(15,23,42,0.55);
+    backdrop-filter:blur(4px);
+    align-items:center; justify-content:center;
+    animation:modFadeIn .2s ease;
+}
+.mod-overlay.active { display:flex; }
+
+@keyframes modFadeIn  { from { opacity:0; } to { opacity:1; } }
+@keyframes modSlideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+.mod-modal {
+    background:#fff;
+    border-radius:16px;
+    box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);
+    width:520px; max-width:94vw;
+    overflow:hidden;
+    animation:modSlideUp .25s ease;
+}
+.mod-modal-header {
+    display:flex; align-items:center; gap:14px;
+    padding:20px 24px;
+    background:linear-gradient(135deg,#f0f9ff 0%,#e0f2fe 100%);
+    border-bottom:1px solid #e0e7ff;
+    position:relative;
+}
+.mod-modal-icon {
+    width:44px; height:44px; border-radius:12px;
+    background:#dbeafe; color:#1d4ed8;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; flex-shrink:0;
+}
+.mod-modal-title {
+    font-size:17px; font-weight:700; color:#0f172a; margin:0;
+}
+.mod-modal-subtitle {
+    font-size:12px; color:#64748b; margin:2px 0 0; font-weight:500;
+}
+.mod-close {
+    position:absolute; top:16px; right:16px;
+    background:none; border:none; cursor:pointer;
+    color:#94a3b8; font-size:16px;
+    width:32px; height:32px; border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    transition:all .15s;
+}
+.mod-close:hover { background:#e2e8f0; color:#334155; }
+
+.mod-modal-body { padding:24px; }
+.mod-label {
+    display:block; font-size:13px; font-weight:600; color:#334155;
+    margin-bottom:10px;
+}
+
+.mod-type-cards {
+    display:grid; grid-template-columns:1fr 1fr; gap:12px;
+    margin-bottom:20px;
+}
+.mod-type-card { cursor:pointer; }
+.mod-type-card input { display:none; }
+.mod-type-card-inner {
+    border:2px solid #e2e8f0;
+    border-radius:12px;
+    padding:18px 14px;
+    text-align:center;
+    transition:all .2s;
+    background:#fafbfc;
+}
+.mod-type-card-inner:hover {
+    border-color:#93c5fd;
+    background:#f0f9ff;
+}
+.mod-type-card input:checked ~ .mod-type-card-inner {
+    border-color:#3b82f6;
+    background:#eff6ff;
+    box-shadow:0 0 0 3px rgba(59,130,246,0.15);
+}
+.mod-type-icon {
+    width:44px; height:44px; border-radius:12px;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:18px; margin-bottom:10px;
+}
+.mod-type-label {
+    font-size:14px; font-weight:700; color:#0f172a; margin-bottom:4px;
+}
+.mod-type-desc {
+    font-size:11.5px; color:#64748b; line-height:1.5;
+}
+
+.mod-remarks-wrap { margin-top:4px; }
+.mod-remarks-wrap textarea {
+    resize:vertical; min-height:70px;
+    border-radius:10px; font-size:13px;
+}
+
+.mod-modal-footer {
+    display:flex; justify-content:flex-end; gap:10px;
+    padding:16px 24px;
+    background:#f8fafc;
+    border-top:1px solid #e5e7eb;
+}
+</style>
+
+<script>
+/* ══════════════════════════════════════════════
+   Modification Modal Logic (show page)
+══════════════════════════════════════════════ */
+function openModificationModal(activityId, code) {
+    const overlay = document.getElementById('modOverlay');
+    const form    = document.getElementById('modForm');
+    const subtitle = document.getElementById('modSubtitle');
+
+    form.action = `{{ url('dean_osa/approval') }}/${activityId}/modification`;
+    subtitle.textContent = 'SARF Code: ' + code;
+
+    form.reset();
+    document.getElementById('modSubmitBtn').disabled = true;
+    document.querySelectorAll('.mod-type-card input').forEach(r => r.checked = false);
+
+    overlay.classList.add('active');
+}
+
+function closeModificationModal() {
+    document.getElementById('modOverlay').classList.remove('active');
+}
+
+function selectModType(val) {
+    document.getElementById('modSubmitBtn').disabled = false;
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModificationModal();
+});
+</script>
+
+{{-- ══════════════════════════════════════════════
+     RESCHEDULE REVIEW MODAL
+══════════════════════════════════════════════ --}}
+@if($activity->reschedule_status === 'pending')
+<div class="resched-review-overlay" id="reschedReviewOverlay" onclick="closeRescheduleReviewModal()">
+    <div class="resched-review-modal" onclick="event.stopPropagation()">
+
+        {{-- Header --}}
+        <div class="resched-review-header">
+            <div class="resched-review-header-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div>
+                <h3 class="resched-review-title">Review Schedule Change</h3>
+                <p class="resched-review-subtitle">{{ $activity->code }} — {{ Str::limit($activity->title, 40) }}</p>
+            </div>
+            <button type="button" class="resched-review-close" onclick="closeRescheduleReviewModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        {{-- Comparison Cards --}}
+        <div class="resched-review-body">
+            <div class="resched-compare-grid">
+                {{-- Original Schedule --}}
+                <div class="resched-compare-card resched-compare-old">
+                    <div class="resched-compare-label">
+                        <i class="fas fa-history"></i> Original Schedule
+                    </div>
+                    <div class="resched-compare-fields">
+                        <div class="resched-compare-field">
+                            <div class="resched-compare-field-label">Date</div>
+                            <div class="resched-compare-field-value">
+                                <i class="fas fa-calendar-alt"></i>
+                                {{ $activity->date_of_activity?->format('M j, Y') ?? '—' }}
+                            </div>
+                        </div>
+                        <div class="resched-compare-field">
+                            <div class="resched-compare-field-label">Time</div>
+                            <div class="resched-compare-field-value">
+                                <i class="fas fa-clock"></i>
+                                {{ $activity->time_of_activity ?: '—' }}
+                            </div>
+                        </div>
+                        <div class="resched-compare-field">
+                            <div class="resched-compare-field-label">Venue</div>
+                            <div class="resched-compare-field-value">
+                                <i class="fas fa-map-marker-alt"></i>
+                                {{ $activity->venue ?: ($activity->platform ?: '—') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Arrow --}}
+                <div class="resched-compare-arrow">
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+
+                {{-- Proposed Schedule --}}
+                <div class="resched-compare-card resched-compare-new">
+                    <div class="resched-compare-label">
+                        <i class="fas fa-calendar-check"></i> Proposed Schedule
+                    </div>
+                    <div class="resched-compare-fields">
+                        <div class="resched-compare-field">
+                            <div class="resched-compare-field-label">Date</div>
+                            <div class="resched-compare-field-value resched-highlight">
+                                <i class="fas fa-calendar-alt"></i>
+                                {{ $activity->reschedule_date?->format('M j, Y') ?? '—' }}
+                            </div>
+                        </div>
+                        <div class="resched-compare-field">
+                            <div class="resched-compare-field-label">Time</div>
+                            <div class="resched-compare-field-value {{ filled($activity->reschedule_time) ? 'resched-highlight' : '' }}">
+                                <i class="fas fa-clock"></i>
+                                {{ $activity->reschedule_time ?: $activity->time_of_activity ?: '—' }}
+                            </div>
+                        </div>
+                        <div class="resched-compare-field">
+                            <div class="resched-compare-field-label">Venue</div>
+                            <div class="resched-compare-field-value {{ filled($activity->reschedule_venue) ? 'resched-highlight' : '' }}">
+                                <i class="fas fa-map-marker-alt"></i>
+                                {{ $activity->reschedule_venue ?: $activity->venue ?: ($activity->platform ?: '—') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Reason --}}
+            @if(filled($activity->reschedule_reason))
+            <div class="resched-reason-box">
+                <div class="resched-reason-label"><i class="fas fa-comment-alt"></i> Reason for Rescheduling</div>
+                <div class="resched-reason-text">{{ $activity->reschedule_reason }}</div>
+            </div>
+            @endif
+
+            {{-- Requested timestamp --}}
+            <div style="font-size:11.5px; color:#94a3b8; text-align:right; margin-top:8px;">
+                <i class="fas fa-clock" style="font-size:10px;"></i>
+                Requested {{ $activity->reschedule_requested_at?->format('M j, Y \a\t g:i A') }}
+            </div>
+
+            {{-- Remarks Input --}}
+            <div style="margin-top:16px;">
+                <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:6px;">
+                    Your Remarks <span style="color:#94a3b8; font-weight:400;">(optional)</span>
+                </label>
+                <textarea id="reschedReviewRemarks" class="form-control" rows="2"
+                    placeholder="Add remarks about this reschedule request…"
+                    style="resize:vertical; font-size:13px; border-radius:10px;"></textarea>
+            </div>
+        </div>
+
+        {{-- Footer with Actions --}}
+        <div class="resched-review-footer">
+            <button type="button" class="btn btn-filter" onclick="closeRescheduleReviewModal()">
+                <i class="fas fa-arrow-left"></i> Close
+            </button>
+            <div style="display:flex; gap:8px;">
+                <form action="{{ route('dean_osa.approval.reschedule.reject', $activity->id) }}" method="POST" id="reschedRejectForm">
+                    @csrf
+                    <input type="hidden" name="reschedule_remarks" id="reschedRejectRemarks">
+                    <button type="submit" class="btn btn-danger"
+                        onclick="document.getElementById('reschedRejectRemarks').value = document.getElementById('reschedReviewRemarks').value;"
+                        style="font-size:12.5px;">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                </form>
+                <form action="{{ route('dean_osa.approval.reschedule.approve', $activity->id) }}" method="POST" id="reschedApproveForm">
+                    @csrf
+                    <input type="hidden" name="reschedule_remarks" id="reschedApproveRemarks">
+                    <button type="submit" class="btn btn-add"
+                        onclick="document.getElementById('reschedApproveRemarks').value = document.getElementById('reschedReviewRemarks').value;"
+                        style="font-size:12.5px;">
+                        <i class="fas fa-check"></i> Approve Schedule
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 @endsection

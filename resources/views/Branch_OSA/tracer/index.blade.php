@@ -68,7 +68,7 @@
                             </td>
                             <td>
                                 <div class="action-cell">
-                                    <a href="{{ route('branch_osa.tracer.show', $activity->id) }}" class="abtn abtn-view" title="View Tracer"><i class="fas fa-route"></i></a>
+                                    <a href="{{ route('branch_osa.tracer.show', $activity->id) }}" class="abtn abtn-view" title="View Activity Tracer"><i class="fas fa-route"></i></a>
                                 </div>
                             </td>
                         </tr>

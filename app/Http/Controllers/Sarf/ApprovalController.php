@@ -95,12 +95,13 @@ class ApprovalController extends Controller
         }
 
         $query = Activity::with(['branch'])
+            ->whereIn('status', ['pending', 'ongoing', 'for approval', 'for approval finance', 'approved'])
             ->when($search !== '', fn($q) => $q->where(function ($inner) use ($search) {
                 $inner->where('title', 'like', "%{$search}%")
                       ->orWhere('code',  'like', "%{$search}%");
             }));
 
-        SarfListFilters::apply($query, $filters);
+        SarfListFilters::apply($query, $filters, ['pending', 'ongoing', 'for approval', 'for approval finance', 'approved']);
 
         $filteredActivities = SarfListFilters::applyInsideStatus($query->latest()->get(), $filters);
         $activities = SarfListFilters::paginateCollection($filteredActivities, $request, $perPage);
@@ -117,6 +118,8 @@ class ApprovalController extends Controller
             'filters' => $filters,
             ...SarfListFilters::viewData(),
         ]);
+
+        
     }
 
     public function show(string $id)
@@ -501,8 +504,9 @@ class ApprovalController extends Controller
     }
 
     /**
-     * Reject the reschedule — pipeline resumes as-is.
-     * All existing signatory approvals remain intact.
+     * Reject the reschedule — activity goes back to 'for reschedule' status
+     * so the user can re-edit the schedule. The rescheduling process must
+     * be completed (approved) before the activity returns to the approval pipeline.
      */
     public function rejectReschedule(Request $request, string $id)
     {
@@ -520,17 +524,66 @@ class ApprovalController extends Controller
             'reschedule_status'     => 'rejected',
             'reschedule_remarks'    => $request->input('reschedule_remarks'),
             'reschedule_decided_at' => now(),
+            // Send back to Activities module for re-editing
+            'status'                => 'for reschedule',
+            'modification_type'     => 'rescheduling',
+            'modification_remarks'  => 'Schedule was rejected: ' . ($request->input('reschedule_remarks') ?: 'No remarks provided.') . ' Please revise the schedule and resubmit.',
         ]);
 
         SystemLog::record('Rejected reschedule', 'Reschedule', [
             'subject_type'  => Activity::class,
             'subject_id'    => $activity->id,
             'subject_label' => $activity->code,
-            'description'   => "Reschedule rejected for {$activity->code}. Pipeline resumes.",
+            'description'   => "Reschedule rejected for {$activity->code}. Sent back for re-editing.",
         ]);
 
         return redirect()
-            ->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => 1])
-            ->with('success', 'Reschedule rejected. Signatory approvals resume as normal.');
+            ->route('dean_osa.approval.index')
+            ->with('success', 'Reschedule rejected. Activity sent back for schedule re-editing.');
+    }
+
+    /* ══════════════════════════════════════════════
+       MODIFICATION — send activity back for revision or rescheduling
+       ══════════════════════════════════════════════ */
+
+    /**
+     * Send an activity back to the Activities module for modification.
+     * Sets modification_type = revision | rescheduling so the edit page
+     * knows what kind of changes to expect.
+     *
+     * Revision  → status = 'for revision', follows normal revision flow
+     * Rescheduling → status = 'for reschedule', requires schedule approval after edit
+     */
+    public function requestModification(Request $request, string $id)
+    {
+        $activity = Activity::findOrFail($id);
+
+        $request->validate([
+            'modification_type'    => 'required|in:revision,rescheduling',
+            'modification_remarks' => 'nullable|string|max:1000',
+        ]);
+
+        $type    = $request->input('modification_type');
+        $remarks = $request->input('modification_remarks');
+
+        $newStatus = $type === 'rescheduling' ? 'for reschedule' : 'for revision';
+
+        $activity->update([
+            'modification_type'    => $type,
+            'modification_remarks' => $remarks,
+            'status'               => $newStatus,
+        ]);
+
+        SystemLog::record('Requested modification', 'Modification', [
+            'subject_type'  => Activity::class,
+            'subject_id'    => $activity->id,
+            'subject_label' => $activity->code,
+            'description'   => "Sent {$activity->code} for {$type}. " . ($remarks ? "Remarks: {$remarks}" : 'No remarks.'),
+        ]);
+
+        return redirect()
+            ->route('dean_osa.approval.index')
+            ->with('success', "Activity {$activity->code} sent for " . ucfirst($type) . '. It will now appear in the Activities module for editing.');
     }
 }
+
