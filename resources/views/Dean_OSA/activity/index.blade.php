@@ -173,7 +173,7 @@
                                         'for approval'         => 'b-for-approval',
                                         'for approval finance' => 'b-for-approval',
                                         'for revision'         => 'b-revision',
-                                        'for reschedule'       => 'b-revision',
+                                        'for reschedule'       => 'b-for-reschedule',
                                         'approved'             => 'b-approved',
                                         'completed'            => 'b-completed',
                                         'cancelled'            => 'b-cancelled',
@@ -182,9 +182,9 @@
                                     };
                                 @endphp
                                 <span class="badge {{ $statusClass }}">{{ ucfirst($activity->status) }}</span>
-                                @if($activity->modification_type)
-                                    <span class="mini-pill {{ $activity->modification_type === 'rescheduling' ? 'pill-amber' : 'pill-blue' }}" style="margin-left:3px;">
-                                        <i class="fas {{ $activity->modification_type === 'rescheduling' ? 'fa-calendar-alt' : 'fa-edit' }}" style="font-size:9px;"></i>
+                                @if($activity->modification_type === 'rescheduling' && $activity->status !== 'for reschedule')
+                                    <span class="mini-pill pill-amber" style="margin-left:3px;">
+                                        <i class="fas fa-calendar-alt" style="font-size:9px;"></i>
                                         {{ ucfirst($activity->modification_type) }}
                                     </span>
                                 @endif
@@ -205,11 +205,18 @@
                                         class="abtn abtn-view" title="View Activity Details">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    @if(in_array($activity->status, ['pending', 'for revision', 'for reschedule']))
+                                    @if($activity->status === 'for reschedule' || $activity->modification_type === 'rescheduling')
+                                        <a href="{{ route('dean_osa.activity.edit', $activity->id) }}"
+                                            class="abtn abtn-resched" title="Reschedule Activity">
+                                            <i class="fas fa-calendar-alt"></i>
+                                        </a>
+                                    @elseif(in_array($activity->status, ['pending', 'for revision']))
                                         <a href="{{ route('dean_osa.activity.edit', $activity->id) }}"
                                             class="abtn abtn-edit" title="Edit Activity">
                                             <i class="fas fa-pencil-alt"></i>
                                         </a>
+                                    @endif
+                                    @if(in_array($activity->status, ['pending', 'for revision', 'for reschedule']))
                                         <form action="{{ route('dean_osa.activity.destroy', $activity->id) }}"
                                             method="POST" style="display:inline;"
                                             onsubmit="return confirm('Are you sure you want to delete this activity? This action cannot be undone.');">

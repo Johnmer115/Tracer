@@ -486,7 +486,11 @@ class ApprovalController extends Controller
         }
 
         if (filled($activity->reschedule_venue)) {
-            $updates['venue'] = $activity->reschedule_venue;
+            if ($activity->mode_of_conduct === 'Online') {
+                $updates['platform'] = $activity->reschedule_venue;
+            } else {
+                $updates['venue'] = $activity->reschedule_venue;
+            }
         }
 
         $activity->update($updates);
@@ -586,4 +590,3 @@ class ApprovalController extends Controller
             ->with('success', "Activity {$activity->code} sent for " . ucfirst($type) . '. It will now appear in the Activities module for editing.');
     }
 }
-

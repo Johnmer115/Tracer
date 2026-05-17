@@ -367,7 +367,7 @@
                                         class="abtn abtn-view" title="Review & Approve Activity">
                                         <i class="fas fa-stamp"></i>
                                     </a>
-                                    @if(in_array($activity->status, ['for approval', 'for approval finance', 'ongoing']))
+                                    @if(in_array($activity->status, ['for approval', 'for approval finance', 'ongoing']) && $activity->reschedule_status !== 'pending')
                                         <button type="button"
                                             class="abtn abtn-mod"
                                             title="Request Modification"

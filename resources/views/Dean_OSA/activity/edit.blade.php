@@ -35,10 +35,11 @@
             </div>
         </div>
 
+        @php $isRescheduling = $activity->modification_type === 'rescheduling'; @endphp
+
         {{-- ── Modification Remark Banner ── --}}
         @if($activity->modification_type)
             @php
-                $isRescheduling = $activity->modification_type === 'rescheduling';
                 $bannerIcon  = $isRescheduling ? 'fa-calendar-alt' : 'fa-edit';
                 $bannerTitle = $isRescheduling ? 'Rescheduling Requested' : 'Revision Requested';
                 $bannerDesc  = $isRescheduling
@@ -88,7 +89,9 @@
 
             {{-- ── Step Indicators ── --}}
             <div class="step-indicators step-indicators--edit-complete">
-                @foreach([
+                @foreach($isRescheduling ? [
+                    ['1', 'Schedule'],
+                ] : [
                     ['1', 'Event Details'],
                     ['2', 'Budget'],
                     ['3', 'Attachments'],
@@ -115,6 +118,7 @@
                 ══════════════════════════════════════════════ --}}
                 <div class="form-step" id="step-1">
 
+                    @unless($isRescheduling)
                     {{-- ── 1-A: Organizational Context ── --}}
                     <div class="context-card" style="margin-bottom:16px;">
                         <p class="context-card-title">
@@ -274,6 +278,7 @@
                     </div>
 
                     {{-- ── 1-C: Schedule, Conduct & Extras ── --}}
+                    @endunless
                     <div class="context-card context-card--green" style="margin-bottom:16px;">
                         <p class="context-card-title">
                             <i class="fas fa-clock"></i> Schedule, Conduct & Extras
@@ -298,7 +303,7 @@
                                 <label class="form-label">Venue <span class="req" id="venue-req" style="display:none;">*</span></label>
                                 <input type="text" name="venue" class="form-control" id="venue-input"
                                     placeholder="Enter venue name"
-                                    value="{{ old('venue', $activity->venue) }}">
+                                    value="{{ old('venue', $isRescheduling ? ($activity->reschedule_venue ?: $activity->venue) : $activity->venue) }}">
                                 <div class="radio-group" style="margin-top:10px;">
                                     <label class="radio-option">
                                         <input type="radio" name="venue_type" value="On-Campus"
@@ -316,7 +321,7 @@
                                 <label class="form-label">Platform <span class="req" id="platform-req" style="display:none;">*</span></label>
                                 @php
                                     $platformOptions = ['Zoom', 'Google Meet', 'Microsoft Teams', 'Facebook Live', 'YouTube Live', 'Google Classroom', 'Moodle', 'Canvas', 'Other'];
-                                    $selectedPlatform = old('platform', $activity->platform);
+                                    $selectedPlatform = old('platform', $isRescheduling ? ($activity->reschedule_venue ?: $activity->platform) : $activity->platform);
                                 @endphp
                                 <select name="platform" class="form-control" id="platform-input">
                                     <option value="">— Select Platform —</option>
@@ -334,13 +339,13 @@
                                 <label class="form-label">Date of Activity <span class="req">*</span></label>
                                 <input type="date" name="date_of_activity" class="form-control" required
                                     id="date_of_activity" data-label="Date of Activity"
-                                    value="{{ old('date_of_activity', $activity->date_of_activity?->format('Y-m-d')) }}"
+                                    value="{{ old('date_of_activity', $isRescheduling && $activity->reschedule_date ? $activity->reschedule_date->format('Y-m-d') : $activity->date_of_activity?->format('Y-m-d')) }}"
                                     onchange="checkLateSubmission()">
                                 <span class="field-error" id="err-date_of_activity">Date of activity is required.</span>
                             </div>
 
                             @php
-                                $storedTimeRange = (string) old('time_of_activity', $activity->time_of_activity);
+                                $storedTimeRange = (string) old('time_of_activity', $isRescheduling ? ($activity->reschedule_time ?: $activity->time_of_activity) : $activity->time_of_activity);
                                 $storedTimeParts = preg_split('/\s*(?:-|–|—|to)\s*/i', $storedTimeRange);
                                 $toTimeInput = function ($value) {
                                     if (! filled($value)) {
@@ -372,6 +377,7 @@
                                 <span class="field-error" id="err-time_end">Please enter an end time after the start time.</span>
                             </div>
 
+                            @unless($isRescheduling)
                             <div class="form-group">
                                 <label class="form-label">Number of Participants</label>
                                 <input type="number" name="participants_count" class="form-control" min="0"
@@ -399,215 +405,224 @@
                                     </label>
                                 </div>
                             </div>
+                            @endunless
 
                         </div>
                     </div>
 
                     <div class="step-nav end">
-                        <button type="button" onclick="nextStep(1)" class="btn btn-add">
-                            Next <i class="fas fa-arrow-right"></i>
-                        </button>
+                        @if($isRescheduling)
+                            <button type="button" onclick="submitForm()" class="btn btn-add">
+                                <i class="fas fa-calendar-check"></i> Submit Rescheduling
+                            </button>
+                        @else
+                            <button type="button" onclick="nextStep(1)" class="btn btn-add">
+                                Next <i class="fas fa-arrow-right"></i>
+                            </button>
+                        @endif
                     </div>
                 </div>{{-- /step-1 --}}
 
 
-                {{-- ══════════════════════════════════════════════
-                     STEP 2 — Budget
-                ══════════════════════════════════════════════ --}}
-                <div class="form-step" id="step-2" style="display:none;">
-                    <p class="step-section-title"><i class="fas fa-coins"></i> Budgetary Requirements</p>
+                    {{-- ══════════════════════════════════════════════
+                         STEP 2 — Budget
+                    ══════════════════════════════════════════════ --}}
+                    @unless($isRescheduling)
+                    <div class="form-step" id="step-2" style="display:none;">
+                        <p class="step-section-title"><i class="fas fa-coins"></i> Budgetary Requirements</p>
 
-                    <div class="form-grid">
+                        <div class="form-grid">
 
-                        <div class="form-group full">
-                            <label class="form-label">Funds <span class="req">*</span></label>
-                            <div class="radio-group" id="funds-radio-group">
-                                @foreach(['With Budget','ATC','No Fee'] as $fund)
+                            <div class="form-group full">
+                                <label class="form-label">Funds <span class="req">*</span></label>
+                                <div class="radio-group" id="funds-radio-group">
+                                    @foreach(['With Budget','ATC','No Fee'] as $fund)
+                                        <label class="radio-option">
+                                            <input type="radio" name="funds" value="{{ $fund }}"
+                                                @checked(old('funds', $activity->funds) === $fund)
+                                                onchange="handleFunds(this.value)"> {{ $fund }}
+                                        </label>
+                                    @endforeach
+                                </div>
+                                <span class="field-error" id="err-funds">Please select a funds option.</span>
+                            </div>
+
+                            <div class="form-group" id="source-block" style="display:none;">
+                                <label class="form-label">Source <span class="req">*</span></label>
+                                <select name="source" class="form-control" id="source-select">
+                                    <option value="">— Select —</option>
+                                    @foreach(['SDF','SSC','Guidance','Library Fund','Athletic Fund','Publication Fund','Others'] as $src)
+                                        <option value="{{ $src }}"
+                                            @selected(old('source', $activity->source) === $src)>{{ $src }}</option>
+                                    @endforeach
+                                </select>
+                                <span class="field-error" id="err-source">Please select a budget source.</span>
+                            </div>
+
+                            <div class="form-group" id="amount-block" style="display:none;">
+                                <label class="form-label">Amount (₱) <span class="req">*</span></label>
+                                <input type="number" name="amount" class="form-control"
+                                    id="amount-input" step="0.01" min="0" placeholder="0.00"
+                                    value="{{ old('amount', $activity->amount) }}">
+                                <span class="field-error" id="err-amount">Please enter the amount.</span>
+                            </div>
+
+                            <div class="form-group" id="expected-block" style="display:none;">
+                                <label class="form-label">Expected Collection (₱)</label>
+                                <input type="number" name="expected_collection" class="form-control"
+                                    id="expected-collection-input" step="0.01" min="0" placeholder="0.00"
+                                    value="{{ old('expected_collection', $activity->expected_collection) }}">
+                            </div>
+
+                            <div class="form-group" id="canteen-block" style="display:none;">
+                                <label class="form-label">Canteen <span class="req">*</span></label>
+                                <div class="radio-group" id="canteen-radio-group">
                                     <label class="radio-option">
-                                        <input type="radio" name="funds" value="{{ $fund }}"
-                                            @checked(old('funds', $activity->funds) === $fund)
-                                            onchange="handleFunds(this.value)"> {{ $fund }}
+                                        <input type="radio" name="canteen" value="With"
+                                            @checked(old('canteen', $activity->canteen) === 'With')> With
                                     </label>
-                                @endforeach
-                            </div>
-                            <span class="field-error" id="err-funds">Please select a funds option.</span>
-                        </div>
-
-                        <div class="form-group" id="source-block" style="display:none;">
-                            <label class="form-label">Source <span class="req">*</span></label>
-                            <select name="source" class="form-control" id="source-select">
-                                <option value="">— Select —</option>
-                                @foreach(['SDF','SSC','Guidance','Library Fund','Athletic Fund','Publication Fund','Others'] as $src)
-                                    <option value="{{ $src }}"
-                                        @selected(old('source', $activity->source) === $src)>{{ $src }}</option>
-                                @endforeach
-                            </select>
-                            <span class="field-error" id="err-source">Please select a budget source.</span>
-                        </div>
-
-                        <div class="form-group" id="amount-block" style="display:none;">
-                            <label class="form-label">Amount (₱) <span class="req">*</span></label>
-                            <input type="number" name="amount" class="form-control"
-                                id="amount-input" step="0.01" min="0" placeholder="0.00"
-                                value="{{ old('amount', $activity->amount) }}">
-                            <span class="field-error" id="err-amount">Please enter the amount.</span>
-                        </div>
-
-                        <div class="form-group" id="expected-block" style="display:none;">
-                            <label class="form-label">Expected Collection (₱)</label>
-                            <input type="number" name="expected_collection" class="form-control"
-                                id="expected-collection-input" step="0.01" min="0" placeholder="0.00"
-                                value="{{ old('expected_collection', $activity->expected_collection) }}">
-                        </div>
-
-                        <div class="form-group" id="canteen-block" style="display:none;">
-                            <label class="form-label">Canteen <span class="req">*</span></label>
-                            <div class="radio-group" id="canteen-radio-group">
-                                <label class="radio-option">
-                                    <input type="radio" name="canteen" value="With"
-                                        @checked(old('canteen', $activity->canteen) === 'With')> With
-                                </label>
-                                <label class="radio-option">
-                                    <input type="radio" name="canteen" value="Without"
-                                        @checked(old('canteen', $activity->canteen) === 'Without')> Without
-                                </label>
-                            </div>
-                            <span class="field-error" id="err-canteen">Please select a canteen option.</span>
-                        </div>
-
-                        <div class="form-group" id="procurement-block" style="display:none;">
-                            <label class="form-label">Procurement <span class="req">*</span></label>
-                            <div class="radio-group" id="procurement-radio-group">
-                                <label class="radio-option">
-                                    <input type="radio" name="procurement" value="With"
-                                        @checked(old('procurement', $activity->procurement) === 'With')> With
-                                </label>
-                                <label class="radio-option">
-                                    <input type="radio" name="procurement" value="Without"
-                                        @checked(old('procurement', $activity->procurement) === 'Without')> Without
-                                </label>
-                            </div>
-                            <span class="field-error" id="err-procurement">Please select a procurement option.</span>
-                        </div>
-
-                        <div class="form-group full" id="late-block" style="display:none;">
-                            <div class="late-warning-card" id="late-warning-card">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <div>
-                                    <p class="late-warning-title" id="late-warning-title">Late Submission</p>
-                                    <p class="late-warning-desc"  id="late-warning-desc"></p>
-                                </div>
-                            </div>
-                            <label class="form-label" style="margin-top:10px;">
-                                Reason for Late Submission <span class="req">*</span>
-                            </label>
-                            <textarea name="late_submission_reason" class="form-control"
-                                id="late-reason-input" rows="3"
-                                placeholder="Explain why the SARF is being submitted late…">{{ old('late_submission_reason', $activity->late_submission_reason ?? '') }}</textarea>
-                            <span class="field-error" id="err-late_reason">Please provide a reason for late submission.</span>
-                        </div>
-
-                    </div>
-
-                    <div class="step-nav">
-                        <button type="button" onclick="prevStep(2)" class="btn btn-filter">
-                            <i class="fas fa-arrow-left"></i> Back
-                        </button>
-                        <button type="button" onclick="nextStep(2)" class="btn btn-add">
-                            Next <i class="fas fa-arrow-right"></i>
-                        </button>
-                    </div>
-                </div>{{-- /step-2 --}}
-
-
-                {{-- ══════════════════════════════════════════════
-                     STEP 3 — Attachment Files
-                ══════════════════════════════════════════════ --}}
-                <div class="form-step" id="step-3" style="display:none;">
-                    <p class="step-section-title"><i class="fas fa-paperclip"></i> Attachment Files</p>
-                    <p class="td-muted" style="margin: 0 0 16px;">
-                        Checked types with an existing file will be kept. Upload a new PDF to replace,
-                        or uncheck a type to remove it on save.
-                        <strong>At least one attachment is required.</strong>
-                    </p>
-
-                    @php
-                    $sarfTypes = [
-                        'A0'  => 'SARF Form',
-                        'A1'  => 'Budget Breakdown',
-                        'A2'  => 'Approved Budget Breakdown',
-                        'A3'  => 'Program Flow',
-                        'A4'  => 'Risk Management Plan',
-                        'A5'  => 'Summary List of Waiver / Consent & Medical',
-                        'A6'  => 'Reschedule of Activity',
-                        'A7'  => 'Acknowledgement Receipt',
-                        'A8'  => 'Canteen Slip',
-                        'A10' => 'Requested Materials',
-                    ];
-                    $existingDocs = $activity->sarfDocuments->keyBy('type');
-                    @endphp
-
-                    <div id="attachment-list">
-                        @foreach($sarfTypes as $type => $label)
-                            @php
-                                $doc        = $existingDocs->get($type);
-                                $hasDoc     = (bool) $doc;
-                                $isChecked  = $hasDoc || (is_array(old('types')) && in_array($type, old('types')));
-                            @endphp
-                            <div class="attachment-row">
-                                <label class="attachment-check">
-                                    <input type="checkbox" name="types[]" value="{{ $type }}"
-                                        id="check_{{ $type }}"
-                                        onchange="toggleFile('{{ $type }}', this.checked)"
-                                        @checked($isChecked)>
-                                    <span class="sarf-badge">{{ $type }}</span>
-                                    <span class="sarf-label">{{ $label }}</span>
-                                </label>
-                                <div class="file-upload-wrap" id="upload-wrap-{{ $type }}"
-                                    style="display:{{ $isChecked ? 'flex' : 'none' }};">
-
-                                    @if($hasDoc)
-                                        <a href="{{ route('dean_osa.sarf-documents.show', $doc) }}"
-                                           target="_blank"
-                                           class="existing-doc-link"
-                                           title="View existing file">
-                                            <i class="fas fa-file-pdf"></i>
-                                            <span>Existing file</span>
-                                            <i class="fas fa-external-link-alt" style="font-size:10px;"></i>
-                                        </a>
-                                    @endif
-
-                                    <input type="file" name="file_{{ $type }}"
-                                        id="file_{{ $type }}" accept=".pdf"
-                                        onchange="updateFileName('{{ $type }}', this)">
-                                    <label for="file_{{ $type }}" class="file-label">
-                                        <i class="fas fa-upload"></i>
-                                        {{ $hasDoc ? 'Replace PDF' : 'Choose PDF' }}
+                                    <label class="radio-option">
+                                        <input type="radio" name="canteen" value="Without"
+                                            @checked(old('canteen', $activity->canteen) === 'Without')> Without
                                     </label>
-                                    <span class="file-name-display" id="fname_{{ $type }}">No file chosen</span>
-                                    <span id="err-file_{{ $type }}"
-                                        style="display:none; color:#dc2626; font-size:12px;">
-                                        PDF file is required for this type.
-                                    </span>
                                 </div>
+                                <span class="field-error" id="err-canteen">Please select a canteen option.</span>
                             </div>
-                        @endforeach
-                    </div>
 
-                    <span id="err-attachments"
-                        style="display:none; color:#dc2626; font-size:13px; margin-top:8px;">
-                        Please keep at least one attachment type checked.
-                    </span>
+                            <div class="form-group" id="procurement-block" style="display:none;">
+                                <label class="form-label">Procurement <span class="req">*</span></label>
+                                <div class="radio-group" id="procurement-radio-group">
+                                    <label class="radio-option">
+                                        <input type="radio" name="procurement" value="With"
+                                            @checked(old('procurement', $activity->procurement) === 'With')> With
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="procurement" value="Without"
+                                            @checked(old('procurement', $activity->procurement) === 'Without')> Without
+                                    </label>
+                                </div>
+                                <span class="field-error" id="err-procurement">Please select a procurement option.</span>
+                            </div>
 
-                    <div class="step-nav">
-                        <button type="button" onclick="prevStep(3)" class="btn btn-filter">
-                            <i class="fas fa-arrow-left"></i> Back
-                        </button>
-                        <button type="button" onclick="submitForm()" class="btn btn-add">
-                            <i class="fas fa-save"></i> Save Changes
-                        </button>
-                    </div>
-                </div>{{-- /step-3 --}}
+                            <div class="form-group full" id="late-block" style="display:none;">
+                                <div class="late-warning-card" id="late-warning-card">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <div>
+                                        <p class="late-warning-title" id="late-warning-title">Late Submission</p>
+                                        <p class="late-warning-desc"  id="late-warning-desc"></p>
+                                    </div>
+                                </div>
+                                <label class="form-label" style="margin-top:10px;">
+                                    Reason for Late Submission <span class="req">*</span>
+                                </label>
+                                <textarea name="late_submission_reason" class="form-control"
+                                    id="late-reason-input" rows="3"
+                                    placeholder="Explain why the SARF is being submitted late…">{{ old('late_submission_reason', $activity->late_submission_reason ?? '') }}</textarea>
+                                <span class="field-error" id="err-late_reason">Please provide a reason for late submission.</span>
+                            </div>
+
+                        </div>
+
+                        <div class="step-nav">
+                            <button type="button" onclick="prevStep(2)" class="btn btn-filter">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button type="button" onclick="nextStep(2)" class="btn btn-add">
+                                Next <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>{{-- /step-2 --}}
+
+
+                    {{-- ══════════════════════════════════════════════
+                         STEP 3 — Attachment Files
+                    ══════════════════════════════════════════════ --}}
+                    <div class="form-step" id="step-3" style="display:none;">
+                        <p class="step-section-title"><i class="fas fa-paperclip"></i> Attachment Files</p>
+                        <p class="td-muted" style="margin: 0 0 16px;">
+                            Checked types with an existing file will be kept. Upload a new PDF to replace,
+                            or uncheck a type to remove it on save.
+                            <strong>At least one attachment is required.</strong>
+                        </p>
+
+                        @php
+                        $sarfTypes = [
+                            'A0'  => 'SARF Form',
+                            'A1'  => 'Budget Breakdown',
+                            'A2'  => 'Approved Budget Breakdown',
+                            'A3'  => 'Program Flow',
+                            'A4'  => 'Risk Management Plan',
+                            'A5'  => 'Summary List of Waiver / Consent & Medical',
+                            'A6'  => 'Reschedule of Activity',
+                            'A7'  => 'Acknowledgement Receipt',
+                            'A8'  => 'Canteen Slip',
+                            'A10' => 'Requested Materials',
+                        ];
+                        $existingDocs = $activity->sarfDocuments->keyBy('type');
+                        @endphp
+
+                        <div id="attachment-list">
+                            @foreach($sarfTypes as $type => $label)
+                                @php
+                                    $doc        = $existingDocs->get($type);
+                                    $hasDoc     = (bool) $doc;
+                                    $isChecked  = $hasDoc || (is_array(old('types')) && in_array($type, old('types')));
+                                @endphp
+                                <div class="attachment-row">
+                                    <label class="attachment-check">
+                                        <input type="checkbox" name="types[]" value="{{ $type }}"
+                                            id="check_{{ $type }}"
+                                            onchange="toggleFile('{{ $type }}', this.checked)"
+                                            @checked($isChecked)>
+                                        <span class="sarf-badge">{{ $type }}</span>
+                                        <span class="sarf-label">{{ $label }}</span>
+                                    </label>
+                                    <div class="file-upload-wrap" id="upload-wrap-{{ $type }}"
+                                        style="display:{{ $isChecked ? 'flex' : 'none' }};">
+
+                                        @if($hasDoc)
+                                            <a href="{{ route('dean_osa.sarf-documents.show', $doc) }}"
+                                               target="_blank"
+                                               class="existing-doc-link"
+                                               title="View existing file">
+                                                <i class="fas fa-file-pdf"></i>
+                                                <span>Existing file</span>
+                                                <i class="fas fa-external-link-alt" style="font-size:10px;"></i>
+                                            </a>
+                                        @endif
+
+                                        <input type="file" name="file_{{ $type }}"
+                                            id="file_{{ $type }}" accept=".pdf"
+                                            onchange="updateFileName('{{ $type }}', this)">
+                                        <label for="file_{{ $type }}" class="file-label">
+                                            <i class="fas fa-upload"></i>
+                                            {{ $hasDoc ? 'Replace PDF' : 'Choose PDF' }}
+                                        </label>
+                                        <span class="file-name-display" id="fname_{{ $type }}">No file chosen</span>
+                                        <span id="err-file_{{ $type }}"
+                                            style="display:none; color:#dc2626; font-size:12px;">
+                                            PDF file is required for this type.
+                                        </span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <span id="err-attachments"
+                            style="display:none; color:#dc2626; font-size:13px; margin-top:8px;">
+                            Please keep at least one attachment type checked.
+                        </span>
+
+                        <div class="step-nav">
+                            <button type="button" onclick="prevStep(3)" class="btn btn-filter">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button type="button" onclick="submitForm()" class="btn btn-add">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </div>{{-- /step-3 --}}
+                    @endunless
 
             </form>
         </div>
@@ -676,7 +691,8 @@ function focusFirstInvalidInStep(step) {
 }
 
 /* ── Step navigation ── */
-const TOTAL_STEPS = 3;
+const IS_RESCHEDULING = @json($isRescheduling);
+const TOTAL_STEPS = IS_RESCHEDULING ? 1 : 3;
 let currentStep   = 1;
 
 function nextStep(current) { if (!validateStep(current)) return; displayStep(current + 1); }
@@ -714,6 +730,7 @@ function validateStep(step, jumpOnFail = false) {
     let valid = true;
 
     if (step === 1) {
+        if (!IS_RESCHEDULING) {
         const branch   = document.querySelector('[name="branch_id"]');
         const branchOk = branch && branch.value.trim() !== '';
         markInvalid(branch, !branchOk); showError('err-branch_id', !branchOk);
@@ -746,6 +763,7 @@ function validateStep(step, jumpOnFail = false) {
         const actLevelOk = actLevel && actLevel.value.trim() !== '';
         markInvalid(actLevel, !actLevelOk); showError('err-activity_level', !actLevelOk);
         if (!actLevelOk) valid = false;
+        }
 
         const dateAct   = document.querySelector('[name="date_of_activity"]');
         const dateActOk = dateAct && dateAct.value.trim() !== '';
@@ -847,7 +865,7 @@ function validateStep(step, jumpOnFail = false) {
 }
 
 function submitForm() {
-    if (!validateStep(3)) return;
+    if (!validateStep(TOTAL_STEPS)) return;
     document.getElementById('commitOverlay').classList.add('active');
 }
 function closeCommitModal() {

@@ -45,7 +45,6 @@
                     <tr>
                         <th>ID Code</th>
                         <th>Organization Name</th>
-                        <th>Account Name</th>
                         <th>Branch</th>
                         <th>Department</th>
                         <th>Level</th>
@@ -64,7 +63,6 @@
                             <td>
                                 <div class="td-name">{{ $organization->name }}</div>
                             </td>
-                            <td class="td-muted">{{ $organization->account->username ?? 'N/A' }}</td>
                             <td class="td-muted">{{ $organization->department->branch->name ?? 'N/A' }}</td>
                             <td class="td-muted">{{ $organization->department->name ?? 'N/A' }}</td>
                             <td class="td-muted">{{ $organization->level ?? '-' }}</td>

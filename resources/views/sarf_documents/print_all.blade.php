@@ -35,7 +35,7 @@
     @foreach($documents as $document)
         <iframe
             class="document-frame"
-            src="{{ route($routeName, $document) }}"
+            src="{{ route($routeName, ['document' => $document, 'print' => 1]) }}"
             title="{{ $document->original_filename }}"></iframe>
     @endforeach
 

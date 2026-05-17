@@ -12,10 +12,12 @@ class SarfListFilters
     public static function fromRequest(Request $request): array
     {
         $filters = [
-            'branch_id' => $request->query('branch_id', ''),
-            'level' => $request->query('level', []),
+            'branch_id'       => $request->query('branch_id', ''),
+            'level'           => $request->query('level', []),
+            'organization'    => $request->query('organization', ''),
+            'department'      => $request->query('department', ''),
             'pipeline_status' => $request->query('pipeline_status', ''),
-            'inside_status' => $request->query('inside_status', ''),
+            'inside_status'   => $request->query('inside_status', ''),
         ];
 
         if (is_string($filters['level'])) {
@@ -33,7 +35,9 @@ class SarfListFilters
     public static function apply($query, array $filters, array $allowedStatuses = [])
     {
         return $query
-            ->when($filters['branch_id'] !== '', fn ($query) => $query->where('branch_id', $filters['branch_id']))
+            ->when($filters['branch_id'] !== '', fn ($q) => $q->where('branch_id', $filters['branch_id']))
+            ->when(filled($filters['organization'] ?? ''), fn ($q) => $q->whereJsonContains('organizations', $filters['organization']))
+            ->when(filled($filters['department'] ?? ''),   fn ($q) => $q->whereJsonContains('department',    $filters['department']))
             ->when($filters['pipeline_status'] !== '', function ($query) use ($filters, $allowedStatuses) {
                 $status = $filters['pipeline_status'];
 
@@ -54,6 +58,7 @@ class SarfListFilters
     {
         return [
             'branches' => Branch::orderBy('name')->get(),
+
             'levels' => Activity::query()
                 ->pluck('level')
                 ->flatMap(fn ($level) => is_array($level) ? $level : (filled($level) ? [$level] : []))
@@ -61,6 +66,25 @@ class SarfListFilters
                 ->unique()
                 ->sort()
                 ->values(),
+
+            'allOrganizations' => Activity::query()
+                ->whereNotNull('organizations')
+                ->pluck('organizations')
+                ->flatMap(fn ($v) => is_array($v) ? $v : (filled($v) ? [$v] : []))
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values(),
+
+            'allDepartments' => Activity::query()
+                ->whereNotNull('department')
+                ->pluck('department')
+                ->flatMap(fn ($v) => is_array($v) ? $v : (filled($v) ? [$v] : []))
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values(),
+
             'insideStatuses' => collect(self::insideStatusOptions()),
         ];
     }
@@ -160,18 +184,18 @@ class SarfListFilters
         }
 
         $fields += [
-            'approval_vp_acad' => 'Pending in Acad',
+            'approval_vp_acad'      => 'Pending in Acad',
             'approval_vp_hrd_legal' => 'Pending in Legal',
         ];
 
         if ($activity->funds === 'With Budget') {
             $fields += [
-                'approval_auditing' => 'Pending in Auditing',
+                'approval_auditing'            => 'Pending in Auditing',
                 'approval_comptroller_initial' => 'Pending in Comptroller 1',
-                'approval_finance_initial' => 'Pending in Finance 1',
-                'approval_osa_finance' => 'Pending in OSA Finance',
-                'approval_finance_final' => 'Pending in Finance 2',
-                'approval_comptroller_final' => 'Pending in Comptroller 2',
+                'approval_finance_initial'     => 'Pending in Finance 1',
+                'approval_osa_finance'         => 'Pending in OSA Finance',
+                'approval_finance_final'       => 'Pending in Finance 2',
+                'approval_comptroller_final'   => 'Pending in Comptroller 2',
             ];
         }
 

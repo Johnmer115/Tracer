@@ -214,15 +214,67 @@ class ActivityController extends Controller
     {
         $activity = Activity::with('sarfDocuments')->findOrFail($id);
         $branches = Branch::orderBy('name')->get();
+        $departments = Department::with('branch')->orderBy('name')->get();
+        $organizations = Organization::with('department.branch')->orderBy('name')->get();
 
-        return view('Dean_OSA.activity.edit', compact('activity', 'branches'));
+        return view('Dean_OSA.activity.edit', compact(
+            'activity',
+            'branches',
+            'departments',
+            'organizations'
+        ));
     }
 
     public function update(Request $request, string $id)
     {
         $activity = Activity::findOrFail($id);
+        $isRescheduling = $activity->modification_type === 'rescheduling';
 
-        $request->validate([
+        if ($isRescheduling) {
+            $request->validate([
+                'mode_of_conduct'    => 'required|in:Face to Face,Online,Hybrid',
+                'date_of_activity'   => 'required|date',
+                'time_start'         => 'nullable|required_with:time_end|date_format:H:i',
+                'time_end'           => 'nullable|required_with:time_start|date_format:H:i|after:time_start',
+                'venue'              => 'nullable|string|max:255',
+                'venue_type'         => 'nullable|in:On-Campus,Off-Campus',
+                'platform'           => 'nullable|string|max:255',
+            ], [
+                'time_start.required_with' => 'Please enter the activity start time.',
+                'time_end.required_with'   => 'Please enter the activity end time.',
+                'time_end.after'           => 'The activity end time must be after the start time.',
+            ], [
+                'time_start' => 'start time',
+                'time_end'   => 'end time',
+            ]);
+
+            $modeOfConduct = $request->input('mode_of_conduct');
+            $hasVenue      = in_array($modeOfConduct, ['Face to Face', 'Hybrid'], true);
+            $hasPlatform   = in_array($modeOfConduct, ['Online', 'Hybrid'], true);
+            $timeOfActivity = $this->formatActivityTimeRange($request);
+            $schedulePlace = $hasVenue
+                ? $request->input('venue')
+                : ($hasPlatform ? $request->input('platform') : null);
+
+            $activity->update([
+                'reschedule_status'       => 'pending',
+                'reschedule_date'         => $request->input('date_of_activity'),
+                'reschedule_time'         => $timeOfActivity,
+                'reschedule_venue'        => $schedulePlace,
+                'reschedule_reason'       => $activity->modification_remarks ?? 'Schedule modification requested.',
+                'reschedule_remarks'      => null,
+                'reschedule_requested_at' => now(),
+                'reschedule_decided_at'   => null,
+                'status'                  => 'for approval',
+                'modification_type'       => null,
+                'modification_remarks'    => null,
+            ]);
+
+            return redirect()->route('dean_osa.activity.index')
+                             ->with('success', 'Rescheduling changes submitted. The current schedule stays unchanged until the new schedule is approved.');
+        }
+
+        $rules = [
             'title'              => 'required|string|max:255',
             'branch_id'          => 'nullable|exists:branches,id',
             'level'              => 'required|array|min:1',
@@ -238,12 +290,17 @@ class ActivityController extends Controller
             'date_of_activity'   => 'required|date',
             'time_start'         => 'nullable|required_with:time_end|date_format:H:i',
             'time_end'           => 'nullable|required_with:time_start|date_format:H:i|after:time_start',
-            'funds'              => 'required|in:With Budget,ATC,No Fee',
-            'amount'             => 'required_if:funds,With Budget,ATC|nullable|numeric|min:0',
             'types'              => 'nullable|array',
             'types.*'            => 'in:A0,A1,A2,A3,A4,A5,A6,A7,A8,A10',
             'participants_count' => 'nullable|integer|min:0',
-        ], [
+        ];
+
+        $rules = array_merge($rules, [
+            'funds'              => 'required|in:With Budget,ATC,No Fee',
+            'amount'             => 'required_if:funds,With Budget,ATC|nullable|numeric|min:0',
+        ]);
+
+        $request->validate($rules, [
             'time_start.required_with' => 'Please enter the activity start time.',
             'time_end.required_with'   => 'Please enter the activity end time.',
             'time_end.after'           => 'The activity end time must be after the start time.',
@@ -279,7 +336,7 @@ class ActivityController extends Controller
             $resetData['status'] = 'for approval';
         }
 
-        $updateData = array_merge([
+        $updateData = [
             'branch_id'              => $request->input('branch_id'),
             'level'                  => $request->input('level', []),
             'department'             => $departments,
@@ -292,10 +349,15 @@ class ActivityController extends Controller
             'activity_level'         => $request->input('activity_level'),
             'participants_profile'   => $request->input('participants_profile'),
             'participants_count'     => $request->input('participants_count'),
-            'date_of_activity'       => $request->input('date_of_activity'),
-            'time_of_activity'       => $timeOfActivity,
             'public_poster'          => $request->input('public_poster'),
             'mode_of_conduct'        => $modeOfConduct,
+            'late_submission_reason' => $request->input('late_submission_reason'),
+            // received_by / encoded_by intentionally not updated — keep original recorder
+        ];
+
+        $updateData = array_merge($updateData, [
+            'date_of_activity'       => $request->input('date_of_activity'),
+            'time_of_activity'       => $timeOfActivity,
             'venue'                  => $hasVenue    ? $request->input('venue')      : null,
             'venue_type'             => $hasVenue    ? $request->input('venue_type') : null,
             'platform'               => $hasPlatform ? $request->input('platform')   : null,
@@ -305,9 +367,9 @@ class ActivityController extends Controller
             'expected_collection'    => $funds === 'ATC'                               ? $request->input('expected_collection') : null,
             'canteen'                => in_array($funds, ['With Budget', 'ATC'], true) ? $request->input('canteen')             : null,
             'procurement'            => in_array($funds, ['With Budget', 'ATC'], true) ? $request->input('procurement')         : null,
-            'late_submission_reason' => $request->input('late_submission_reason'),
-            // received_by / encoded_by intentionally not updated — keep original recorder
-        ], $resetData);
+        ]);
+
+        $updateData = array_merge($updateData, $resetData);
 
         $activity->update($updateData);
 
@@ -321,28 +383,6 @@ class ActivityController extends Controller
                     ['file_path' => $path, 'original_filename' => $file->getClientOriginalName()]
                 );
             }
-        }
-
-        // If modification was rescheduling + schedule was changed, create reschedule request
-        if ($activity->modification_type === 'rescheduling') {
-            $freshActivity = Activity::findOrFail($activity->id);
-
-            $freshActivity->update([
-                'reschedule_status'       => 'pending',
-                'reschedule_date'         => $freshActivity->date_of_activity,
-                'reschedule_time'         => $freshActivity->time_of_activity,
-                'reschedule_venue'        => $freshActivity->venue,
-                'reschedule_reason'       => $freshActivity->modification_remarks ?? 'Schedule modification requested.',
-                'reschedule_remarks'      => null,
-                'reschedule_requested_at' => now(),
-                'reschedule_decided_at'   => null,
-                'status'                  => 'for approval',
-                'modification_type'       => null,
-                'modification_remarks'    => null,
-            ]);
-
-            return redirect()->route('dean_osa.activity.index')
-                             ->with('success', 'Rescheduling changes submitted. The new schedule requires approval before the activity returns to the approval pipeline.');
         }
 
         // Clear modification fields after successful revision
