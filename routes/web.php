@@ -76,7 +76,7 @@ Route::middleware(['auth', 'Dean_OSA'])->prefix('dean_osa')
         Route::get('paar/{id}', [PaarController::class, 'show'])->name('paar.show');
         Route::get('paar/{id}/edit', [PaarController::class, 'edit'])->name('paar.edit');
         Route::get('paar/{id}/act', [PaarController::class, 'act'])->name('paar.act');
-        Route::post('paar/{id}', [PaarController::class, 'update'])->name('paar.update');
+        Route::match(['post', 'patch'], 'paar/{id}', [PaarController::class, 'update'])->name('paar.update');
 
         // Tracer
         Route::get('tracer', [TracerController::class, 'index'])->name('tracer.index');
