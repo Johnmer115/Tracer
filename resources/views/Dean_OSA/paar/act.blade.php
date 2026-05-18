@@ -137,7 +137,7 @@
                                         </span>
                                     </label>
                                 </div>
-                                <label class="approved-dropzone" for="{{ $fieldId }}">
+                                <label class="approved-dropzone is-visible" for="{{ $fieldId }}">
                                     <input type="file" name="{{ $fieldId }}" id="{{ $fieldId }}"
                                         accept=".pdf" onchange="updateApprovedFileName('{{ $fieldId }}', this)">
                                     <span class="approved-dropzone-inner">
