@@ -97,6 +97,17 @@
         $location = $getApprovalLocation($activity);
         $isForApproval = in_array($s, ['for approval', 'for approval finance']);
 
+        // Check for rescheduling status first
+        if ($activity->reschedule_status === 'pending') {
+            return [
+                'label' => 'Rescheduling',
+                'bg'    => '#fef3c7',
+                'color' => '#92400e',
+                'border'=> '#fbbf24',
+                'icon'  => 'fa-calendar-alt',
+            ];
+        }
+
         if ($isForApproval && $location) {
             return [
                 'label' => 'Pending in ' . $location,
@@ -359,22 +370,40 @@
 
                             {{-- Status (computed) --}}
                             <td style="white-space:nowrap;">
+<<<<<<< HEAD
                                 @include('partials.sarf-status-badge', ['activity' => $activity])
+=======
+                                <span style="
+                                    display:inline-flex; align-items:center; gap:5px;
+                                    font-size:11.5px; font-weight:700;
+                                    padding:4px 10px; border-radius:20px;
+                                    background:{{ $badge['bg'] }};
+                                    color:{{ $badge['color'] }};
+                                    border:1px solid {{ $badge['border'] }};">
+                                    <i class="fas {{ $badge['icon'] }}" style="font-size:10px;"></i>
+                                    {{ $badge['label'] }}
+                                </span>
+>>>>>>> fb160cc5944d42a4eb126875079b7264909d0fdb
                             </td>
 
 
                             {{-- Actions --}}
-                            <td>
-                                <div class="action-cell">
+                            <td style="white-space:nowrap;">
+                                <div class="action-cell" style="display:inline-flex; gap:8px; align-items:center; flex-wrap:nowrap; white-space:nowrap;">
                                     <a href="{{ route('dean_osa.approval.review', $activity->id) }}"
-                                        class="abtn abtn-view" title="Review & Approve Activity">
+                                        class="abtn abtn-view" title="Review & Approve Activity" style="flex-shrink:0;">
                                         <i class="fas fa-stamp"></i>
                                     </a>
                                     @if(in_array($activity->status, ['for approval', 'for approval finance', 'ongoing', 'approved']) && $activity->reschedule_status !== 'pending')
                                         <button type="button"
                                             class="abtn abtn-mod"
                                             title="Request Modification"
+<<<<<<< HEAD
                                             onclick="openModificationModal({{ $activity->id }}, '{{ addslashes($activity->code) }}', '{{ $activity->status }}')">
+=======
+                                            style="flex-shrink:0;"
+                                            onclick="openModificationModal({{ $activity->id }}, '{{ addslashes($activity->code) }}')">
+>>>>>>> fb160cc5944d42a4eb126875079b7264909d0fdb
                                             <i class="ti ti-adjustments-horizontal"></i>
                                         </button>
                                     @endif
