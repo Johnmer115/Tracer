@@ -88,13 +88,22 @@ body { display: flex; }
 
 .btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 13px; border-radius: 7px; font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer; border: none; transition: all .15s; white-space: nowrap; text-decoration: none; }
 .btn-filter { background: var(--white); color: #374151; border: 1px solid var(--border); }
-.btn-filter:hover { background: #f9fafb; }
+.btn-filter:hover { background: #f9fafb; color: #1f2937; border-color: #cbd5e1; }
 .btn-add { background: var(--primary); color: #fff; font-weight: 600; }
-.btn-add:hover { background: var(--primary-dark); }
+.btn-add:hover { background: var(--primary-dark); color: #fff; box-shadow: 0 6px 14px rgba(1,78,168,.18); }
 .btn-success { background: var(--success); color: #fff; }
-.btn-success:hover { background: #15803d; }
+.btn-success:hover { background: #15803d; color: #fff; box-shadow: 0 6px 14px rgba(21,128,61,.16); }
 .btn-danger { background: var(--danger); color: #fff; }
-.btn-danger:hover { background: #b91c1c; }
+.btn-danger:hover { background: #b91c1c; color: #fff; box-shadow: 0 6px 14px rgba(185,28,28,.16); }
+.btn:hover,
+.btn:focus {
+    text-decoration: none;
+}
+.btn-add:hover i,
+.btn-success:hover i,
+.btn-danger:hover i {
+    color: inherit;
+}
 
 /* ---- ALERTS ---- */
 .alert { margin: 10px  5px; padding: 12px 14px; border: 1px solid transparent; border-radius: 8px; font-size: 12.5px; line-height: 1.5;}

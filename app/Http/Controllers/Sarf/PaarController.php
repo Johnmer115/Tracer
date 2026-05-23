@@ -26,7 +26,7 @@ class PaarController extends Controller
 
         $filters = SarfListFilters::fromRequest($request);
         $query = Activity::with('branch')
-            ->whereIn('status', ['approved', 'completed'])
+            ->where('status', 'completed')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('title', 'like', "%{$search}%")
@@ -34,7 +34,7 @@ class PaarController extends Controller
                 });
             });
 
-        SarfListFilters::apply($query, $filters, ['approved', 'completed']);
+        SarfListFilters::apply($query, $filters, ['completed']);
 
         $filteredActivities = SarfListFilters::applyInsideStatus($query->latest()->get(), $filters);
         $activities = SarfListFilters::paginateCollection($filteredActivities, $request, $perPage);

@@ -5,73 +5,8 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/sarf-create.css') }}">
-    <style>
-        .accomplishment-step { display: none; }
-        .accomplishment-step.active { display: block; }
-        .document-check-row {
-            display: flex;
-            justify-content: flex-end;
-            flex-wrap: wrap;
-            gap: 8px;
-            padding: 0 14px 14px;
-        }
-        .document-check-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #3b82f6;
-            background: #dbeafe;
-            border-radius: 20px;
-            padding: 6px 12px;
-            text-decoration: none;
-            white-space: nowrap;
-            transition: background .15s;
-        }
-        .document-check-btn:hover {
-            background: #bfdbfe;
-            color: #1d4ed8;
-        }
-        .document-download-btn {
-            color: #15803d;
-            background: #dcfce7;
-        }
-        .document-download-btn:hover {
-            background: #bbf7d0;
-            color: #166534;
-        }
-        .document-preview-btn {
-            display: none;
-            color: #7c3aed;
-            background: #ede9fe;
-        }
-        .document-preview-btn.is-visible {
-            display: inline-flex;
-        }
-        .document-preview-btn:hover {
-            background: #ddd6fe;
-            color: #6d28d9;
-        }
-        .step-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            margin-top: 16px;
-        }
-        .step-nav.end { justify-content: flex-end; }
-        @media (max-width: 640px) {
-            .step-nav {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .step-nav .btn,
-            .document-check-btn {
-                justify-content: center;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('css/paar-act.css') }}">
+
 @endpush
 
 @section('content')

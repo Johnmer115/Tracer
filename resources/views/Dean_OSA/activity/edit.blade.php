@@ -5,6 +5,8 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/sarf-create.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/approval-modification-modal.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/sarf-edit.css') }}">
 @endpush
 
 @section('content')
@@ -29,6 +31,7 @@
                     <i class="fas fa-hashtag" style="color:#93c5fd; font-size:12px;"></i>
                     <span>{{ $activity->code }}</span>
                 </div>
+                @include('partials.sarf-status-badge', ['activity' => $activity])
                 <a href="{{ route('dean_osa.activity.index') }}" class="btn btn-filter">
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
@@ -629,24 +632,6 @@
     </div>
 </section>
 
-<style>
-/* Extra styles specific to edit (merge into sarf-create.css if preferred) */
-.existing-doc-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #15803d;
-    background: #dcfce7;
-    border-radius: 20px;
-    padding: 3px 10px;
-    text-decoration: none;
-    white-space: nowrap;
-    transition: background .15s;
-}
-.existing-doc-link:hover { background: #bbf7d0; }
-</style>
 
 <script>
 /* ══════════════════════════════════════════════════════════
@@ -1208,46 +1193,4 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 </div>
 
-<style>
-.commit-overlay {
-    display:none; position:fixed; inset:0; z-index:9999;
-    background:rgba(15,23,42,0.55); backdrop-filter:blur(4px);
-    align-items:center; justify-content:center;
-    animation:commitFade .2s ease;
-}
-.commit-overlay.active { display:flex; }
-@keyframes commitFade  { from{opacity:0} to{opacity:1} }
-@keyframes commitSlide { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-
-.commit-modal {
-    background:#fff; border-radius:16px;
-    box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);
-    width:460px; max-width:94vw; overflow:hidden;
-    animation:commitSlide .25s ease;
-}
-.commit-modal-header {
-    display:flex; align-items:center; gap:14px;
-    padding:20px 24px; position:relative;
-}
-.commit-modal-icon {
-    width:46px; height:46px; border-radius:12px; color:#fff;
-    display:flex; align-items:center; justify-content:center;
-    font-size:20px; flex-shrink:0;
-}
-.commit-modal-title { font-size:17px; font-weight:700; color:#0f172a; margin:0; }
-.commit-modal-subtitle { font-size:12px; color:#64748b; margin:2px 0 0; font-weight:500; }
-.commit-close {
-    position:absolute; top:16px; right:16px;
-    background:none; border:none; cursor:pointer; color:#94a3b8; font-size:16px;
-    width:32px; height:32px; border-radius:8px;
-    display:flex; align-items:center; justify-content:center;
-    transition:all .15s;
-}
-.commit-close:hover { background:#e2e8f0; color:#334155; }
-.commit-modal-body { padding:20px 24px; }
-.commit-modal-footer {
-    display:flex; justify-content:flex-end; gap:10px;
-    padding:16px 24px; background:#f8fafc; border-top:1px solid #e5e7eb;
-}
-</style>
 @endsection

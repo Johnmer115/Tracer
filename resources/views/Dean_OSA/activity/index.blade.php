@@ -24,14 +24,29 @@
                 </div>
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
                 @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => 'dean_osa.activity.index'])
-                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'button', 'filterRoute' => 'dean_osa.activity.index'])
+                @include('Dean_OSA.partials.sarf-filters', [
+                    'filterMode' => 'button',
+                    'filterRoute' => 'dean_osa.activity.index',
+                    'pipelineStatuses' => [
+                        'pending' => 'Pending',
+                        'for revision' => 'For Revision',
+                        'for reschedule' => 'For Rescheduling',
+                    ],
+                ])
                 <a href="{{ route('dean_osa.activity.create') }}" class="btn btn-add">
                     <i class="fas fa-plus"></i> New Activity
                 </a>
             </form>
         </div>
 
-        @include('Dean_OSA.partials.sarf-filters', ['filterRoute' => 'dean_osa.activity.index'])
+        @include('Dean_OSA.partials.sarf-filters', [
+            'filterRoute' => 'dean_osa.activity.index',
+            'pipelineStatuses' => [
+                'pending' => 'Pending',
+                'for revision' => 'For Revision',
+                'for reschedule' => 'For Rescheduling',
+            ],
+        ])
 
         <div class="table-wrap">
             <table>
@@ -166,22 +181,7 @@
 
                             {{-- Status + submitted date WITH time --}}
                             <td>
-                                @php
-                                    $statusClass = match($activity->status) {
-                                        'pending'              => 'b-pending',
-                                        'ongoing'              => 'b-ongoing',
-                                        'for approval'         => 'b-for-approval',
-                                        'for approval finance' => 'b-for-approval',
-                                        'for revision'         => 'b-revision',
-                                        'for reschedule'       => 'b-for-reschedule',
-                                        'approved'             => 'b-approved',
-                                        'completed'            => 'b-completed',
-                                        'cancelled'            => 'b-cancelled',
-                                        'rejected'             => 'b-rejected',
-                                        default                => 'b-pending',
-                                    };
-                                @endphp
-                                <span class="badge {{ $statusClass }}">{{ ucfirst($activity->status) }}</span>
+                                @include('partials.sarf-status-badge', ['activity' => $activity])
                                 @if($activity->modification_type === 'rescheduling' && $activity->status !== 'for reschedule')
                                     <span class="mini-pill pill-amber" style="margin-left:3px;">
                                         <i class="fas fa-calendar-alt" style="font-size:9px;"></i>
@@ -287,22 +287,4 @@
     </div>
 </section>
 
-<style>
-.td-main { font-size: 13.5px; font-weight: 600; color: #1e293b; }
-.td-sub  { font-size: 11.5px; color: #94a3b8; margin-top: 2px; line-height: 1.4; }
-
-.mini-pill {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    border-radius: 20px;
-    padding: 2px 8px;
-    white-space: nowrap;
-}
-.pill-blue  { background: #dbeafe; color: #1d4ed8; }
-.pill-slate { background: #f1f5f9; color: #475569; }
-.pill-green { background: #dcfce7; color: #15803d; }
-.pill-amber { background: #fef9c3; color: #92400e; }
-.pill-purple { background: #ede9fe; color: #6d28d9; }
-</style>
 @endsection

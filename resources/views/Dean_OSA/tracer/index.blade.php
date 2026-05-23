@@ -287,16 +287,7 @@
                                         </div>
                                     </td>
                                     <td style="white-space:nowrap;">
-                                        <span style="
-                                            display:inline-flex; align-items:center; gap:5px;
-                                            font-size:11.5px; font-weight:700;
-                                            padding:4px 10px; border-radius:20px;
-                                            background:{{ $badge['bg'] }};
-                                            color:{{ $badge['color'] }};
-                                            border:1px solid {{ $badge['border'] }};">
-                                            <i class="fas {{ $badge['icon'] }}" style="font-size:10px;"></i>
-                                            {{ $badge['label'] }}
-                                        </span>
+                                        @include('partials.sarf-status-badge', ['activity' => $activity])
                                     </td>
                                     <td style="white-space:nowrap;">
                                         <div class="td-main">{{ $activity->created_at?->format('M j, Y') ?? '—' }}</div>

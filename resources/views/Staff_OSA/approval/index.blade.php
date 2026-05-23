@@ -344,16 +344,7 @@
 
                             {{-- Status (computed) --}}
                             <td style="white-space:nowrap;">
-                                <span style="
-                                    display:inline-flex; align-items:center; gap:5px;
-                                    font-size:11.5px; font-weight:700;
-                                    padding:4px 10px; border-radius:20px;
-                                    background:{{ $badge['bg'] }};
-                                    color:{{ $badge['color'] }};
-                                    border:1px solid {{ $badge['border'] }};">
-                                    <i class="fas {{ $badge['icon'] }}" style="font-size:10px;"></i>
-                                    {{ $badge['label'] }}
-                                </span>
+                                @include('partials.sarf-status-badge', ['activity' => $activity])
                             </td>
 
                             {{-- Submitted --}}
@@ -426,34 +417,4 @@
     </div>
 </section>
 
-<style>
-/* ── Cell helpers ── */
-.td-main  { font-size:13.5px; font-weight:600; color:#1e293b; }
-.td-sub   { font-size:11.5px; color:#94a3b8; margin-top:2px; line-height:1.4; }
-.td-muted { color:#94a3b8; font-style:italic; }
-
-/* ── Mini pills ── */
-.mini-pill {
-    display:inline-block; font-size:11px; font-weight:600;
-    border-radius:20px; padding:2px 8px; white-space:nowrap;
-}
-.pill-blue  { background:#dbeafe; color:#1d4ed8; }
-.pill-slate { background:#f1f5f9; color:#475569; }
-.pill-green { background:#dcfce7; color:#15803d; }
-.pill-amber { background:#fef9c3; color:#92400e; }
-
-/* ── Dot legend bar ── */
-.dot-legend {
-    display:flex; gap:16px; flex-wrap:wrap; align-items:center;
-    padding:8px 20px; border-bottom:1px solid #f1f5f9;
-    background:#fafafa;
-}
-.dot-legend-item {
-    display:flex; align-items:center; gap:5px;
-    font-size:11.5px; color:#64748b; font-weight:500;
-}
-.dot-legend-dot {
-    width:10px; height:10px; border-radius:50%; flex-shrink:0;
-}
-</style>
 @endsection

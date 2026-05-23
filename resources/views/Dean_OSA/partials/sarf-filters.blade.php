@@ -28,10 +28,23 @@
         'ongoing'              => 'Ongoing',
         'for approval'         => 'For Approval',
         'for approval finance' => 'For Approval Finance',
+        'for approval for rescheduling' => 'For Approval for Rescheduling',
         'approved'             => 'Approved',
         'completed'            => 'Completed',
         'for revision'         => 'For Revision',
         'cancelled'            => 'Cancelled',
+    ];
+    $pipelineStatusStyles = [
+        'pending'              => ['bg' => '#f1f5f9', 'color' => '#475569', 'border' => '#cbd5e1'],
+        'ongoing'              => ['bg' => '#fef9c3', 'color' => '#854d0e', 'border' => '#fde68a'],
+        'for approval'         => ['bg' => '#dbeafe', 'color' => '#014ea8', 'border' => '#93c5fd'],
+        'for approval finance' => ['bg' => '#dbeafe', 'color' => '#014ea8', 'border' => '#93c5fd'],
+        'for approval for rescheduling' => ['bg' => '#fef3c7', 'color' => '#92400e', 'border' => '#fbbf24'],
+        'approved'             => ['bg' => '#dcfce7', 'color' => '#15803d', 'border' => '#86efac'],
+        'completed'            => ['bg' => '#f0fdf4', 'color' => '#166534', 'border' => '#4ade80'],
+        'for revision'         => ['bg' => '#fff1f2', 'color' => '#da281c', 'border' => '#fca5a5'],
+        'for reschedule'       => ['bg' => '#fef3c7', 'color' => '#92400e', 'border' => '#fbbf24'],
+        'cancelled'            => ['bg' => '#f8fafc', 'color' => '#94a3b8', 'border' => '#e2e8f0'],
     ];
 
     $filterDisplayValue = function ($key, $value) use ($branches) {
@@ -76,146 +89,7 @@
 
 @else
     @once
-        <style>
-            .filter-backdrop {
-                position: fixed;
-                inset: 0;
-                background: rgba(15, 23, 42, .35);
-                opacity: 0;
-                pointer-events: none;
-                transition: opacity .18s ease;
-                z-index: 70;
-            }
-            .filter-backdrop.is-open {
-                opacity: 1;
-                pointer-events: auto;
-            }
-            .filter-drawer {
-                position: fixed;
-                top: 0;
-                right: 0;
-                width: min(390px, 100%);
-                height: 100vh;
-                background: #fff;
-                border-left: 1px solid #e5e7eb;
-                box-shadow: -18px 0 40px rgba(15, 23, 42, .16);
-                transform: translateX(100%);
-                transition: transform .22s ease;
-                z-index: 80;
-                display: flex;
-                flex-direction: column;
-            }
-            .filter-drawer.is-open { transform: translateX(0); }
-            .filter-drawer-head {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 12px;
-                padding: 18px 20px;
-                border-bottom: 1px solid #e5e7eb;
-            }
-            .filter-drawer-title {
-                font-size: 15px;
-                font-weight: 800;
-                color: #1e293b;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-            .drawer-close {
-                border: 0;
-                width: 34px;
-                height: 34px;
-                border-radius: 8px;
-                background: #f1f5f9;
-                color: #475569;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-            }
-            .filter-drawer-body {
-                padding: 18px 20px;
-                overflow: auto;
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-            }
-            .filter-group label {
-                display: block;
-                font-size: 11px;
-                font-weight: 800;
-                text-transform: uppercase;
-                letter-spacing: .4px;
-                color: #64748b;
-                margin-bottom: 7px;
-            }
-            .filter-checkbox-group {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-            }
-            .filter-checkbox-item {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-            .filter-checkbox-item input[type="checkbox"] {
-                width: 18px;
-                height: 18px;
-                cursor: pointer;
-                accent-color: #3b82f6;
-            }
-            .filter-checkbox-item label {
-                margin: 0;
-                font-size: 13px;
-                font-weight: 500;
-                text-transform: none;
-                letter-spacing: 0;
-                color: #1e293b;
-                cursor: pointer;
-                display: inline;
-            }
-            .filter-actions {
-                margin-top: auto;
-                padding: 16px 20px;
-                border-top: 1px solid #e5e7eb;
-                display: flex;
-                gap: 10px;
-                justify-content: flex-end;
-            }
-            .active-filter-strip {
-                display: flex;
-                gap: 6px;
-                flex-wrap: wrap;
-                align-items: center;
-                padding: 8px 14px;
-                background: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                margin-bottom: 14px;
-            }
-            .active-filter-strip-label {
-                font-size: 11px;
-                font-weight: 700;
-                color: #94a3b8;
-                text-transform: uppercase;
-                letter-spacing: .4px;
-                margin-right: 2px;
-                white-space: nowrap;
-            }
-            .filter-chip {
-                display: inline-flex;
-                align-items: center;
-                gap: 5px;
-                font-size: 11.5px;
-                font-weight: 600;
-                color: #1d4ed8;
-                background: #dbeafe;
-                border: 1px solid #bfdbfe;
-                border-radius: 20px;
-                padding: 3px 10px;
-            }
-        </style>
+
 
         <script>
         function openSarfFilters(id) {
@@ -248,8 +122,17 @@
                 <i class="fas fa-filter" style="margin-right:3px;"></i> Active filters:
             </span>
             @foreach($activeFilters as $key => $value)
-                <span class="filter-chip">
-                    {{ Str::headline($key) }}: {{ $filterDisplayValue($key, $value) }}
+                @php
+                    $statusStyle = $key === 'pipeline_status'
+                        ? ($pipelineStatusStyles[$value] ?? null)
+                        : null;
+                @endphp
+                <span class="filter-chip"
+                    @if($statusStyle)
+                        style="background:{{ $statusStyle['bg'] }}; color:{{ $statusStyle['color'] }}; border-color:{{ $statusStyle['border'] }};"
+                    @endif>
+                    {{ Str::headline($key) }}:
+                    {{ $key === 'pipeline_status' ? ($pipelineStatuses[$value] ?? $filterDisplayValue($key, $value)) : $filterDisplayValue($key, $value) }}
                 </span>
             @endforeach
         </div>

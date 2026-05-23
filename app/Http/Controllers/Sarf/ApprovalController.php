@@ -9,6 +9,7 @@ use App\Models\SarfDocument;
 use App\Models\Remark;
 use App\Models\SystemLog;
 use App\Support\SarfListFilters;
+use Illuminate\Support\Facades\Storage;
 
 class ApprovalController extends Controller
 {
@@ -94,14 +95,16 @@ class ApprovalController extends Controller
             $filters['pipeline_status'] = $status;
         }
 
+        $approvalStatuses = ['pending', 'ongoing', 'for approval', 'for approval finance', 'approved', 'for approval for rescheduling'];
+
         $query = Activity::with(['branch'])
-            ->whereIn('status', ['pending', 'ongoing', 'for approval', 'for approval finance', 'approved'])
+            ->whereIn('status', $approvalStatuses)
             ->when($search !== '', fn($q) => $q->where(function ($inner) use ($search) {
                 $inner->where('title', 'like', "%{$search}%")
                       ->orWhere('code',  'like', "%{$search}%");
             }));
 
-        SarfListFilters::apply($query, $filters, ['pending', 'ongoing', 'for approval', 'for approval finance', 'approved']);
+        SarfListFilters::apply($query, $filters, $approvalStatuses);
 
         $filteredActivities = SarfListFilters::applyInsideStatus($query->latest()->get(), $filters);
         $activities = SarfListFilters::paginateCollection($filteredActivities, $request, $perPage);
@@ -143,6 +146,12 @@ class ApprovalController extends Controller
     {
         $activity = Activity::findOrFail($id);
 
+        if ($activity->status === 'for approval for rescheduling' && $activity->reschedule_status === 'pending') {
+            $activity->update(['reschedule_status' => 'for approval']);
+
+            return redirect()->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => 4]);
+        }
+
         if ($activity->status === 'pending') {
             $activity->update(['status' => 'ongoing']);
         }
@@ -158,8 +167,8 @@ class ApprovalController extends Controller
         $activity = Activity::findOrFail($id);
 
         $request->validate([
-            'status' => 'required|in:pending,ongoing,for approval,for approval finance,approved,completed,for revision,cancelled',
-            'current_tab' => 'nullable|integer|in:1,2,3',
+            'status' => 'required|in:pending,ongoing,for approval,for approval finance,approved,completed,for revision,cancelled,for approval for rescheduling',
+            'current_tab' => 'nullable|integer|in:1,2,3,4',
             'focus' => 'nullable|string|max:80|regex:/^[A-Za-z0-9_-]+$/',
         ]);
 
@@ -197,10 +206,10 @@ class ApprovalController extends Controller
     {
         $activity = Activity::findOrFail($id);
 
-        // Block approvals while a reschedule is pending
-        if ($activity->reschedule_status === 'pending') {
+        // Block signatory approvals while a reschedule request is active.
+        if ($activity->status === 'for approval for rescheduling' || in_array($activity->reschedule_status, ['pending', 'for approval'], true)) {
             return back()->withErrors([
-                'approver' => 'Signatory approvals are paused while a reschedule request is pending.',
+                'approver' => 'Signatory approvals are paused while a reschedule request is active.',
             ]);
         }
 
@@ -209,7 +218,7 @@ class ApprovalController extends Controller
             'status'   => 'required|in:pending,for signature,approved,disapproved',
             'remark'   => 'nullable|string|max:500',
             'approved_budget' => 'nullable|numeric|min:0',
-            'current_tab' => 'nullable|integer|in:1,2,3',
+            'current_tab' => 'nullable|integer|in:1,2,3,4',
         ]);
 
         $approver = $request->input('approver');
@@ -370,7 +379,7 @@ class ApprovalController extends Controller
             ->first();
 
         $request->validate([
-            'current_tab' => 'nullable|integer|in:1,2,3',
+            'current_tab' => 'nullable|integer|in:1,2,3,4',
             'approved_remark' => 'nullable|string|max:1000',
             'approved_sarf_file' => [
                 $existingDocument ? 'nullable' : 'required',
@@ -433,15 +442,34 @@ class ApprovalController extends Controller
             'reschedule_reason' => 'required|string|max:1000',
         ]);
 
+        $reschedulePaper = SarfDocument::where('activity_id', $activity->id)
+            ->where('type', 'RESCHEDULE_PAPER')
+            ->first();
+
+        if ($reschedulePaper) {
+            Storage::disk('public')->delete($reschedulePaper->file_path);
+            $reschedulePaper->delete();
+        }
+
         $activity->update([
             'reschedule_status'       => 'pending',
+            'reschedule_original_date' => $activity->date_of_activity,
+            'reschedule_original_time' => $activity->time_of_activity,
+            'reschedule_original_mode' => $activity->mode_of_conduct,
+            'reschedule_original_venue' => $activity->venue,
+            'reschedule_original_venue_type' => $activity->venue_type,
+            'reschedule_original_platform' => $activity->platform,
             'reschedule_date'         => $request->input('reschedule_date'),
             'reschedule_time'         => $request->input('reschedule_time'),
+            'reschedule_mode'         => $activity->mode_of_conduct,
             'reschedule_venue'        => $request->input('reschedule_venue'),
+            'reschedule_venue_type'   => $activity->venue_type,
+            'reschedule_platform'     => $activity->mode_of_conduct === 'Online' ? $request->input('reschedule_venue') : $activity->platform,
             'reschedule_reason'       => $request->input('reschedule_reason'),
             'reschedule_remarks'      => null,
             'reschedule_requested_at' => now(),
             'reschedule_decided_at'   => null,
+            'status'                  => 'for approval for rescheduling',
         ]);
 
         SystemLog::record('Requested reschedule', 'Reschedule', [
@@ -452,7 +480,7 @@ class ApprovalController extends Controller
         ]);
 
         return redirect()
-            ->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => 1])
+            ->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => 4])
             ->with('success', 'Reschedule request submitted. Signatory approvals are paused until this is resolved.');
     }
 
@@ -465,48 +493,144 @@ class ApprovalController extends Controller
     {
         $activity = Activity::findOrFail($id);
 
-        if ($activity->reschedule_status !== 'pending') {
-            return back()->withErrors(['reschedule' => 'No pending reschedule request.']);
+        if ($activity->status !== 'for approval for rescheduling' || ! in_array($activity->reschedule_status, ['pending', 'for approval', 'for signature'], true)) {
+            return back()->withErrors(['reschedule' => 'No reschedule request is ready for approval.']);
+        }
+
+        $existingReschedulePaper = SarfDocument::where('activity_id', $activity->id)
+            ->where('type', 'RESCHEDULE_PAPER')
+            ->first();
+        $saveAction = $request->input('save_action', 'approval');
+
+        if ($saveAction === 'document') {
+            $request->validate([
+                'reschedule_paper_file' => [
+                    $existingReschedulePaper ? 'nullable' : 'required',
+                    'file',
+                    'mimes:pdf',
+                    'max:10240',
+                ],
+            ]);
+
+            if ($request->hasFile('reschedule_paper_file')) {
+                $file = $request->file('reschedule_paper_file');
+                $path = $file->store('sarf_documents', 'public');
+
+                if ($existingReschedulePaper) {
+                    Storage::disk('public')->delete($existingReschedulePaper->file_path);
+                }
+
+                SarfDocument::updateOrCreate(
+                    ['activity_id' => $activity->id, 'type' => 'RESCHEDULE_PAPER'],
+                    ['file_path' => $path, 'original_filename' => $file->getClientOriginalName()]
+                );
+            }
+
+            SystemLog::record('Updated reschedule document', 'Reschedule', [
+                'subject_type'  => Activity::class,
+                'subject_id'    => $activity->id,
+                'subject_label' => $activity->code,
+                'description'   => "Updated reschedule document for {$activity->code}.",
+            ]);
+
+            return redirect()
+                ->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => 4])
+                ->with('success', 'Reschedule document saved successfully.');
         }
 
         $request->validate([
+            'reschedule_status' => 'required|in:pending,for signature,approved,disapproved',
             'reschedule_remarks' => 'nullable|string|max:1000',
+            'reschedule_paper_file' => [
+                ($existingReschedulePaper || $request->input('reschedule_status') !== 'approved') ? 'nullable' : 'required',
+                'file',
+                'mimes:pdf',
+                'max:10240',
+            ],
         ]);
 
-        // Apply the new schedule to the activity
+        $rescheduleStatus = $request->input('reschedule_status');
+
         $updates = [
-            'date_of_activity'      => $activity->reschedule_date,
-            'reschedule_status'     => 'approved',
-            'reschedule_remarks'    => $request->input('reschedule_remarks'),
-            'reschedule_decided_at' => now(),
+            'reschedule_status' => $rescheduleStatus,
+            'reschedule_remarks' => $request->input('reschedule_remarks'),
         ];
 
-        if (filled($activity->reschedule_time)) {
-            $updates['time_of_activity'] = $activity->reschedule_time;
+        if (in_array($rescheduleStatus, ['approved', 'disapproved'], true)) {
+            $updates['reschedule_decided_at'] = now();
         }
 
-        if (filled($activity->reschedule_venue)) {
-            if ($activity->mode_of_conduct === 'Online') {
-                $updates['platform'] = $activity->reschedule_venue;
-            } else {
-                $updates['venue'] = $activity->reschedule_venue;
-            }
+        if ($rescheduleStatus === 'approved') {
+            $updates['date_of_activity'] = $activity->reschedule_date;
+            $updates['time_of_activity'] = $activity->reschedule_time;
+            $updates['mode_of_conduct'] = $activity->reschedule_mode ?: $activity->mode_of_conduct;
+            $updates['venue'] = $activity->reschedule_venue;
+            $updates['venue_type'] = $activity->reschedule_venue_type;
+            $updates['platform'] = $activity->reschedule_platform;
+            $updates['status'] = 'approved';
+        }
+
+        if ($rescheduleStatus === 'disapproved') {
+            $updates['status'] = 'for reschedule';
+            $updates['modification_type'] = 'rescheduling';
+            $updates['modification_remarks'] = 'Schedule was disapproved. Please revise the schedule and resubmit.';
+            $updates['reschedule_date'] = null;
+            $updates['reschedule_time'] = null;
+            $updates['reschedule_mode'] = null;
+            $updates['reschedule_venue'] = null;
+            $updates['reschedule_venue_type'] = null;
+            $updates['reschedule_platform'] = null;
         }
 
         $activity->update($updates);
 
-        SystemLog::record('Approved reschedule', 'Reschedule', [
+        if ($request->hasFile('reschedule_paper_file')) {
+            $file = $request->file('reschedule_paper_file');
+            $path = $file->store('sarf_documents', 'public');
+
+            if ($existingReschedulePaper) {
+                Storage::disk('public')->delete($existingReschedulePaper->file_path);
+            }
+
+            SarfDocument::updateOrCreate(
+                ['activity_id' => $activity->id, 'type' => 'RESCHEDULE_PAPER'],
+                ['file_path' => $path, 'original_filename' => $file->getClientOriginalName()]
+            );
+        }
+
+        if ($rescheduleStatus === 'disapproved') {
+            $disapprovalRemark = $request->input('reschedule_remarks') ?: 'No remarks provided.';
+            $reschedulePaper = SarfDocument::where('activity_id', $activity->id)
+                ->where('type', 'RESCHEDULE_PAPER')
+                ->first();
+
+            if ($reschedulePaper) {
+                Storage::disk('public')->delete($reschedulePaper->file_path);
+                $reschedulePaper->delete();
+            }
+
+            $activity->update([
+                'modification_remarks' => "Schedule was disapproved: {$disapprovalRemark} Please revise the schedule and resubmit.",
+            ]);
+        }
+
+        SystemLog::record('Updated reschedule approval', 'Reschedule', [
             'subject_type'  => Activity::class,
             'subject_id'    => $activity->id,
             'subject_label' => $activity->code,
-            'description'   => "Reschedule approved for {$activity->code}. New date: {$activity->reschedule_date->format('M j, Y')}.",
+            'description'   => "Set reschedule request for {$activity->code} to {$rescheduleStatus}.",
         ]);
 
-        return redirect()
-            ->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => 1])
-            ->with('success', 'Reschedule approved. Activity date/time updated. Signatory approvals resume.');
-    }
+        if ($rescheduleStatus === 'disapproved') {
+            return redirect()
+                ->route('dean_osa.approval.index')
+                ->with('success', 'Reschedule disapproved. Activity sent back for schedule re-editing.');
+        }
 
+        return redirect()
+            ->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => 4])
+            ->with('success', 'Reschedule approval updated successfully.');
+    }
     /**
      * Reject the reschedule — activity goes back to 'for reschedule' status
      * so the user can re-edit the schedule. The rescheduling process must
@@ -516,7 +640,7 @@ class ApprovalController extends Controller
     {
         $activity = Activity::findOrFail($id);
 
-        if ($activity->reschedule_status !== 'pending') {
+        if ($activity->status !== 'for approval for rescheduling' || ! in_array($activity->reschedule_status, ['pending', 'for approval'], true)) {
             return back()->withErrors(['reschedule' => 'No pending reschedule request.']);
         }
 
@@ -528,11 +652,26 @@ class ApprovalController extends Controller
             'reschedule_status'     => 'rejected',
             'reschedule_remarks'    => $request->input('reschedule_remarks'),
             'reschedule_decided_at' => now(),
+            'reschedule_date'       => null,
+            'reschedule_time'       => null,
+            'reschedule_mode'       => null,
+            'reschedule_venue'      => null,
+            'reschedule_venue_type' => null,
+            'reschedule_platform'   => null,
             // Send back to Activities module for re-editing
             'status'                => 'for reschedule',
             'modification_type'     => 'rescheduling',
             'modification_remarks'  => 'Schedule was rejected: ' . ($request->input('reschedule_remarks') ?: 'No remarks provided.') . ' Please revise the schedule and resubmit.',
         ]);
+
+        $reschedulePaper = SarfDocument::where('activity_id', $activity->id)
+            ->where('type', 'RESCHEDULE_PAPER')
+            ->first();
+
+        if ($reschedulePaper) {
+            Storage::disk('public')->delete($reschedulePaper->file_path);
+            $reschedulePaper->delete();
+        }
 
         SystemLog::record('Rejected reschedule', 'Reschedule', [
             'subject_type'  => Activity::class,
@@ -572,10 +711,22 @@ class ApprovalController extends Controller
 
         $newStatus = $type === 'rescheduling' ? 'for reschedule' : 'for revision';
 
+        if ($type === 'rescheduling') {
+            $reschedulePaper = SarfDocument::where('activity_id', $activity->id)
+                ->where('type', 'RESCHEDULE_PAPER')
+                ->first();
+
+            if ($reschedulePaper) {
+                Storage::disk('public')->delete($reschedulePaper->file_path);
+                $reschedulePaper->delete();
+            }
+        }
+
         $activity->update([
             'modification_type'    => $type,
             'modification_remarks' => $remarks,
             'status'               => $newStatus,
+            'reschedule_status'    => $type === 'rescheduling' ? null : $activity->reschedule_status,
         ]);
 
         SystemLog::record('Requested modification', 'Modification', [

@@ -5,9 +5,9 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/sarf-create.css') }}">
-    <style>
-    
-    </style>
+    <link rel="stylesheet" href="{{ asset('css/approval-modification-modal.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/approval-show.css') }}">
+
 @endpush
 
 @section('content')
@@ -18,13 +18,20 @@
     @endif
 
     @php
-        $hasPendingReschedule = $activity->reschedule_status === 'pending';
+        $hasRescheduleRequest = in_array($activity->reschedule_status, ['pending', 'for approval', 'for signature', 'approved'], true)
+            && filled($activity->reschedule_requested_at);
+        $isRescheduleApproval = $activity->status === 'for approval for rescheduling';
+        $hasPendingReschedule = $isRescheduleApproval && in_array($activity->reschedule_status, ['pending', 'for approval', 'for signature'], true);
+        $isRescheduleReadyForApproval = $isRescheduleApproval && $activity->reschedule_status === 'for approval';
+        $showRescheduleStep = $hasRescheduleRequest;
+        $lockNormalStepsForReschedule = $isRescheduleApproval;
 
         $statusClass = match($activity->status) {
             'pending'              => 'b-pending',
             'ongoing'              => 'b-ongoing',
             'for approval'         => 'b-for-approval',
             'for approval finance' => 'b-for-approval',
+            'for approval for rescheduling' => 'b-for-approval',
             'approved'             => 'b-approved',
             'completed'            => 'b-completed',
             'for revision'         => 'b-revision',
@@ -38,14 +45,18 @@
             ['label' => 'For Approval', 'val' => 'for approval'],
             ['label' => 'Approved',     'val' => 'approved'],
         ];
+        if ($showRescheduleStep) {
+            $pipeline[] = ['label' => 'Rescheduling', 'val' => 'rescheduling'];
+        }
+
         $pipeIdx = collect($pipeline)->search(fn($s) => $s['val'] === $activity->status) ?? -1;
         if ($activity->status === 'for approval finance') $pipeIdx = 2;
         if ($activity->status === 'completed') $pipeIdx = 3;
+        if ($showRescheduleStep) $pipeIdx = 4;
 
-        $isApprovalUnlocked  = in_array($activity->status, ['for approval','for approval finance','approved','completed']);
-        $isForFinance        = in_array($activity->status, ['for approval finance','approved','completed']);
-        $isCompleted         = in_array($activity->status, ['approved','completed']);
-        $showAdvancePopup    = in_array($activity->status, ['pending','ongoing']);
+        $isApprovalUnlocked  = in_array($activity->status, ['for approval','for approval finance','approved','completed','for approval for rescheduling']);
+        $isForFinance        = in_array($activity->status, ['for approval finance','approved','completed','for approval for rescheduling']);
+        $isCompleted         = in_array($activity->status, ['approved','completed','for approval for rescheduling']);
 
         // When reschedule is pending, Tab 2 is locked (approvals frozen)
         $isApprovalFrozen = $hasPendingReschedule;
@@ -121,21 +132,64 @@
         ];
 
         $approvalFields = array_merge($applicableMainFields, $applicableFinanceFields);
+        $budgetFieldsByApproval = collect(array_merge($signatories, $financeSignatories))
+            ->pluck('budget', 'field')
+            ->all();
+        $approvalBudgetValue = function ($field) use ($activity, $approvalFields, $budgetFieldsByApproval) {
+            $ownBudgetField = $budgetFieldsByApproval[$field] ?? null;
+            if ($ownBudgetField && $activity->{$ownBudgetField} !== null) {
+                return $activity->{$ownBudgetField};
+            }
+
+            $idx = array_search($field, $approvalFields, true);
+            if ($idx !== false) {
+                for ($i = $idx - 1; $i >= 0; $i--) {
+                    $previousField = $approvalFields[$i];
+                    $previousBudgetField = $budgetFieldsByApproval[$previousField] ?? null;
+                    if ($previousBudgetField && $activity->{$previousField} === 'approved' && $activity->{$previousBudgetField} !== null) {
+                        return $activity->{$previousBudgetField};
+                    }
+                }
+            }
+
+            return $activity->amount;
+        };
         $approvedCount  = collect($approvalFields)->filter(fn($f) => $activity->{$f} === 'approved')->count();
         $totalApprovals = count($approvalFields);
         $progressPct    = $totalApprovals > 0 ? round(($approvedCount / $totalApprovals) * 100) : 0;
 
         $docs = $activity->sarfDocuments->keyBy('type');
         $approvedSarfDoc = $docs->get('APPROVED_SARF');
+        $reschedulePaperDoc = $docs->get('RESCHEDULE_PAPER');
         $approvedDocRemark = old('approved_remark')
             ?? ($approvedSarfDoc ? optional($approvedSarfDoc->remarks->sortByDesc('created_at')->first())->remark : null);
 
         $requestedTab = (int) request()->query('tab', 0);
-        $activeTab = in_array($requestedTab, [1, 2, 3], true)
+        $activeTab = in_array($requestedTab, [1, 2, 3, 4], true)
             ? $requestedTab
-            : ($isCompleted ? 3 : ($isApprovalUnlocked ? 2 : 1));
+            : ($showRescheduleStep && $activity->reschedule_status !== 'approved' ? 4 : ($isCompleted ? 3 : ($isApprovalUnlocked ? 2 : 1)));
+
+        if ($isRescheduleApproval) {
+            $activeTab = 4;
+        }
+
+        if ($showRescheduleStep && $activity->reschedule_status === 'approved' && $requestedTab === 0) {
+            $activeTab = 1;
+        }
+
+        $showOriginalScheduleInDetails = $activity->reschedule_status === 'approved';
+        $detailsDate = $showOriginalScheduleInDetails ? ($activity->reschedule_original_date ?: $activity->date_of_activity) : $activity->date_of_activity;
+        $detailsTime = $showOriginalScheduleInDetails ? ($activity->reschedule_original_time ?: $activity->time_of_activity) : $activity->time_of_activity;
+        $detailsMode = $showOriginalScheduleInDetails ? ($activity->reschedule_original_mode ?: $activity->mode_of_conduct) : $activity->mode_of_conduct;
+        $detailsVenue = $showOriginalScheduleInDetails ? ($activity->reschedule_original_venue ?: $activity->venue) : $activity->venue;
+        $detailsVenueType = $showOriginalScheduleInDetails ? ($activity->reschedule_original_venue_type ?: $activity->venue_type) : $activity->venue_type;
+        $detailsPlatform = $showOriginalScheduleInDetails ? ($activity->reschedule_original_platform ?: $activity->platform) : $activity->platform;
 
         if ($activeTab === 3 && !$isCompleted) {
+            $activeTab = $isApprovalUnlocked ? 2 : 1;
+        }
+
+        if ($activeTab === 4 && !$showRescheduleStep) {
             $activeTab = $isApprovalUnlocked ? 2 : 1;
         }
 
@@ -147,50 +201,6 @@
     {{-- ══════════════════════════════════════
          ADVANCE TO APPROVAL POPUP MODAL
     ══════════════════════════════════════ --}}
-    @if($showAdvancePopup)
-    <div id="advance-modal" style="display:none; position:fixed; inset:0;
-        background:rgba(15,23,42,0.55); z-index:9999;
-        align-items:center; justify-content:center;">
-        <div style="background:#fff; border-radius:14px; padding:28px 28px 22px;
-            width:100%; max-width:420px; margin:0 16px;
-            box-shadow:0 20px 60px rgba(0,0,0,0.2);">
-            <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
-                <div style="width:42px; height:42px; border-radius:10px; background:#eff6ff;
-                    display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                    <i class="fas fa-stamp" style="color:#3b82f6; font-size:18px;"></i>
-                </div>
-                <div>
-                    <p style="font-weight:700; font-size:15px; margin:0; color:#0f172a;">
-                        Advance to For Approval?
-                    </p>
-                    <p style="font-size:12.5px; color:#64748b; margin:2px 0 0;">
-                        This will unlock the approval workflow.
-                    </p>
-                </div>
-            </div>
-            <p style="font-size:13px; color:#475569; margin:0 0 20px; line-height:1.6;">
-                You've reviewed the event details. Would you like to advance this SARF to
-                <strong>For Approval</strong> status and begin the signatory workflow?
-            </p>
-            <div style="display:flex; gap:10px; justify-content:flex-end;">
-                <button type="button" onclick="dismissAdvanceModal()" class="btn btn-filter">
-                    Not Yet
-                </button>
-                <form action="{{ route('dean_osa.approval.status', $activity->id) }}" method="POST"
-                    style="display:inline;">
-                    @csrf
-                    <input type="hidden" name="status" value="for approval">
-                    <input type="hidden" name="current_tab" value="2">
-                    <input type="hidden" name="focus" value="approval-workflow">
-                    <button type="submit" class="btn btn-add">
-                        <i class="fas fa-stamp"></i> Yes, Advance
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-    @endif
-
     <div class="panel">
 
         {{-- ── Panel Header ── --}}
@@ -198,14 +208,9 @@
             <div class="panel-title">
                 <i class="fas fa-file-alt"></i>
                 {{ Str::limit($activity->title, 48) }}
-                <span class="badge {{ $statusClass }}" style="margin-left:8px; font-size:11px;">
-                    {{ ucfirst($activity->status) }}
+                <span style="margin-left:8px;">
+                    @include('partials.sarf-status-badge', ['activity' => $activity])
                 </span>
-                @if($hasPendingReschedule)
-                <span class="badge" style="margin-left:4px; font-size:11px; background:#fef3c7; color:#92400e; border:1px solid #fbbf24; padding:3px 10px; border-radius:20px;">
-                    <i class="fas fa-calendar-alt" style="font-size:9px;"></i> Rescheduling
-                </span>
-                @endif
             </div>
             <div class="panel-controls">
                 <div class="sarf-code-display sarf-code-display--header">
@@ -247,17 +252,6 @@
                         @endif
                     </div>
                 @endforeach
-
-                {{-- Rescheduling indicator in pipeline --}}
-                @if($hasPendingReschedule)
-                <div style="margin-left:12px; flex-shrink:0;">
-                    <div style="display:flex; align-items:center; gap:6px; background:#fef3c7;
-                        border:1.5px solid #fbbf24; border-radius:8px; padding:6px 14px;">
-                        <i class="fas fa-pause-circle" style="color:#d97706; font-size:14px; animation:pulse 1.5s infinite;"></i>
-                        <span style="font-size:11px; font-weight:700; color:#92400e;">RESCHEDULING</span>
-                    </div>
-                </div>
-                @endif
             </div>
             @endif
 
@@ -285,12 +279,12 @@
                         </button>
                     </form>
                 @endif
-                @if(in_array($activity->status, ['ongoing','for approval','for approval finance']))
+                @if(in_array($activity->status, ['ongoing','for approval','for approval finance','approved']))
                     <div class="workflow-spacer" style="flex:1;"></div>
                     <div class="workflow-side-actions">
                         @if(!$hasPendingReschedule)
                             <button type="button" class="btn-quick-action btn-quick-action--mod"
-                                onclick="openModificationModal({{ $activity->id }}, '{{ addslashes($activity->code) }}')">
+                                onclick="openModificationModal({{ $activity->id }}, '{{ addslashes($activity->code) }}', '{{ $activity->status }}')">
                                 <i class="ti ti-adjustments-horizontal"></i> Request Modification
                             </button>
                         @endif
@@ -308,46 +302,28 @@
             </div>
             @endif
 
-            {{-- ══════════════════════════════════════
-                 RESCHEDULE PENDING BANNER
-            ══════════════════════════════════════ --}}
-            @php $hasPendingReschedule = $activity->reschedule_status === 'pending'; @endphp
-
-            @if($hasPendingReschedule)
-            <div class="resched-banner" onclick="openRescheduleReviewModal()" style="cursor:pointer;">
-                <div class="resched-banner-icon">
-                    <i class="fas fa-calendar-exclamation"></i>
-                </div>
-                <div class="resched-banner-content">
-                    <div class="resched-banner-title">
-                        <i class="fas fa-pause-circle" style="animation:pulse 1.5s infinite;"></i>
-                        Reschedule Pending — Approvals Paused
-                    </div>
-                    <div class="resched-banner-desc">
-                        A rescheduling modification has been submitted. Click here to review the schedule changes and approve or reject.
-                    </div>
-                </div>
-                <div class="resched-banner-action">
-                    <i class="fas fa-chevron-right"></i>
-                </div>
-            </div>
-            @endif
 
             {{-- ══════════════════════════════════════
                  STEP INDICATORS — blue
             ══════════════════════════════════════ --}}
             <div class="step-indicators">
                 <button type="button" id="step-indicator-1"
-                    class="step-indicator-btn {{ $isApprovalUnlocked ? 'completed' : '' }} {{ $activeTab === 1 ? 'active' : '' }}"
-                    onclick="showTab(1)">
-                    <i class="fas fa-info-circle"></i> 1. Event Details
+                    class="step-indicator-btn {{ $isApprovalUnlocked ? 'completed' : '' }} {{ $lockNormalStepsForReschedule ? 'step-locked' : '' }} {{ $activeTab === 1 ? 'active' : '' }}"
+                    onclick="{{ $lockNormalStepsForReschedule ? 'return false' : 'showTab(1)' }}"
+                    title="{{ $lockNormalStepsForReschedule ? 'Locked because this SARF is already approved. Continue in Reschedule.' : '' }}">
+                    @if($lockNormalStepsForReschedule)
+                        <i class="fas fa-lock" style="font-size:10px;"></i>
+                    @else
+                        <i class="fas fa-info-circle"></i>
+                    @endif
+                    1. Event Details
                 </button>
                 <button type="button" id="step-indicator-2"
-                    class="step-indicator-btn {{ $isCompleted ? 'completed' : '' }} {{ (!$isApprovalUnlocked || $isApprovalFrozen) ? 'step-locked' : '' }} {{ $activeTab === 2 ? 'active' : '' }}"
-                    onclick="{{ ($isApprovalUnlocked && !$isApprovalFrozen) ? 'showTab(2)' : 'return false' }}"
-                    title="{{ $isApprovalFrozen ? 'Approvals frozen — resolve the pending reschedule first.' : (!$isApprovalUnlocked ? 'Advance to For Approval status first.' : '') }}">
-                    @if($isApprovalFrozen)
-                        <i class="fas fa-pause-circle" style="font-size:10px; color:#d97706;"></i>
+                    class="step-indicator-btn {{ $isCompleted ? 'completed' : '' }} {{ (!$isApprovalUnlocked || $isApprovalFrozen || $lockNormalStepsForReschedule) ? 'step-locked' : '' }} {{ $activeTab === 2 ? 'active' : '' }}"
+                    onclick="{{ ($isApprovalUnlocked && !$isApprovalFrozen && !$lockNormalStepsForReschedule) ? 'showTab(2)' : 'return false' }}"
+                    title="{{ $lockNormalStepsForReschedule ? 'Locked because signatory approvals are already complete.' : ($isApprovalFrozen ? 'Approvals frozen — resolve the pending reschedule first.' : (!$isApprovalUnlocked ? 'Advance to For Approval status first.' : '')) }}">
+                    @if($lockNormalStepsForReschedule || $isApprovalFrozen)
+                        <i class="fas fa-lock" style="font-size:10px;"></i>
                     @elseif(!$isApprovalUnlocked)
                         <i class="fas fa-lock" style="font-size:10px;"></i>
                     @else
@@ -356,16 +332,28 @@
                     2. Approval
                 </button>
                 <button type="button" id="step-indicator-3"
-                    class="step-indicator-btn {{ !$isCompleted ? 'step-locked' : '' }} {{ $activeTab === 3 ? 'active' : '' }}"
-                    onclick="{{ $isCompleted ? 'showTab(3)' : 'return false' }}"
-                    title="{{ !$isCompleted ? 'Available once all approvals are approved.' : '' }}">
-                    @if(!$isCompleted)
+                    class="step-indicator-btn {{ $isCompleted ? 'completed' : 'step-locked' }} {{ $lockNormalStepsForReschedule ? 'step-locked' : '' }} {{ $activeTab === 3 ? 'active' : '' }}"
+                    onclick="{{ ($isCompleted && !$lockNormalStepsForReschedule) ? 'showTab(3)' : 'return false' }}"
+                    title="{{ $lockNormalStepsForReschedule ? 'Locked because Approved SARF is already complete.' : (!$isCompleted ? 'Available once all approvals are approved.' : '') }}">
+                    @if(!$isCompleted || $lockNormalStepsForReschedule)
                         <i class="fas fa-lock" style="font-size:10px;"></i>
                     @else
                         <i class="fas fa-check-double"></i>
                     @endif
                     3. Approved SARF
                 </button>
+                @if($showRescheduleStep)
+                <button type="button" id="step-indicator-4"
+                    class="step-indicator-btn step-reschedule {{ $activity->reschedule_status === 'approved' ? 'completed' : '' }} {{ $activeTab === 4 ? 'active' : '' }}"
+                    onclick="showTab(4)">
+                    @if($hasPendingReschedule)
+                        <i class="fas fa-calendar-alt"></i>
+                    @else
+                        <i class="fas fa-calendar-check"></i>
+                    @endif
+                    4. Reschedule
+                </button>
+                @endif
             </div>
 
             {{-- ══════════════════════════════════════
@@ -499,38 +487,38 @@
                         <div class="show-field">
                             <div class="show-label">Date of Activity</div>
                             <div class="show-value">
-                                {{ $activity->date_of_activity?->format('F j, Y') ?? '—' }}
+                                {{ $detailsDate?->format('F j, Y') ?? '—' }}
                             </div>
                         </div>
 
                         <div class="show-field">
                             <div class="show-label">Time of Activity</div>
-                            <div class="show-value">{{ $activity->time_of_activity ?? '—' }}</div>
+                            <div class="show-value">{{ $detailsTime ?? '—' }}</div>
                         </div>
 
                         <div class="show-field">
                             <div class="show-label">Mode of Conduct</div>
-                            <div class="show-value">{{ $activity->mode_of_conduct ?? '—' }}</div>
+                            <div class="show-value">{{ $detailsMode ?? '—' }}</div>
                         </div>
 
-                        @if(in_array($activity->mode_of_conduct, ['Face to Face','Hybrid']))
+                        @if(in_array($detailsMode, ['Face to Face','Hybrid']))
                         <div class="show-field">
                             <div class="show-label">Venue</div>
                             <div class="show-value">
-                                {{ $activity->venue ?? '—' }}
-                                @if($activity->venue_type)
-                                    <span class="inline-tag">{{ $activity->venue_type }}</span>
+                                {{ $detailsVenue ?? '—' }}
+                                @if($detailsVenueType)
+                                    <span class="inline-tag">{{ $detailsVenueType }}</span>
                                 @endif
                             </div>
                         </div>
                         @endif
 
-                        @if(in_array($activity->mode_of_conduct, ['Online','Hybrid']))
+                        @if(in_array($detailsMode, ['Online','Hybrid']))
                         <div class="show-field">
                             <div class="show-label">Platform</div>
                             <div class="show-value">
                                 <i class="fas fa-video" style="color:#3b82f6; font-size:12px;"></i>
-                                {{ $activity->platform ?? '—' }}
+                                {{ $detailsPlatform ?? '—' }}
                             </div>
                         </div>
                         @endif
@@ -700,10 +688,6 @@
                 </div>
 
                 {{-- Scroll sentinel --}}
-                @if($showAdvancePopup)
-                    <div id="scroll-sentinel" style="height:1px; margin-top:8px;"></div>
-                @endif
-
                 <div style="display:flex; justify-content:flex-end; margin-top:20px;">
                     @if($isApprovalUnlocked && !$isApprovalFrozen)
                         <button type="button" onclick="showTab(2)" class="btn btn-add">
@@ -731,7 +715,7 @@
                         <div>
                             <strong>Approvals Paused</strong> — A reschedule request is pending review.
                             All signatory approvals are frozen until the reschedule is approved or rejected.
-                            Scroll up to review the reschedule request.
+                            Continue in the Reschedule step.
                         </div>
                     </div>
                 @endif
@@ -833,7 +817,7 @@
                                                     class="form-control approved-budget-input"
                                                     step="0.01" min="0"
                                                     placeholder="Approved budget"
-                                                    value="{{ $activity->{$sig['budget']} ?? $activity->amount }}">
+                                                    value="{{ $approvalBudgetValue($sig['field']) }}">
                                             @endif
                                             <button type="submit" class="btn btn-add" style="font-size:12px;">
                                                 <i class="fas fa-save"></i> Save
@@ -928,7 +912,7 @@
                                                     class="form-control approved-budget-input"
                                                     step="0.01" min="0"
                                                     placeholder="Approved budget"
-                                                    value="{{ $activity->{$sig['budget']} ?? $activity->amount }}">
+                                                    value="{{ $approvalBudgetValue($sig['field']) }}">
                                             @endif
                                             <button type="submit" class="btn btn-add" style="font-size:12px;">
                                                 <i class="fas fa-save"></i> Save
@@ -1071,16 +1055,380 @@
 
             </div>{{-- /tab-3 --}}
 
+            {{-- TAB 4 - RESCHEDULE --}}
+            <div id="tab-4" style="{{ $activeTab === 4 ? '' : 'display:none;' }}">
+
+                @if(!$isCompleted)
+                    <div class="notice-card notice-card--blue">
+                        <i class="fas fa-lock"></i>
+                        Rescheduling is available after the SARF is fully approved.
+                    </div>
+                @elseif(!$showRescheduleStep)
+                    <div class="notice-card notice-card--blue">
+                        <i class="fas fa-calendar-check"></i>
+                        No pending reschedule request for this activity.
+                    </div>
+                @else
+                    @if($activity->reschedule_status === 'approved')
+                        <div class="notice-card notice-card--success">
+                            <i class="fas fa-calendar-check"></i>
+                            <strong>Approved Reschedule.</strong>
+                            The updated schedule is now reflected in the event details below.
+                        </div>
+
+                        <div class="show-section">
+                            <div class="show-section-header green">
+                                <i class="fas fa-clock"></i> Updated Schedule, Conduct & Extras
+                            </div>
+                            <div class="show-grid">
+                                <div class="show-field">
+                                    <div class="show-label">Date of Activity</div>
+                                    <div class="show-value">{{ $activity->date_of_activity?->format('F j, Y') ?? '---' }}</div>
+                                </div>
+                                <div class="show-field">
+                                    <div class="show-label">Time of Activity</div>
+                                    <div class="show-value">{{ $activity->time_of_activity ?? '---' }}</div>
+                                </div>
+                                <div class="show-field">
+                                    <div class="show-label">Mode of Conduct</div>
+                                    <div class="show-value">{{ $activity->mode_of_conduct ?? '---' }}</div>
+                                </div>
+                                @if(in_array($activity->mode_of_conduct, ['Face to Face','Hybrid']))
+                                    <div class="show-field">
+                                        <div class="show-label">Venue</div>
+                                        <div class="show-value">
+                                            {{ $activity->venue ?? '---' }}
+                                            @if($activity->venue_type)
+                                                <span class="inline-tag">{{ $activity->venue_type }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endif
+                                @if(in_array($activity->mode_of_conduct, ['Online','Hybrid']))
+                                    <div class="show-field">
+                                        <div class="show-label">Platform</div>
+                                        <div class="show-value">
+                                            <i class="fas fa-video" style="color:#3b82f6; font-size:12px;"></i>
+                                            {{ $activity->platform ?? '---' }}
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="signatory-card" style="margin-top:16px;">
+                            <div class="signatory-header">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <i class="fas fa-calendar-check" style="color:#16a34a; font-size:12px;"></i>
+                                    <span style="font-weight:600; font-size:13.5px; color:#1e293b;">Reschedule Approval</span>
+                                </div>
+                                <span class="badge approval-status-badge b-approved">Approved</span>
+                            </div>
+                            <div class="signatory-body" style="display:block;">
+                                <div class="notice-card notice-card--success" style="margin:0;">
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>Reschedule approved.</strong>
+                                        Approved {{ $activity->reschedule_decided_at?->format('M j, Y \a\t g:i A') ?? '---' }}.
+                                        @if(filled($activity->reschedule_remarks))
+                                            <div style="margin-top:4px;">Remarks: {{ $activity->reschedule_remarks }}</div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="show-section" style="margin-top:16px;">
+                            <div class="show-section-header">
+                                <i class="fas fa-file-pdf"></i> Reschedule Document
+                            </div>
+                            @if($reschedulePaperDoc)
+                                <div style="padding:16px 16px 0; font-size:12.5px; color:#334155; display:flex; align-items:center; gap:8px;">
+                                    <i class="fas fa-file-pdf" style="color:#dc2626;"></i>
+                                    <span style="font-weight:600;">{{ $reschedulePaperDoc->original_filename }}</span>
+                                </div>
+                                <div class="document-check-row" style="padding:16px;">
+                                    <a href="{{ route('dean_osa.sarf-documents.show', $reschedulePaperDoc) }}"
+                                        target="_blank" class="document-check-btn">
+                                        <i class="fas fa-file-pdf"></i> View Reschedule Paper
+                                    </a>
+                                    <a href="{{ route('dean_osa.sarf-documents.show', ['document' => $reschedulePaperDoc, 'download' => 1]) }}"
+                                        class="document-check-btn document-download-btn">
+                                        <i class="fas fa-download"></i> Download File
+                                    </a>
+                                </div>
+                            @else
+                                <div style="padding:16px; color:#94a3b8; font-size:13px;">No reschedule document uploaded.</div>
+                            @endif
+                        </div>
+                    @else
+                        <div class="notice-card notice-card--blue">
+                            <i class="fas fa-calendar-alt"></i>
+                            <strong>Reschedule Review.</strong>
+                            Review the original and proposed schedule before updating the approval status.
+                        </div>
+
+                        <div class="resched-review-body" style="border:1px solid #e5e7eb; border-radius:12px; background:#fff;">
+                            <div class="resched-compare-grid">
+                                <div class="resched-compare-card resched-compare-old">
+                                    <div class="resched-compare-label">
+                                        <i class="fas fa-history"></i> Original Schedule
+                                    </div>
+                                    <div class="resched-compare-fields">
+                                        <div class="resched-compare-field">
+                                            <div class="resched-compare-field-label">Date</div>
+                                            <div class="resched-compare-field-value">
+                                                <i class="fas fa-calendar-alt"></i>
+                                                {{ ($activity->reschedule_original_date ?: $activity->date_of_activity)?->format('M j, Y') ?? '---' }}
+                                            </div>
+                                        </div>
+                                        <div class="resched-compare-field">
+                                            <div class="resched-compare-field-label">Time</div>
+                                            <div class="resched-compare-field-value">
+                                                <i class="fas fa-clock"></i>
+                                                {{ $activity->reschedule_original_time ?: $activity->time_of_activity ?: '---' }}
+                                            </div>
+                                        </div>
+                                        <div class="resched-compare-field">
+                                            <div class="resched-compare-field-label">Mode</div>
+                                            <div class="resched-compare-field-value">
+                                                <i class="fas fa-users"></i>
+                                                {{ $activity->reschedule_original_mode ?: $activity->mode_of_conduct ?: '---' }}
+                                            </div>
+                                        </div>
+                                        <div class="resched-compare-field">
+                                            <div class="resched-compare-field-label">Venue</div>
+                                            <div class="resched-compare-field-value">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                {{ $activity->reschedule_original_venue ?: ($activity->reschedule_original_platform ?: ($activity->venue ?: ($activity->platform ?: '---'))) }}
+                                            </div>
+                                        </div>
+                                        <div class="resched-compare-field">
+                                            <div class="resched-compare-field-label">Venue Type</div>
+                                            <div class="resched-compare-field-value">
+                                                <i class="fas fa-location-dot"></i>
+                                                {{ $activity->reschedule_original_venue_type ?: $activity->venue_type ?: '---' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="resched-compare-arrow">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+
+                                <div class="resched-compare-card resched-compare-new">
+                                    <div class="resched-compare-label">
+                                        <i class="fas fa-calendar-check"></i> Proposed Schedule
+                                    </div>
+                                    <div class="resched-compare-fields">
+                                        <div class="resched-compare-field">
+                                            <div class="resched-compare-field-label">Date</div>
+                                            <div class="resched-compare-field-value resched-highlight">
+                                                <i class="fas fa-calendar-alt"></i>
+                                                {{ $activity->reschedule_date?->format('M j, Y') ?? '---' }}
+                                            </div>
+                                        </div>
+                                        <div class="resched-compare-field">
+                                            <div class="resched-compare-field-label">Time</div>
+                                            <div class="resched-compare-field-value {{ filled($activity->reschedule_time) ? 'resched-highlight' : '' }}">
+                                                <i class="fas fa-clock"></i>
+                                                {{ $activity->reschedule_time ?: '---' }}
+                                            </div>
+                                        </div>
+                                        <div class="resched-compare-field">
+                                            <div class="resched-compare-field-label">Mode</div>
+                                            <div class="resched-compare-field-value {{ filled($activity->reschedule_mode) ? 'resched-highlight' : '' }}">
+                                                <i class="fas fa-users"></i>
+                                                {{ $activity->reschedule_mode ?: '---' }}
+                                            </div>
+                                        </div>
+                                        <div class="resched-compare-field">
+                                            <div class="resched-compare-field-label">Venue</div>
+                                            <div class="resched-compare-field-value {{ filled($activity->reschedule_venue) ? 'resched-highlight' : '' }}">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                {{ $activity->reschedule_venue ?: ($activity->reschedule_platform ?: '---') }}
+                                            </div>
+                                        </div>
+                                        <div class="resched-compare-field">
+                                            <div class="resched-compare-field-label">Venue Type</div>
+                                            <div class="resched-compare-field-value {{ filled($activity->reschedule_venue_type) ? 'resched-highlight' : '' }}">
+                                                <i class="fas fa-location-dot"></i>
+                                                {{ $activity->reschedule_venue_type ?: '---' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if(filled($activity->reschedule_reason))
+                                <div class="resched-reason-box">
+                                    <div class="resched-reason-label"><i class="fas fa-comment-alt"></i> Reason for Rescheduling</div>
+                                    <div class="resched-reason-text">{{ $activity->reschedule_reason }}</div>
+                                </div>
+                            @endif
+
+                            <div style="font-size:11.5px; color:#94a3b8; text-align:right; margin-top:8px;">
+                                <i class="fas fa-clock" style="font-size:10px;"></i>
+                                Requested {{ $activity->reschedule_requested_at?->format('M j, Y \a\t g:i A') }}
+                            </div>
+                        </div>
+
+                        @if($isRescheduleApproval)
+                            <form action="{{ route('dean_osa.approval.reschedule.approve', $activity->id) }}"
+                                method="POST"
+                                enctype="multipart/form-data"
+                                id="reschedApproveForm"
+                                style="display:flex; flex-direction:column; gap:16px; margin-top:16px;">
+                                @csrf
+
+                                <div class="signatory-card">
+                                    <div class="signatory-header">
+                                        <div style="display:flex; align-items:center; gap:8px;">
+                                            <i class="fas fa-calendar-check" style="color:#d97706; font-size:12px;"></i>
+                                            <span style="font-weight:600; font-size:13.5px; color:#1e293b;">Reschedule Application Approval</span>
+                                        </div>
+                                        <span class="badge approval-status-badge {{ in_array($activity->reschedule_status, ['for approval', 'for signature'], true) ? 'b-for-signature' : 'b-pending' }}">
+                                            @if($activity->reschedule_status === 'for signature')
+                                                For Signature
+                                            @elseif($activity->reschedule_status === 'for approval')
+                                                For Approval
+                                            @else
+                                                Pending Review
+                                            @endif
+                                        </span>
+                                    </div>
+
+                                    <div class="signatory-body">
+                                        <div style="display:grid; grid-template-columns:minmax(170px,220px) minmax(0,1fr); gap:16px; align-items:start;">
+                                            <div>
+                                                <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:6px;">Status</label>
+                                                <select name="reschedule_status" id="reschedule_status_select" class="filter-select" style="width:100%;"
+                                                    onchange="toggleRescheduleDocumentLock()">
+                                                    <option value="pending" @selected($activity->reschedule_status === 'pending')>Pending</option>
+                                                    <option value="for signature" @selected($activity->reschedule_status === 'for signature')>For Signature</option>
+                                                    <option value="approved" @selected($activity->reschedule_status === 'approved')>Approved</option>
+                                                    <option value="disapproved" @selected($activity->reschedule_status === 'disapproved')>Disapproved</option>
+                                                </select>
+                                                <div style="font-size:11.5px; color:#64748b; margin-top:6px; line-height:1.45;">
+                                                    The reschedule document unlocks once the status is set to Approved.
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:6px;">
+                                                    Approval Remarks <span style="color:#94a3b8; font-weight:400;">(optional)</span>
+                                                </label>
+                                                <textarea name="reschedule_remarks" id="reschedStepRemarks" class="form-control" rows="3"
+                                                    placeholder="Add remarks about this reschedule request..."
+                                                    style="resize:vertical; font-size:13px; border-radius:10px;">{{ $activity->reschedule_remarks }}</textarea>
+                                            </div>
+                                        </div>
+                                        <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+                                            <button type="submit" name="save_action" value="approval" class="btn btn-add" style="font-size:12.5px;">
+                                                <i class="fas fa-save"></i> Save Approval
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="show-section" id="reschedule-document-section">
+                                    <div class="show-section-header">
+                                        <i class="fas fa-file-pdf"></i> Reschedule Document
+                                        <span id="reschedule_document_lock_label" style="margin-left:auto; font-size:11px; color:#94a3b8; font-weight:600;">
+                                            <i class="fas fa-lock"></i> Locked until approved
+                                        </span>
+                                    </div>
+                                    <div style="padding:16px;">
+                                        <label class="approved-dropzone is-visible" for="reschedule_paper_file" style="min-height:150px;">
+                                            <input type="file" name="reschedule_paper_file"
+                                                id="reschedule_paper_file" accept=".pdf"
+                                                form="reschedApproveForm"
+                                                disabled
+                                                onchange="updateApprovedFileName('reschedule', this)">
+                                            <span class="approved-dropzone-inner">
+                                                <i class="fas fa-cloud-upload-alt"></i>
+                                                <span class="approved-dropzone-main">Upload reschedule paper</span>
+                                                <span class="approved-dropzone-sub">
+                                                    {{ $reschedulePaperDoc ? 'Replace the current PDF, up to 10MB' : 'Required when approving, up to 10MB' }}
+                                                </span>
+                                                <span class="approved-file-chip">
+                                                    <i class="fas fa-file-pdf"></i>
+                                                    <span id="approved_fname_reschedule">
+                                                        {{ $reschedulePaperDoc?->original_filename ?? 'No file chosen' }}
+                                                    </span>
+                                                </span>
+                                            </span>
+                                        </label>
+                                        <a href="#"
+                                            target="_blank"
+                                            class="document-check-btn document-preview-btn"
+                                            id="preview_btn_reschedule">
+                                            <i class="fas fa-eye"></i> Preview Selected File
+                                        </a>
+                                        <div id="reschedule_document_locked_notice" class="notice-card notice-card--blue" style="margin:12px 0 0;">
+                                            <i class="fas fa-lock"></i>
+                                            <div>Select <strong>Approved</strong> in the approval status to enable document upload.</div>
+                                        </div>
+                                        @error('reschedule_paper_file')
+                                            <div style="margin-top:8px; color:#b91c1c; font-size:12px;">{{ $message }}</div>
+                                        @enderror
+                                        @if($reschedulePaperDoc)
+                                            <div class="document-check-row" style="margin-top:14px;">
+                                                <a href="{{ route('dean_osa.sarf-documents.show', $reschedulePaperDoc) }}"
+                                                    target="_blank" class="document-check-btn">
+                                                    <i class="fas fa-file-pdf"></i> View Current Paper
+                                                </a>
+                                                <a href="{{ route('dean_osa.sarf-documents.show', ['document' => $reschedulePaperDoc, 'download' => 1]) }}"
+                                                    class="document-check-btn document-download-btn">
+                                                    <i class="fas fa-download"></i> Download File
+                                                </a>
+                                            </div>
+                                        @endif
+                                        <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+                                            <button type="submit" name="save_action" value="document" id="reschedule_document_save_btn" formnovalidate class="btn btn-add" style="font-size:12.5px;" disabled>
+                                                <i class="fas fa-save"></i> Save Document
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        @else
+                            <div class="signatory-card" style="margin-top:16px;">
+                                <div class="signatory-header">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <i class="fas fa-calendar-check" style="color:#d97706; font-size:12px;"></i>
+                                        <span style="font-weight:600; font-size:13.5px; color:#1e293b;">Reschedule Application Approval</span>
+                                    </div>
+                                    <span class="badge approval-status-badge b-pending">Pending Review</span>
+                                </div>
+                                <div class="signatory-body" style="display:block;">
+                                    <div class="notice-card notice-card--blue" style="margin:0;">
+                                        <i class="fas fa-clock"></i>
+                                        <div>
+                                            <strong>Pending review.</strong>
+                                            Opened from the approval list, this request will move to For Approval.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    @endif
+                @endif
+
+            </div>{{-- /tab-4 --}}
+
         </div>{{-- /padding --}}
     </div>{{-- /panel --}}
 </section>
 
 <script>
 /* ── Tab navigation ── */
-const TOTAL_TABS = 3;
+const TOTAL_TABS = 4;
 const INITIAL_TAB = @json($activeTab);
+const SHOW_RESCHEDULE_STEP = @json($showRescheduleStep);
 
 function showTab(n, options = {}) {
+    if (n === 4 && !SHOW_RESCHEDULE_STEP) return;
     for (let i = 1; i <= TOTAL_TABS; i++) {
         const pane = document.getElementById('tab-' + i);
         if (pane) pane.style.display = (i === n) ? 'block' : 'none';
@@ -1164,12 +1512,34 @@ function setupApprovedDropzones() {
     });
 }
 
+function toggleRescheduleDocumentLock() {
+    const status = document.getElementById('reschedule_status_select')?.value;
+    const unlocked = status === 'approved';
+    const fileInput = document.getElementById('reschedule_paper_file');
+    const saveBtn = document.getElementById('reschedule_document_save_btn');
+    const section = document.getElementById('reschedule-document-section');
+    const lockLabel = document.getElementById('reschedule_document_lock_label');
+    const lockedNotice = document.getElementById('reschedule_document_locked_notice');
+
+    if (fileInput) {
+        fileInput.disabled = !unlocked;
+        if (!unlocked) {
+            fileInput.value = '';
+            updateApprovedFileName('reschedule', fileInput);
+        }
+    }
+    if (saveBtn) saveBtn.disabled = !unlocked;
+    if (section) section.style.opacity = unlocked ? '1' : '0.58';
+    if (lockLabel) lockLabel.style.display = unlocked ? 'none' : 'inline-flex';
+    if (lockedNotice) lockedNotice.style.display = unlocked ? 'none' : 'flex';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const tabFromUrl = Number(params.get('tab'));
     const focusTarget = params.get('focus');
 
-    if ([1, 2, 3].includes(tabFromUrl)) {
+    if ([1, 2, 3].includes(tabFromUrl) || (tabFromUrl === 4 && SHOW_RESCHEDULE_STEP)) {
         showTab(tabFromUrl, { scroll: !focusTarget });
     } else {
         showTab(INITIAL_TAB, { scroll: false });
@@ -1177,38 +1547,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     scrollToFocusTarget(focusTarget);
     setupApprovedDropzones();
+    toggleRescheduleDocumentLock();
 });
 
 /* ── Scroll-triggered advance popup ── */
-@if($showAdvancePopup)
-let popupDismissed = false;
-
-function dismissAdvanceModal() {
-    document.getElementById('advance-modal').style.display = 'none';
-    popupDismissed = true;
-    setTimeout(() => { popupDismissed = false; }, 3000);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const sentinel = document.getElementById('scroll-sentinel');
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !popupDismissed) {
-                document.getElementById('advance-modal').style.display = 'flex';
-            }
-        });
-    }, { threshold: 0.5 });
-
-    observer.observe(sentinel);
-
-    document.getElementById('advance-modal').addEventListener('click', function(e) {
-        if (e.target === this) dismissAdvanceModal();
-    });
-});
-@endif
-
 /* ── Reschedule form toggle (kept for backward compat) ── */
 function toggleRescheduleForm() {
     const panel = document.getElementById('reschedule-form-panel');
@@ -1221,19 +1563,6 @@ function toggleRescheduleForm() {
 }
 
 /* ── Reschedule Review Modal ── */
-function openRescheduleReviewModal() {
-    document.getElementById('reschedReviewOverlay').classList.add('active');
-}
-function closeRescheduleReviewModal() {
-    document.getElementById('reschedReviewOverlay').classList.remove('active');
-}
-
-// Escape key for reschedule modal
-document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-        closeRescheduleReviewModal();
-    }
-});
 </script>
 
 {{-- ══════════════════════════════════════════════
@@ -1276,7 +1605,7 @@ document.addEventListener('keydown', e => {
                         </div>
                     </label>
 
-                    <label class="mod-type-card">
+                    <label class="mod-type-card" id="modCardRescheduling">
                         <input type="radio" name="modification_type" value="rescheduling" required
                             onchange="selectModType(this.value)">
                         <div class="mod-type-card-inner">
@@ -1286,7 +1615,7 @@ document.addEventListener('keydown', e => {
                             <div class="mod-type-label">Rescheduling</div>
                             <div class="mod-type-desc">
                                 Change schedule details.<br>
-                                Requires schedule approval before returning.
+                                Only approved activities can be rescheduled.
                             </div>
                         </div>
                     </label>
@@ -1312,136 +1641,18 @@ document.addEventListener('keydown', e => {
     </div>
 </div>
 
-<style>
-/* ── Modification button (quick action bar) ── */
-.btn-quick-action--mod {
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-    color: #b45309;
-    border-color: #fcd34d;
-}
-.btn-quick-action--mod:hover {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    border-color: #f59e0b;
-    color: #92400e;
-    box-shadow: 0 3px 10px rgba(217,119,6,0.15);
-}
-
-/* ══════════════════════════════════════════════
-   MODIFICATION MODAL
-══════════════════════════════════════════════ */
-.mod-overlay {
-    display:none;
-    position:fixed; inset:0; z-index:9999;
-    background:rgba(15,23,42,0.55);
-    backdrop-filter:blur(4px);
-    align-items:center; justify-content:center;
-    animation:modFadeIn .2s ease;
-}
-.mod-overlay.active { display:flex; }
-
-@keyframes modFadeIn  { from { opacity:0; } to { opacity:1; } }
-@keyframes modSlideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-
-.mod-modal {
-    background:#fff;
-    border-radius:16px;
-    box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);
-    width:520px; max-width:94vw;
-    overflow:hidden;
-    animation:modSlideUp .25s ease;
-}
-.mod-modal-header {
-    display:flex; align-items:center; gap:14px;
-    padding:20px 24px;
-    background:linear-gradient(135deg,#f0f9ff 0%,#e0f2fe 100%);
-    border-bottom:1px solid #e0e7ff;
-    position:relative;
-}
-.mod-modal-icon {
-    width:44px; height:44px; border-radius:12px;
-    background:#dbeafe; color:#1d4ed8;
-    display:flex; align-items:center; justify-content:center;
-    font-size:18px; flex-shrink:0;
-}
-.mod-modal-title {
-    font-size:17px; font-weight:700; color:#0f172a; margin:0;
-}
-.mod-modal-subtitle {
-    font-size:12px; color:#64748b; margin:2px 0 0; font-weight:500;
-}
-.mod-close {
-    position:absolute; top:16px; right:16px;
-    background:none; border:none; cursor:pointer;
-    color:#94a3b8; font-size:16px;
-    width:32px; height:32px; border-radius:8px;
-    display:flex; align-items:center; justify-content:center;
-    transition:all .15s;
-}
-.mod-close:hover { background:#e2e8f0; color:#334155; }
-
-.mod-modal-body { padding:24px; }
-.mod-label {
-    display:block; font-size:13px; font-weight:600; color:#334155;
-    margin-bottom:10px;
-}
-
-.mod-type-cards {
-    display:grid; grid-template-columns:1fr 1fr; gap:12px;
-    margin-bottom:20px;
-}
-.mod-type-card { cursor:pointer; }
-.mod-type-card input { display:none; }
-.mod-type-card-inner {
-    border:2px solid #e2e8f0;
-    border-radius:12px;
-    padding:18px 14px;
-    text-align:center;
-    transition:all .2s;
-    background:#fafbfc;
-}
-.mod-type-card-inner:hover {
-    border-color:#93c5fd;
-    background:#f0f9ff;
-}
-.mod-type-card input:checked ~ .mod-type-card-inner {
-    border-color:#3b82f6;
-    background:#eff6ff;
-    box-shadow:0 0 0 3px rgba(59,130,246,0.15);
-}
-.mod-type-icon {
-    width:44px; height:44px; border-radius:12px;
-    display:inline-flex; align-items:center; justify-content:center;
-    font-size:18px; margin-bottom:10px;
-}
-.mod-type-label {
-    font-size:14px; font-weight:700; color:#0f172a; margin-bottom:4px;
-}
-.mod-type-desc {
-    font-size:11.5px; color:#64748b; line-height:1.5;
-}
-
-.mod-remarks-wrap { margin-top:4px; }
-.mod-remarks-wrap textarea {
-    resize:vertical; min-height:70px;
-    border-radius:10px; font-size:13px;
-}
-
-.mod-modal-footer {
-    display:flex; justify-content:flex-end; gap:10px;
-    padding:16px 24px;
-    background:#f8fafc;
-    border-top:1px solid #e5e7eb;
-}
-</style>
 
 <script>
 /* ══════════════════════════════════════════════
    Modification Modal Logic (show page)
 ══════════════════════════════════════════════ */
-function openModificationModal(activityId, code) {
+function openModificationModal(activityId, code, status) {
     const overlay = document.getElementById('modOverlay');
     const form    = document.getElementById('modForm');
     const subtitle = document.getElementById('modSubtitle');
+    const rescheduleCard = document.getElementById('modCardRescheduling');
+    const rescheduleInput = rescheduleCard?.querySelector('input');
+    const canReschedule = status === 'approved';
 
     form.action = `{{ url('dean_osa/approval') }}/${activityId}/modification`;
     subtitle.textContent = 'SARF Code: ' + code;
@@ -1449,6 +1660,10 @@ function openModificationModal(activityId, code) {
     form.reset();
     document.getElementById('modSubmitBtn').disabled = true;
     document.querySelectorAll('.mod-type-card input').forEach(r => r.checked = false);
+    rescheduleCard?.classList.toggle('is-disabled', !canReschedule);
+    if (rescheduleInput) {
+        rescheduleInput.disabled = !canReschedule;
+    }
 
     overlay.classList.add('active');
 }
@@ -1466,148 +1681,4 @@ document.addEventListener('keydown', e => {
 });
 </script>
 
-{{-- ══════════════════════════════════════════════
-     RESCHEDULE REVIEW MODAL
-══════════════════════════════════════════════ --}}
-@if($activity->reschedule_status === 'pending')
-<div class="resched-review-overlay" id="reschedReviewOverlay" onclick="closeRescheduleReviewModal()">
-    <div class="resched-review-modal" onclick="event.stopPropagation()">
-
-        {{-- Header --}}
-        <div class="resched-review-header">
-            <div class="resched-review-header-icon">
-                <i class="fas fa-calendar-alt"></i>
-            </div>
-            <div>
-                <h3 class="resched-review-title">Review Schedule Change</h3>
-                <p class="resched-review-subtitle">{{ $activity->code }} — {{ Str::limit($activity->title, 40) }}</p>
-            </div>
-            <button type="button" class="resched-review-close" onclick="closeRescheduleReviewModal()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-
-        {{-- Comparison Cards --}}
-        <div class="resched-review-body">
-            <div class="resched-compare-grid">
-                {{-- Original Schedule --}}
-                <div class="resched-compare-card resched-compare-old">
-                    <div class="resched-compare-label">
-                        <i class="fas fa-history"></i> Original Schedule
-                    </div>
-                    <div class="resched-compare-fields">
-                        <div class="resched-compare-field">
-                            <div class="resched-compare-field-label">Date</div>
-                            <div class="resched-compare-field-value">
-                                <i class="fas fa-calendar-alt"></i>
-                                {{ $activity->date_of_activity?->format('M j, Y') ?? '—' }}
-                            </div>
-                        </div>
-                        <div class="resched-compare-field">
-                            <div class="resched-compare-field-label">Time</div>
-                            <div class="resched-compare-field-value">
-                                <i class="fas fa-clock"></i>
-                                {{ $activity->time_of_activity ?: '—' }}
-                            </div>
-                        </div>
-                        <div class="resched-compare-field">
-                            <div class="resched-compare-field-label">Venue</div>
-                            <div class="resched-compare-field-value">
-                                <i class="fas fa-map-marker-alt"></i>
-                                {{ $activity->venue ?: ($activity->platform ?: '—') }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Arrow --}}
-                <div class="resched-compare-arrow">
-                    <i class="fas fa-arrow-right"></i>
-                </div>
-
-                {{-- Proposed Schedule --}}
-                <div class="resched-compare-card resched-compare-new">
-                    <div class="resched-compare-label">
-                        <i class="fas fa-calendar-check"></i> Proposed Schedule
-                    </div>
-                    <div class="resched-compare-fields">
-                        <div class="resched-compare-field">
-                            <div class="resched-compare-field-label">Date</div>
-                            <div class="resched-compare-field-value resched-highlight">
-                                <i class="fas fa-calendar-alt"></i>
-                                {{ $activity->reschedule_date?->format('M j, Y') ?? '—' }}
-                            </div>
-                        </div>
-                        <div class="resched-compare-field">
-                            <div class="resched-compare-field-label">Time</div>
-                            <div class="resched-compare-field-value {{ filled($activity->reschedule_time) ? 'resched-highlight' : '' }}">
-                                <i class="fas fa-clock"></i>
-                                {{ $activity->reschedule_time ?: $activity->time_of_activity ?: '—' }}
-                            </div>
-                        </div>
-                        <div class="resched-compare-field">
-                            <div class="resched-compare-field-label">Venue</div>
-                            <div class="resched-compare-field-value {{ filled($activity->reschedule_venue) ? 'resched-highlight' : '' }}">
-                                <i class="fas fa-map-marker-alt"></i>
-                                {{ $activity->reschedule_venue ?: $activity->venue ?: ($activity->platform ?: '—') }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Reason --}}
-            @if(filled($activity->reschedule_reason))
-            <div class="resched-reason-box">
-                <div class="resched-reason-label"><i class="fas fa-comment-alt"></i> Reason for Rescheduling</div>
-                <div class="resched-reason-text">{{ $activity->reschedule_reason }}</div>
-            </div>
-            @endif
-
-            {{-- Requested timestamp --}}
-            <div style="font-size:11.5px; color:#94a3b8; text-align:right; margin-top:8px;">
-                <i class="fas fa-clock" style="font-size:10px;"></i>
-                Requested {{ $activity->reschedule_requested_at?->format('M j, Y \a\t g:i A') }}
-            </div>
-
-            {{-- Remarks Input --}}
-            <div style="margin-top:16px;">
-                <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:6px;">
-                    Your Remarks <span style="color:#94a3b8; font-weight:400;">(optional)</span>
-                </label>
-                <textarea id="reschedReviewRemarks" class="form-control" rows="2"
-                    placeholder="Add remarks about this reschedule request…"
-                    style="resize:vertical; font-size:13px; border-radius:10px;"></textarea>
-            </div>
-        </div>
-
-        {{-- Footer with Actions --}}
-        <div class="resched-review-footer">
-            <button type="button" class="btn btn-filter" onclick="closeRescheduleReviewModal()">
-                <i class="fas fa-arrow-left"></i> Close
-            </button>
-            <div style="display:flex; gap:8px;">
-                <form action="{{ route('dean_osa.approval.reschedule.reject', $activity->id) }}" method="POST" id="reschedRejectForm">
-                    @csrf
-                    <input type="hidden" name="reschedule_remarks" id="reschedRejectRemarks">
-                    <button type="submit" class="btn btn-danger"
-                        onclick="document.getElementById('reschedRejectRemarks').value = document.getElementById('reschedReviewRemarks').value;"
-                        style="font-size:12.5px;">
-                        <i class="fas fa-times"></i> Reject
-                    </button>
-                </form>
-                <form action="{{ route('dean_osa.approval.reschedule.approve', $activity->id) }}" method="POST" id="reschedApproveForm">
-                    @csrf
-                    <input type="hidden" name="reschedule_remarks" id="reschedApproveRemarks">
-                    <button type="submit" class="btn btn-add"
-                        onclick="document.getElementById('reschedApproveRemarks').value = document.getElementById('reschedReviewRemarks').value;"
-                        style="font-size:12.5px;">
-                        <i class="fas fa-check"></i> Approve Schedule
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-@endif
 @endsection

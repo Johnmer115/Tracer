@@ -18,7 +18,7 @@
     <div class="panel">
         <div class="panel-header">
             <div class="panel-title">
-                <i class="fas fa-file-medical"></i> Approved and Completed Activities for PAAR
+                <i class="fas fa-file-medical"></i> Completed Activities for PAAR
             </div>
             <form method="GET" action="{{ route('dean_osa.paar.index') }}" class="panel-controls">
                 <div class="search-wrap">
@@ -88,9 +88,7 @@
 
                              {{-- Status --}}
                             <td>
-                                <span class="badge {{ $activity->status === 'completed' ? 'b-completed' : 'b-approved' }}">
-                                    {{ ucfirst($activity->status) }}
-                                </span>
+                                @include('partials.sarf-status-badge', ['activity' => $activity])
                             </td>
                             <td style="white-space:nowrap;">
                                 @if($activity->created_at)
@@ -121,7 +119,7 @@
                     @empty
                         <tr>
                             <td colspan="6" class="td-muted" style="text-align:center; padding:40px;">
-                                No approved or completed activities ready for Post-Activity Report.
+                                No completed activities ready for Post-Activity Report.
                             </td>
                         </tr>
                     @endforelse

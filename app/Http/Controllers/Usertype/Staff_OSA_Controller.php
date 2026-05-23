@@ -105,6 +105,7 @@ class Staff_OSA_Controller extends Controller
         }
 
         $activities = Activity::with(['sarfDocuments', 'branch'])
+            ->whereIn('status', ['pending', 'for revision', 'for reschedule', 'for rescheduling', 'reshedule'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('title',  'like', "%{$search}%")
@@ -147,7 +148,7 @@ class Staff_OSA_Controller extends Controller
         }
 
         $activities = Activity::with('branch')
-            ->whereIn('status', ['for approval', 'for approval finance'])
+            ->whereIn('status', ['ongoing', 'for approval', 'for approval finance', 'approved'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('title', 'like', "%{$search}%")
@@ -174,7 +175,7 @@ class Staff_OSA_Controller extends Controller
         }
 
         $activities = Activity::with('branch')
-            ->whereIn('status', ['approved', 'completed'])
+            ->where('status', 'completed')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('title', 'like', "%{$search}%")

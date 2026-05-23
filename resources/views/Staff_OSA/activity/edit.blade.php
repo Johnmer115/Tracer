@@ -5,6 +5,7 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/sarf-create.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/sarf-edit.css') }}">
 @endpush
 
 @section('content')
@@ -29,6 +30,7 @@
                     <i class="fas fa-hashtag" style="color:#93c5fd; font-size:12px;"></i>
                     <span>{{ $activity->code }}</span>
                 </div>
+                @include('partials.sarf-status-badge', ['activity' => $activity])
                 <a href="{{ route('dean_osa.activity.index') }}" class="btn btn-filter">
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
@@ -549,24 +551,6 @@
     </div>
 </section>
 
-<style>
-/* Extra styles specific to edit (merge into sarf-create.css if preferred) */
-.existing-doc-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #15803d;
-    background: #dcfce7;
-    border-radius: 20px;
-    padding: 3px 10px;
-    text-decoration: none;
-    white-space: nowrap;
-    transition: background .15s;
-}
-.existing-doc-link:hover { background: #bbf7d0; }
-</style>
 
 <script>
 /* ══════════════════════════════════════════════════════════

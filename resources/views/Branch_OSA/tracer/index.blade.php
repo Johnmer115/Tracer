@@ -57,14 +57,7 @@
                                 @endif
                             </td>
                             <td>
-                                @php
-                                    $sc = match($activity->status) {
-                                        'pending'=>'b-pending','for approval','for approval finance'=>'b-for-approval',
-                                        'approved'=>'b-approved','completed'=>'b-completed',
-                                        'for revision'=>'b-revision',default=>'b-pending',
-                                    };
-                                @endphp
-                                <span class="badge {{ $sc }}">{{ ucfirst($activity->status) }}</span>
+                                @include('partials.sarf-status-badge', ['activity' => $activity])
                             </td>
                             <td>
                                 <div class="action-cell">
@@ -104,11 +97,4 @@
     </div>
 </section>
 
-<style>
-.mini-pill { display:inline-block; font-size:11px; font-weight:600; border-radius:20px; padding:2px 8px; white-space:nowrap; }
-.pill-blue  { background:#dbeafe; color:#1d4ed8; }
-.pill-slate { background:#f1f5f9; color:#475569; }
-.pill-green { background:#dcfce7; color:#15803d; }
-.pill-amber { background:#fef9c3; color:#92400e; }
-</style>
 @endsection

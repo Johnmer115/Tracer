@@ -26,8 +26,10 @@ class ActivityController extends Controller
         }
 
         $filters = SarfListFilters::fromRequest($request);
+        $activityStatuses = ['pending', 'for revision', 'for reschedule', 'for rescheduling', 'reshedule'];
+
         $query = Activity::with(['sarfDocuments', 'branch'])
-              ->whereIn('status', ['pending', 'for revision', 'for reschedule', 'reshedule'])
+              ->whereIn('status', $activityStatuses)
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('title',  'like', "%{$search}%")
@@ -36,7 +38,7 @@ class ActivityController extends Controller
                 });
             });
 
-        SarfListFilters::apply($query, $filters, ['pending', 'for revision', 'for reschedule', 'reshedule']);
+        SarfListFilters::apply($query, $filters, $activityStatuses);
 
         $filteredActivities = SarfListFilters::applyInsideStatus($query->latest()->get(), $filters);
         $activities = SarfListFilters::paginateCollection($filteredActivities, $request, $perPage);
@@ -252,20 +254,25 @@ class ActivityController extends Controller
             $hasVenue      = in_array($modeOfConduct, ['Face to Face', 'Hybrid'], true);
             $hasPlatform   = in_array($modeOfConduct, ['Online', 'Hybrid'], true);
             $timeOfActivity = $this->formatActivityTimeRange($request);
-            $schedulePlace = $hasVenue
-                ? $request->input('venue')
-                : ($hasPlatform ? $request->input('platform') : null);
-
             $activity->update([
                 'reschedule_status'       => 'pending',
+                'reschedule_original_date' => $activity->date_of_activity,
+                'reschedule_original_time' => $activity->time_of_activity,
+                'reschedule_original_mode' => $activity->mode_of_conduct,
+                'reschedule_original_venue' => $activity->venue,
+                'reschedule_original_venue_type' => $activity->venue_type,
+                'reschedule_original_platform' => $activity->platform,
                 'reschedule_date'         => $request->input('date_of_activity'),
                 'reschedule_time'         => $timeOfActivity,
-                'reschedule_venue'        => $schedulePlace,
+                'reschedule_mode'         => $modeOfConduct,
+                'reschedule_venue'        => $hasVenue ? $request->input('venue') : null,
+                'reschedule_venue_type'   => $hasVenue ? $request->input('venue_type') : null,
+                'reschedule_platform'     => $hasPlatform ? $request->input('platform') : null,
                 'reschedule_reason'       => $activity->modification_remarks ?? 'Schedule modification requested.',
                 'reschedule_remarks'      => null,
                 'reschedule_requested_at' => now(),
                 'reschedule_decided_at'   => null,
-                'status'                  => 'for approval',
+                'status'                  => 'for approval for rescheduling',
                 'modification_type'       => null,
                 'modification_remarks'    => null,
             ]);

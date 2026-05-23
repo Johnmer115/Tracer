@@ -68,7 +68,7 @@
         <div class="panel-header">
             <div class="panel-title">
                 <i class="fas fa-satellite-dish"></i> {{ $activity->title }}
-                <span class="badge {{ $statusClass }}" style="margin-left:6px;">{{ ucfirst($activity->status) }}</span>
+                <span style="margin-left:6px;">@include('partials.sarf-status-badge', ['activity' => $activity])</span>
             </div>
             <div class="panel-controls">
                 <span class="td-muted" style="font-size:12px;">

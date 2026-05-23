@@ -88,7 +88,7 @@
                                     'for revision'=>'b-revision',default=>'b-pending',
                                 };
                             @endphp
-                            <span class="badge {{ $sc }}">{{ ucfirst($activity->status) }}</span>
+                            @include('partials.sarf-status-badge', ['activity' => $activity])
                         </div>
                     </div>
 

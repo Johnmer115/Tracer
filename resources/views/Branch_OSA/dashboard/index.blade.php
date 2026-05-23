@@ -4,49 +4,7 @@
 @section('page-title', 'Dashboard')
 
 @push('styles')
-<style>
-.dash-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-    margin-bottom: 16px;
-}
-.dash-stat {
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    background: #fff;
-    padding: 16px;
-    position: relative;
-    overflow: hidden;
-}
-.dash-stat::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    border-radius: 12px 12px 0 0;
-}
-.dash-stat[data-color="purple"]::before { background: #7F77DD; }
-.dash-stat[data-color="amber"]::before  { background: #EF9F27; }
-.dash-stat[data-color="blue"]::before   { background: #378ADD; }
-.dash-stat[data-color="teal"]::before   { background: #1D9E75; }
-.dash-stat[data-color="green"]::before  { background: #639922; }
-.dash-stat-icon {
-    width: 36px; height: 36px;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    margin-bottom: 12px;
-}
-.dash-stat[data-color="purple"] .dash-stat-icon { background: #EEEDFE; color: #534AB7; }
-.dash-stat[data-color="amber"]  .dash-stat-icon { background: #FAEEDA; color: #854F0B; }
-.dash-stat[data-color="blue"]   .dash-stat-icon { background: #E6F1FB; color: #185FA5; }
-.dash-stat[data-color="teal"]   .dash-stat-icon { background: #E1F5EE; color: #0F6E56; }
-.dash-stat[data-color="green"]  .dash-stat-icon { background: #EAF3DE; color: #3B6D11; }
-.dash-stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #64748b; margin-bottom: 4px; }
-.dash-stat-value { font-size: 28px; font-weight: 800; line-height: 1; color: #1e293b; }
-.dash-stat-footer { margin-top: 10px; font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 5px; }
-</style>
+    <link rel="stylesheet" href="{{ asset('css/branch-dashboard.css') }}">
 @endpush
 
 @php
@@ -109,6 +67,6 @@
         </div>
     </div>
 
-   
+
 </section>
 @endsection
