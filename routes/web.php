@@ -59,6 +59,7 @@ Route::middleware(['auth', 'Dean_OSA'])->prefix('dean_osa')
         Route::get('approval', [ApprovalController::class, 'index'])->name('approval.index');
         Route::get('approval/{id}', [ApprovalController::class, 'show'])->name('approval.show');
         Route::get('approval/{id}/review', [ApprovalController::class, 'review'])->name('approval.review');
+        Route::delete('approval/{id}', [ApprovalController::class, 'destroy'])->name('approval.destroy');
         Route::match(['post', 'patch'], 'approval/{id}/status', [ApprovalController::class, 'updateStatus'])->name('approval.status');
         Route::match(['post', 'patch'], 'approval/{id}/approve', [ApprovalController::class, 'approve'])->name('approval.approve');
         Route::post('approval/{id}/document', [ApprovalController::class, 'storeDocument'])->name('approval.document.store');

@@ -3,10 +3,6 @@
 @section('title', 'Approvals | SARF Tracking')
 @section('page-title', 'Approvals')
 
-@push('styles')
-    <link rel="stylesheet" href="{{ asset('css/approval-modification-modal.css') }}">
-@endpush
-
 @section('content')
 <section class="panel" style="padding: 25px;">
     @if ($message = Session::get('success'))
@@ -97,6 +93,16 @@
         $location = $getApprovalLocation($activity);
         $isForApproval = in_array($s, ['for approval', 'for approval finance']);
 
+        if ($s === 'for approval for rescheduling') {
+            return [
+                'label' => 'Request Modification: Rescheduling',
+                'bg'    => '#fef3c7',
+                'color' => '#92400e',
+                'border'=> '#fbbf24',
+                'icon'  => 'fa-calendar-alt',
+            ];
+        }
+
         if ($isForApproval && $location) {
             return [
                 'label' => 'Pending in ' . $location,
@@ -110,7 +116,6 @@
         return match($s) {
             'pending'      => ['label'=>'Pending',      'bg'=>'#f1f5f9','color'=>'#475569','border'=>'#cbd5e1','icon'=>'fa-clock'],
             'ongoing'      => ['label'=>'Ongoing',      'bg'=>'#fef9c3','color'=>'#854d0e','border'=>'#fde68a','icon'=>'fa-spinner'],
-            'for approval for rescheduling' => ['label'=>'For Approval for Rescheduling','bg'=>'#fef3c7','color'=>'#92400e','border'=>'#fbbf24','icon'=>'fa-calendar-alt'],
             'for revision' => ['label'=>'For Revision', 'bg'=>'#fff1f2','color'=>'#da281c','border'=>'#fca5a5','icon'=>'fa-redo'],
             'approved'     => ['label'=>'Approved',     'bg'=>'#dcfce7','color'=>'#15803d','border'=>'#86efac','icon'=>'fa-check-circle'],
             'completed'    => ['label'=>'Completed',    'bg'=>'#f0fdf4','color'=>'#166534','border'=>'#4ade80','icon'=>'fa-check-double'],
@@ -134,30 +139,13 @@
                 </div>
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
                 @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => 'dean_osa.approval.index'])
-                @include('Dean_OSA.partials.sarf-filters', [
-                    'filterMode' => 'button',
-                    'filterRoute' => 'dean_osa.approval.index',
-                    'pipelineStatuses' => [
-                        'ongoing' => 'Ongoing',
-                        'for approval' => 'For Approval',
-                        'for approval finance' => 'For Approval Finance',
-                        'approved' => 'Approved',
-                    ],
-                ])
+                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'button', 'filterRoute' => 'dean_osa.approval.index'])
             </form>
         </div>
 
-        @include('Dean_OSA.partials.sarf-filters', [
-            'filterRoute' => 'dean_osa.approval.index',
-            'pipelineStatuses' => [
-                'ongoing' => 'Ongoing',
-                'for approval' => 'For Approval',
-                'for approval finance' => 'For Approval Finance',
-                'approved' => 'Approved',
-            ],
-        ])
+        @include('Dean_OSA.partials.sarf-filters', ['filterRoute' => 'dean_osa.approval.index'])
 
-        {{-- ── Summary chips ──
+        {{-- ── Summary chips ── 
         <div style="display:flex; gap:8px; flex-wrap:wrap; padding:14px 20px; border-bottom:1px solid #e5e7eb;">
             @php
                 $chipData = [
@@ -165,7 +153,6 @@
                     ['label'=>'Ongoing',     'status'=>'ongoing',              'bg'=>'#fef9c3','color'=>'#854d0e','border'=>'#fde68a'],
                     ['label'=>'For Approval','status'=>'for approval',         'bg'=>'#dbeafe','color'=>'#014ea8','border'=>'#93c5fd'],
                     ['label'=>'Finance',     'status'=>'for approval finance', 'bg'=>'#dbeafe','color'=>'#014ea8','border'=>'#93c5fd'],
-                    ['label'=>'Rescheduling','status'=>'for approval for rescheduling', 'bg'=>'#fef3c7','color'=>'#92400e','border'=>'#fbbf24'],
                     ['label'=>'Approved',    'status'=>'approved',             'bg'=>'#dcfce7','color'=>'#15803d','border'=>'#86efac'],
                     ['label'=>'Completed',   'status'=>'completed',            'bg'=>'#f0fdf4','color'=>'#166534','border'=>'#4ade80'],
                     ['label'=>'For Revision','status'=>'for revision',         'bg'=>'#fff1f2','color'=>'#da281c','border'=>'#fca5a5'],
@@ -218,6 +205,10 @@
                             $hasForSig      = $dotStatuses->contains('for signature');
                             $badge          = $getStatusBadge($activity);
                             $isForApproval  = in_array($activity->status, ['for approval','for approval finance']);
+                            $canRequestRevision = in_array($activity->status, ['pending', 'ongoing', 'for approval', 'for approval finance'], true);
+                            $canRequestRescheduling = $activity->status === 'approved';
+                            $canRequestModification = ($canRequestRevision || $canRequestRescheduling)
+                                && !in_array($activity->reschedule_status, ['pending', 'for approval', 'for signature'], true);
                         @endphp
                         <tr>
 
@@ -359,25 +350,60 @@
 
                             {{-- Status (computed) --}}
                             <td style="white-space:nowrap;">
-                                @include('partials.sarf-status-badge', ['activity' => $activity])
+                                <span style="
+                                    display:inline-flex; align-items:center; gap:5px;
+                                    font-size:11.5px; font-weight:700;
+                                    padding:4px 10px; border-radius:20px;
+                                    background:{{ $badge['bg'] }};
+                                    color:{{ $badge['color'] }};
+                                    border:1px solid {{ $badge['border'] }};">
+                                    <i class="fas {{ $badge['icon'] }}" style="font-size:10px;"></i>
+                                    {{ $badge['label'] }}
+                                </span>
+                                @if($activity->status !== 'for approval for rescheduling' && in_array($activity->reschedule_status, ['pending', 'for approval', 'for signature'], true))
+                                @php
+                                    $rescheduleLabel = match($activity->reschedule_status) {
+                                        'for approval' => 'Reschedule For Approval',
+                                        'for signature' => 'Reschedule For Signature',
+                                        default => 'Reschedule Request',
+                                    };
+                                @endphp
+                                <span style="
+                                    display:inline-flex; align-items:center; gap:4px;
+                                    font-size:10px; font-weight:700;
+                                    padding:3px 8px; border-radius:20px;
+                                    background:#fef3c7; color:#92400e;
+                                    border:1px solid #fbbf24; margin-left:4px;">
+                                    <i class="fas fa-calendar-alt" style="font-size:9px;"></i>
+                                    {{ $rescheduleLabel }}
+                                </span>
+                                @endif
                             </td>
 
 
                             {{-- Actions --}}
-                            <td>
-                                <div class="action-cell">
+                            <td style="white-space:nowrap;">
+                                <div class="action-cell" style="display:inline-flex; gap:8px; align-items:center; flex-wrap:nowrap; white-space:nowrap;">
                                     <a href="{{ route('dean_osa.approval.review', $activity->id) }}"
-                                        class="abtn abtn-view" title="Review & Approve Activity">
+                                        class="abtn abtn-view" title="Review & Approve Activity" style="flex-shrink:0;">
                                         <i class="fas fa-stamp"></i>
                                     </a>
-                                    @if(in_array($activity->status, ['for approval', 'for approval finance', 'ongoing', 'approved']) && $activity->reschedule_status !== 'pending')
+                                    @if($canRequestModification)
                                         <button type="button"
                                             class="abtn abtn-mod"
                                             title="Request Modification"
-                                            onclick="openModificationModal({{ $activity->id }}, '{{ addslashes($activity->code) }}', '{{ $activity->status }}')">
+                                            style="flex-shrink:0;"
+                                            onclick="openModificationModal({{ $activity->id }}, '{{ addslashes($activity->code) }}', {{ $canRequestRevision ? 'true' : 'false' }}, {{ $canRequestRescheduling ? 'true' : 'false' }})">
                                             <i class="ti ti-adjustments-horizontal"></i>
                                         </button>
                                     @endif
+                                    <button type="button"
+                                        class="abtn abtn-del"
+                                        title="Delete Activity"
+                                        style="flex-shrink:0;"
+                                        onclick="openDeleteModal('{{ route('dean_osa.approval.destroy', $activity->id) }}', '{{ addslashes($activity->code) }}')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
                                 </div>
                             </td>
 
@@ -485,7 +511,7 @@
                             <div class="mod-type-label">Rescheduling</div>
                             <div class="mod-type-desc">
                                 Change schedule details.<br>
-                                Only approved activities can be rescheduled.
+                                Requires schedule approval before returning.
                             </div>
                         </div>
                     </label>
@@ -511,18 +537,240 @@
     </div>
 </div>
 
+{{-- DELETE MODAL --}}
+<div class="mod-overlay" id="deleteOverlay" onclick="closeDeleteModal()">
+    <div class="mod-modal delete-modal" onclick="event.stopPropagation()">
+        <div class="mod-modal-header delete-modal-header">
+            <div class="mod-modal-icon delete-modal-icon">
+                <i class="fas fa-trash-alt"></i>
+            </div>
+            <div>
+                <h3 class="mod-modal-title">Delete Activity</h3>
+                <p class="mod-modal-subtitle" id="deleteSubtitle">SARF Code: -</p>
+            </div>
+            <button type="button" class="mod-close" onclick="closeDeleteModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="deleteForm" method="POST" action="">
+            @csrf
+            @method('DELETE')
+
+            <div class="mod-modal-body">
+                <div class="delete-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>This will permanently delete the activity and its uploaded SARF documents.</strong>
+                        <span>This action cannot be undone.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mod-modal-footer">
+                <button type="button" class="btn btn-filter" onclick="closeDeleteModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash-alt"></i> Delete
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* ── Cell helpers ── */
+.td-main  { font-size:13.5px; font-weight:600; color:#1e293b; }
+.td-sub   { font-size:11.5px; color:#94a3b8; margin-top:2px; line-height:1.4; }
+.td-muted { color:#94a3b8; font-style:italic; }
+
+/* ── Mini pills ── */
+.mini-pill {
+    display:inline-block; font-size:11px; font-weight:600;
+    border-radius:20px; padding:2px 8px; white-space:nowrap;
+}
+.pill-blue  { background:#dbeafe; color:#1d4ed8; }
+.pill-slate { background:#f1f5f9; color:#475569; }
+.pill-green { background:#dcfce7; color:#15803d; }
+.pill-amber { background:#fef9c3; color:#92400e; }
+
+/* ── Dot legend bar ── */
+.dot-legend {
+    display:flex; gap:16px; flex-wrap:wrap; align-items:center;
+    padding:8px 20px; border-bottom:1px solid #f1f5f9;
+    background:#fafafa;
+}
+.dot-legend-item {
+    display:flex; align-items:center; gap:5px;
+    font-size:11.5px; color:#64748b; font-weight:500;
+}
+.dot-legend-dot {
+    width:10px; height:10px; border-radius:50%; flex-shrink:0;
+}
+
+/* ══════════════════════════════════════════════
+   MODIFICATION MODAL
+══════════════════════════════════════════════ */
+.mod-overlay {
+    display:none;
+    position:fixed; inset:0; z-index:9999;
+    background:rgba(15,23,42,0.55);
+    backdrop-filter:blur(4px);
+    align-items:center; justify-content:center;
+    animation:modFadeIn .2s ease;
+}
+.mod-overlay.active { display:flex; }
+
+@keyframes modFadeIn  { from { opacity:0; } to { opacity:1; } }
+@keyframes modSlideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+.mod-modal {
+    background:#fff;
+    border-radius:16px;
+    box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);
+    width:520px; max-width:94vw;
+    overflow:hidden;
+    animation:modSlideUp .25s ease;
+}
+.mod-modal-header {
+    display:flex; align-items:center; gap:14px;
+    padding:20px 24px;
+    background:linear-gradient(135deg,#f0f9ff 0%,#e0f2fe 100%);
+    border-bottom:1px solid #e0e7ff;
+    position:relative;
+}
+.mod-modal-icon {
+    width:44px; height:44px; border-radius:12px;
+    background:#dbeafe; color:#1d4ed8;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; flex-shrink:0;
+}
+.mod-modal-title {
+    font-size:17px; font-weight:700; color:#0f172a; margin:0;
+}
+.mod-modal-subtitle {
+    font-size:12px; color:#64748b; margin:2px 0 0; font-weight:500;
+}
+.mod-close {
+    position:absolute; top:16px; right:16px;
+    background:none; border:none; cursor:pointer;
+    color:#94a3b8; font-size:16px;
+    width:32px; height:32px; border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    transition:all .15s;
+}
+.mod-close:hover { background:#e2e8f0; color:#334155; }
+
+.mod-modal-body { padding:24px; }
+.mod-label {
+    display:block; font-size:13px; font-weight:600; color:#334155;
+    margin-bottom:10px;
+}
+
+/* ── Type selection cards ── */
+.mod-type-cards {
+    display:grid; grid-template-columns:1fr 1fr; gap:12px;
+    margin-bottom:20px;
+}
+.mod-type-card {
+    cursor:pointer;
+}
+.mod-type-card.is-disabled {
+    cursor:not-allowed;
+    opacity:0.48;
+}
+.mod-type-card.is-disabled .mod-type-card-inner,
+.mod-type-card.is-disabled .mod-type-card-inner:hover {
+    border-color:#e2e8f0;
+    background:#f8fafc;
+    box-shadow:none;
+}
+.mod-type-card input { display:none; }
+.mod-type-card-inner {
+    border:2px solid #e2e8f0;
+    border-radius:12px;
+    padding:18px 14px;
+    text-align:center;
+    transition:all .2s;
+    background:#fafbfc;
+}
+.mod-type-card-inner:hover {
+    border-color:#93c5fd;
+    background:#f0f9ff;
+}
+.mod-type-card input:checked ~ .mod-type-card-inner {
+    border-color:#3b82f6;
+    background:#eff6ff;
+    box-shadow:0 0 0 3px rgba(59,130,246,0.15);
+}
+.mod-type-icon {
+    width:44px; height:44px; border-radius:12px;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:18px; margin-bottom:10px;
+}
+.mod-type-label {
+    font-size:14px; font-weight:700; color:#0f172a; margin-bottom:4px;
+}
+.mod-type-desc {
+    font-size:11.5px; color:#64748b; line-height:1.5;
+}
+
+.mod-remarks-wrap { margin-top:4px; }
+.mod-remarks-wrap textarea {
+    resize:vertical; min-height:70px;
+    border-radius:10px; font-size:13px;
+}
+
+.mod-modal-footer {
+    display:flex; justify-content:flex-end; gap:10px;
+    padding:16px 24px;
+    background:#f8fafc;
+    border-top:1px solid #e5e7eb;
+}
+.delete-modal-header {
+    background:linear-gradient(135deg,#fff1f2 0%,#ffe4e6 100%);
+    border-bottom-color:#fecdd3;
+}
+.delete-modal-icon {
+    background:#ffe4e6;
+    color:#be123c;
+}
+.delete-warning {
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    padding:14px 16px;
+    border:1px solid #fecdd3;
+    border-radius:12px;
+    background:#fff1f2;
+    color:#9f1239;
+    font-size:13px;
+    line-height:1.5;
+}
+.delete-warning i {
+    color:#e11d48;
+    margin-top:2px;
+}
+.delete-warning span {
+    display:block;
+    margin-top:2px;
+    color:#be123c;
+}
+</style>
 
 <script>
 /* ══════════════════════════════════════════════
    Modification Modal Logic
 ══════════════════════════════════════════════ */
-function openModificationModal(activityId, code, status) {
+function openModificationModal(activityId, code, canRevision, canRescheduling) {
     const overlay = document.getElementById('modOverlay');
     const form    = document.getElementById('modForm');
     const subtitle = document.getElementById('modSubtitle');
-    const rescheduleCard = document.getElementById('modCardRescheduling');
-    const rescheduleInput = rescheduleCard?.querySelector('input');
-    const canReschedule = status === 'approved';
+    const revisionCard = document.getElementById('modCardRevision');
+    const reschedulingCard = document.getElementById('modCardRescheduling');
+    const revisionInput = revisionCard?.querySelector('input');
+    const reschedulingInput = reschedulingCard?.querySelector('input');
 
     form.action = `{{ url('dean_osa/approval') }}/${activityId}/modification`;
     subtitle.textContent = 'SARF Code: ' + code;
@@ -531,10 +779,11 @@ function openModificationModal(activityId, code, status) {
     form.reset();
     document.getElementById('modSubmitBtn').disabled = true;
     document.querySelectorAll('.mod-type-card input').forEach(r => r.checked = false);
-    rescheduleCard?.classList.toggle('is-disabled', !canReschedule);
-    if (rescheduleInput) {
-        rescheduleInput.disabled = !canReschedule;
-    }
+    revisionCard?.classList.toggle('is-disabled', !canRevision);
+    reschedulingCard?.classList.toggle('is-disabled', !canRescheduling);
+
+    if (revisionInput) revisionInput.disabled = !canRevision;
+    if (reschedulingInput) reschedulingInput.disabled = !canRescheduling;
 
     overlay.classList.add('active');
 }
@@ -547,9 +796,26 @@ function selectModType(val) {
     document.getElementById('modSubmitBtn').disabled = false;
 }
 
+function openDeleteModal(action, code) {
+    const overlay = document.getElementById('deleteOverlay');
+    const form = document.getElementById('deleteForm');
+    const subtitle = document.getElementById('deleteSubtitle');
+
+    form.action = action;
+    subtitle.textContent = 'SARF Code: ' + code;
+    overlay.classList.add('active');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteOverlay').classList.remove('active');
+}
+
 // Close on Escape
 document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeModificationModal();
+    if (e.key === 'Escape') {
+        closeModificationModal();
+        closeDeleteModal();
+    }
 });
 </script>
 @endsection

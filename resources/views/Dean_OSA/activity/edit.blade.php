@@ -211,11 +211,8 @@
 
                             <div class="form-group full">
                                 <label class="form-label">Activity Title <span class="req">*</span></label>
-                                <input type="text" name="title" class="form-control" required
-                                    data-label="Activity Title"
-                                    placeholder="Enter activity title"
-                                    value="{{ old('title', $activity->title) }}">
-                                <span class="field-error" id="err-title">Activity title is required.</span>
+                               <input type="text" name="title" class="form-control" readonly
+                                     value="{{ old('title', $activity->title) }}">
                             </div>
 
                             <div class="form-group full">

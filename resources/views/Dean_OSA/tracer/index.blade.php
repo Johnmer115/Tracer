@@ -68,6 +68,16 @@
             $status   = $activity->status;
             $location = $getApprovalLocation($activity);
 
+            if ($status === 'for approval for rescheduling') {
+                return [
+                    'label'  => 'Request Modification: Rescheduling',
+                    'bg'     => '#fef3c7',
+                    'color'  => '#92400e',
+                    'border' => '#fbbf24',
+                    'icon'   => 'fa-calendar-alt',
+                ];
+            }
+
             if (in_array($status, ['for approval', 'for approval finance'], true) && $location) {
                 return [
                     'label'  => 'Pending in ' . $location,
@@ -91,9 +101,6 @@
             };
         };
 
-        // Group the current page's records by branch name
-        $groupedByBranch = $activities->getCollection()
-            ->groupBy(fn($a) => $a->branch->name ?? 'Unknown Branch');
     @endphp
 
     <div class="panel">
@@ -121,199 +128,155 @@
         {{-- Active filter chips + filter drawer --}}
         @include('Dean_OSA.partials.sarf-filters', ['filterRoute' => 'dean_osa.tracer.index'])
 
-        {{-- ── Branch-grouped tables ── --}}
-        @forelse($groupedByBranch as $branchName => $branchActivities)
-
-            <div style="
-                display:flex; align-items:center; gap:10px;
-                padding:10px 14px; margin-bottom:10px; margin-top:6px;
-                background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px;">
-                <button
-                    type="button"
-                    onclick="toggleBranch('{{ Str::slug($branchName) }}')"
-                    style="display:flex; align-items:center; gap:10px; background:none; border:none; cursor:pointer; width:100%; text-align:left; padding:0;">
-                    <span style="
-                        display:inline-flex; align-items:center; justify-content:center;
-                        width:30px; height:30px; border-radius:8px;
-                        background:#014ea8; color:#fff; font-size:13px; flex-shrink:0;">
-                        <i class="fas fa-code-branch"></i>
-                    </span>
-                    <span style="font-size:15px; font-weight:700; color:#1e293b;">{{ $branchName }}</span>
-                    <span style="
-                        font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px;
-                        background:#e0e7ff; color:#3730a3; margin-left:2px;">
-                        {{ $branchActivities->count() }} {{ Str::plural('activity', $branchActivities->count()) }}
-                    </span>
-                    <i class="fas fa-chevron-up"
-                       id="chevron-{{ Str::slug($branchName) }}"
-                       style="margin-left:auto; font-size:12px; color:#94a3b8; transition:transform 0.2s;"></i>
-                </button>
-            </div>
-
-            <div id="branch-{{ Str::slug($branchName) }}" style="margin-bottom:28px;">
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Activity</th>
-                                <th>Level / Dept / Org</th>
-                                <th>Activity Date</th>
-                                <th>Funds</th>
-                                <th>Approval Progress</th>
-                                <th>Status</th>
-                                <th>Submitted</th>
-                                <th style="text-align:center;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($branchActivities as $activity)
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Activity</th>
+                        <th>Branch / Level</th>
+                        <th>Activity Date</th>
+                        <th>Approval Progress</th>
+                        <th>Status</th>
+                        <th style="text-align:center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($activities as $activity)
+                        @php
+                            $applicableApprovalFields = $getApplicableApprovalFields($activity);
+                            $dotStatuses    = $applicableApprovalFields->map(fn($s) => $activity->{$s['col']} ?? 'pending');
+                            $approvedCount  = $dotStatuses->filter(fn($v) => $v === 'approved')->count();
+                            $totalApprovals = $applicableApprovalFields->count();
+                            $hasDisapproved = $dotStatuses->contains('disapproved');
+                            $hasForSig      = $dotStatuses->contains('for signature');
+                            $badge          = $getStatusBadge($activity);
+                            $isForApproval  = in_array($activity->status, ['for approval','for approval finance']);
+                        @endphp
+                        <tr>
+                            <td style="white-space:nowrap;">
+                                <span class="row-id">{{ $activity->code }}</span>
+                            </td>
+                            <td>
+                                <div class="td-name">{{ $activity->title }}</div>
+                                <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:4px;">
+                                    @if($activity->type_of_activity)
+                                        <span class="mini-pill pill-blue">{{ $activity->type_of_activity }}</span>
+                                    @endif
+                                    @if($activity->mode_of_conduct)
+                                        <span class="mini-pill pill-slate">{{ $activity->mode_of_conduct }}</span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td>
+                                <div class="td-main">{{ $activity->branch->name ?? '—' }}</div>
                                 @php
-                                    $applicableApprovalFields = $getApplicableApprovalFields($activity);
-                                    $dotStatuses    = $applicableApprovalFields->map(fn($s) => $activity->{$s['col']} ?? 'pending');
-                                    $approvedCount  = $dotStatuses->filter(fn($v) => $v === 'approved')->count();
-                                    $totalApprovals = $applicableApprovalFields->count();
-                                    $hasDisapproved = $dotStatuses->contains('disapproved');
-                                    $hasForSig      = $dotStatuses->contains('for signature');
-                                    $badge          = $getStatusBadge($activity);
-                                    $isForApproval  = in_array($activity->status, ['for approval','for approval finance']);
+                                    $levels      = is_array($activity->level) ? $activity->level : [];
+                                    $departments = is_array($activity->department)
+                                        ? $activity->department
+                                        : (filled($activity->department) ? [$activity->department] : []);
+                                    $orgs        = is_array($activity->organizations)
+                                        ? $activity->organizations
+                                        : (filled($activity->organizations) ? [$activity->organizations] : []);
                                 @endphp
-                                <tr>
-                                    <td style="white-space:nowrap;">
-                                        <span class="row-id">{{ $activity->code }}</span>
-                                    </td>
-                                    <td>
-                                        <div class="td-name">{{ $activity->title }}</div>
-                                        <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:4px;">
-                                            @if($activity->type_of_activity)
-                                                <span class="mini-pill pill-blue">{{ $activity->type_of_activity }}</span>
-                                            @endif
-                                            @if($activity->mode_of_conduct)
-                                                <span class="mini-pill pill-slate">{{ $activity->mode_of_conduct }}</span>
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td>
+                                @if(count($levels))
+                                    <div class="td-sub">{{ implode(', ', $levels) }}</div>
+                                @endif
+                                @if(count($departments))
+                                    <div class="td-sub">{{ implode(', ', $departments) }}</div>
+                                @endif
+                                @if(count($orgs))
+                                    <div class="td-sub" style="color:#8b5cf6;">{{ implode(', ', $orgs) }}</div>
+                                @endif
+                            </td>
+                            <td style="white-space:nowrap;">
+                                <div class="td-main">{{ $activity->date_of_activity?->format('M j, Y') ?? '—' }}</div>
+                                @if($activity->time_of_activity)
+                                    <div class="td-sub">{{ $activity->time_of_activity }}</div>
+                                @endif
+                            </td>
+                            <td style="min-width:170px;">
+                                <div style="display:flex; align-items:center; gap:5px; flex-wrap:nowrap;">
+                                    @foreach($applicableApprovalFields as $i => $sig)
                                         @php
-                                            $levels      = is_array($activity->level) ? $activity->level : [];
-                                            $departments = is_array($activity->department)
-                                                ? $activity->department
-                                                : (filled($activity->department) ? [$activity->department] : []);
-                                            $orgs        = is_array($activity->organizations)
-                                                ? $activity->organizations
-                                                : (filled($activity->organizations) ? [$activity->organizations] : []);
-                                        @endphp
-                                        @if(count($levels))
-                                            <div class="td-main">{{ implode(', ', $levels) }}</div>
-                                        @endif
-                                        @if(count($departments))
-                                            <div class="td-sub">{{ implode(', ', $departments) }}</div>
-                                        @endif
-                                        @if(count($orgs))
-                                            <div class="td-sub" style="color:#8b5cf6;">{{ implode(', ', $orgs) }}</div>
-                                        @endif
-                                    </td>
-                                    <td style="white-space:nowrap;">
-                                        <div class="td-main">{{ $activity->date_of_activity?->format('M j, Y') ?? '—' }}</div>
-                                        @if($activity->time_of_activity)
-                                            <div class="td-sub">{{ $activity->time_of_activity }}</div>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @php
-                                            $fundsClass = match($activity->funds) {
-                                                'With Budget' => 'pill-green',
-                                                'ATC'         => 'pill-amber',
-                                                default       => 'pill-slate',
+                                            $val      = $activity->{$sig['col']} ?? 'pending';
+                                            $dotColor = match(true) {
+                                                $val === 'approved'      => '#22c55e',
+                                                $val === 'for signature' => '#014ea8',
+                                                $val === 'disapproved'   => '#da281c',
+                                                default                  => '#94a3b8',
+                                            };
+                                            $dotTitle = $sig['role'] . ': ' . match($val) {
+                                                'approved'      => 'Approved',
+                                                'for signature' => 'For Signature',
+                                                'disapproved'   => 'Disapproved',
+                                                default         => 'Pending',
                                             };
                                         @endphp
-                                        @if($activity->funds)
-                                            <span class="mini-pill {{ $fundsClass }}">{{ $activity->funds }}</span>
-                                        @else
-                                            <span class="td-muted">—</span>
-                                        @endif
-                                        @if($activity->source)
-                                            <div class="td-sub">{{ $activity->source }}</div>
-                                        @endif
-                                    </td>
-                                    <td style="min-width:170px;">
-                                        <div style="display:flex; align-items:center; gap:5px; flex-wrap:nowrap;">
-                                            @foreach($applicableApprovalFields as $i => $sig)
-                                                @php
-                                                    $val      = $activity->{$sig['col']} ?? 'pending';
-                                                    $dotColor = match(true) {
-                                                        $val === 'approved'      => '#22c55e',
-                                                        $val === 'for signature' => '#014ea8',
-                                                        $val === 'disapproved'   => '#da281c',
-                                                        default                  => '#94a3b8',
-                                                    };
-                                                    $dotTitle = $sig['role'] . ': ' . match($val) {
-                                                        'approved'      => 'Approved',
-                                                        'for signature' => 'For Signature',
-                                                        'disapproved'   => 'Disapproved',
-                                                        default         => 'Pending',
-                                                    };
-                                                @endphp
-                                                <div title="{{ $dotTitle }}"
-                                                    style="width:12px; height:12px; border-radius:50%; background:{{ $dotColor }}; flex-shrink:0; box-shadow:0 0 0 2px {{ $dotColor }}33;">
-                                                </div>
-                                            @endforeach
-                                            <span style="font-size:11px; font-weight:700; color:#64748b; margin-left:4px; white-space:nowrap;">
-                                                {{ $approvedCount }}/{{ $totalApprovals }}
-                                            </span>
+                                        <div title="{{ $dotTitle }}"
+                                            style="width:12px; height:12px; border-radius:50%; background:{{ $dotColor }}; flex-shrink:0; box-shadow:0 0 0 2px {{ $dotColor }}33;">
                                         </div>
-                                        <div style="margin-top:5px;">
-                                            @if($totalApprovals > 0 && $approvedCount === $totalApprovals)
-                                                <span style="font-size:11px; font-weight:600; color:#15803d;">
-                                                    <i class="fas fa-check-circle"></i> All approved
-                                                </span>
-                                            @elseif($hasDisapproved)
-                                                <span style="font-size:11px; font-weight:600; color:#da281c;">
-                                                    <i class="fas fa-times-circle"></i> Disapproved
-                                                </span>
-                                            @elseif($hasForSig)
-                                                <span style="font-size:11px; font-weight:600; color:#014ea8;">
-                                                    <i class="fas fa-pen-nib"></i> For signature
-                                                </span>
-                                            @elseif($isForApproval)
-                                                <span style="font-size:11px; font-weight:600; color:#94a3b8;">
-                                                    <i class="fas fa-clock"></i> Pending
-                                                </span>
-                                            @else
-                                                <span style="font-size:11px; color:#cbd5e1;">
-                                                    <i class="fas fa-minus"></i> Not started
-                                                </span>
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td style="white-space:nowrap;">
-                                        @include('partials.sarf-status-badge', ['activity' => $activity])
-                                    </td>
-                                    <td style="white-space:nowrap;">
-                                        <div class="td-main">{{ $activity->created_at?->format('M j, Y') ?? '—' }}</div>
-                                        <div class="td-sub">{{ $activity->created_at?->format('g:i A') ?? '' }}</div>
-                                    </td>
-                                    <td>
-                                        <div class="action-cell">
-                                            <a href="{{ route('dean_osa.tracer.show', $activity->id) }}"
-                                                class="abtn abtn-view" title="View Activity Tracer">
-                                                <i class="fas fa-route"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-        @empty
-            <div style="text-align:center; padding:40px; color:#94a3b8;">
-                <i class="fas fa-inbox" style="font-size:24px; display:block; margin-bottom:8px; color:#e2e8f0;"></i>
-                No activities found.
-            </div>
-        @endforelse
+                                    @endforeach
+                                    <span style="font-size:11px; font-weight:700; color:#64748b; margin-left:4px; white-space:nowrap;">
+                                        {{ $approvedCount }}/{{ $totalApprovals }}
+                                    </span>
+                                </div>
+                                <div style="margin-top:5px;">
+                                    @if($totalApprovals > 0 && $approvedCount === $totalApprovals)
+                                        <span style="font-size:11px; font-weight:600; color:#15803d;">
+                                            <i class="fas fa-check-circle"></i> All approved
+                                        </span>
+                                    @elseif($hasDisapproved)
+                                        <span style="font-size:11px; font-weight:600; color:#da281c;">
+                                            <i class="fas fa-times-circle"></i> Disapproved
+                                        </span>
+                                    @elseif($hasForSig)
+                                        <span style="font-size:11px; font-weight:600; color:#014ea8;">
+                                            <i class="fas fa-pen-nib"></i> For signature
+                                        </span>
+                                    @elseif($isForApproval)
+                                        <span style="font-size:11px; font-weight:600; color:#94a3b8;">
+                                            <i class="fas fa-clock"></i> Pending
+                                        </span>
+                                    @else
+                                        <span style="font-size:11px; color:#cbd5e1;">
+                                            <i class="fas fa-minus"></i> Not started
+                                        </span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td style="white-space:nowrap;">
+                                <span style="
+                                    display:inline-flex; align-items:center; gap:5px;
+                                    font-size:11.5px; font-weight:700;
+                                    padding:4px 10px; border-radius:20px;
+                                    background:{{ $badge['bg'] }};
+                                    color:{{ $badge['color'] }};
+                                    border:1px solid {{ $badge['border'] }};">
+                                    <i class="fas {{ $badge['icon'] }}" style="font-size:10px;"></i>
+                                    {{ $badge['label'] }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-cell">
+                                    <a href="{{ route('dean_osa.tracer.show', $activity->id) }}"
+                                        class="abtn abtn-view" title="View Activity Tracer">
+                                        <i class="fas fa-route"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="9" class="td-muted" style="text-align:center; padding:40px;">
+                                <i class="fas fa-inbox" style="font-size:24px; display:block; margin-bottom:8px; color:#e2e8f0;"></i>
+                                No activities found.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
 
         <div class="panel-footer">
             <div class="footer-left">
@@ -360,13 +323,4 @@
     </div>
 </section>
 
-<script>
-    function toggleBranch(slug) {
-        const body    = document.getElementById('branch-' + slug);
-        const chevron = document.getElementById('chevron-' + slug);
-        const hiding  = body.style.display !== 'none';
-        body.style.display   = hiding ? 'none' : '';
-        chevron.style.transform = hiding ? 'rotate(180deg)' : '';
-    }
-</script>
 @endsection

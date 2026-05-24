@@ -66,7 +66,42 @@
                                 'Approval' => 'pill-amber',
                                 'Documents' => 'pill-green',
                                 'PAAR' => 'pill-green',
+                                'Modification' => 'pill-blue',
+                                'Reschedule' => 'pill-amber',
                                 default => 'pill-slate',
+                            };
+                            $actionText = Str::lower($log->action);
+                            $actionMeta = match(true) {
+                                Str::contains($actionText, 'delete') => [
+                                    'bg' => '#fff1f2',
+                                    'color' => '#be123c',
+                                    'border' => '#fecdd3',
+                                    'icon' => 'fa-trash-alt',
+                                ],
+                                Str::contains($actionText, ['reschedule', 'rescheduling']) => [
+                                    'bg' => '#fef3c7',
+                                    'color' => '#92400e',
+                                    'border' => '#fbbf24',
+                                    'icon' => 'fa-calendar-alt',
+                                ],
+                                Str::contains($actionText, ['revision', 'modification']) => [
+                                    'bg' => '#dbeafe',
+                                    'color' => '#1d4ed8',
+                                    'border' => '#93c5fd',
+                                    'icon' => 'fa-edit',
+                                ],
+                                Str::contains($actionText, ['approved', 'uploaded', 'completed']) => [
+                                    'bg' => '#dcfce7',
+                                    'color' => '#15803d',
+                                    'border' => '#86efac',
+                                    'icon' => 'fa-check-circle',
+                                ],
+                                default => [
+                                    'bg' => '#f1f5f9',
+                                    'color' => '#475569',
+                                    'border' => '#cbd5e1',
+                                    'icon' => 'fa-circle',
+                                ],
                             };
                         @endphp
                         <tr>
@@ -82,7 +117,16 @@
                                 <span class="mini-pill {{ $moduleClass }}">{{ $log->module ?? 'General' }}</span>
                             </td>
                             <td>
-                                <div class="td-main">{{ $log->action }}</div>
+                                <span style="
+                                    display:inline-flex; align-items:center; gap:6px;
+                                    font-size:11.5px; font-weight:700;
+                                    padding:4px 10px; border-radius:20px;
+                                    background:{{ $actionMeta['bg'] }};
+                                    color:{{ $actionMeta['color'] }};
+                                    border:1px solid {{ $actionMeta['border'] }};">
+                                    <i class="fas {{ $actionMeta['icon'] }}" style="font-size:10px;"></i>
+                                    {{ $log->action }}
+                                </span>
                             </td>
                             <td>
                                 @if($log->subject_label)

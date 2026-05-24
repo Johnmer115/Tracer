@@ -26,7 +26,7 @@ class PaarController extends Controller
 
         $filters = SarfListFilters::fromRequest($request);
         $query = Activity::with('branch')
-            ->where('status', 'completed')
+            ->whereIn('status', ['approved', 'completed'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('title', 'like', "%{$search}%")
@@ -34,7 +34,7 @@ class PaarController extends Controller
                 });
             });
 
-        SarfListFilters::apply($query, $filters, ['completed']);
+        SarfListFilters::apply($query, $filters, ['completed', 'approved']);
 
         $filteredActivities = SarfListFilters::applyInsideStatus($query->latest()->get(), $filters);
         $activities = SarfListFilters::paginateCollection($filteredActivities, $request, $perPage);
@@ -67,9 +67,11 @@ class PaarController extends Controller
      */
     public function show(string $id)
     {
-        $activity = Activity::with('branch')->findOrFail($id);
+        $activity = Activity::with(['branch', 'sarfDocuments'])->findOrFail($id);
+        $documents = $activity->sarfDocuments->keyBy('type');
+        $accomplishmentDocuments = $this->accomplishmentDocumentTypes();
 
-        return view('Dean_OSA.paar.view', compact('activity'));
+        return view('Dean_OSA.paar.view', compact('activity', 'documents', 'accomplishmentDocuments'));
     }
 
     /**
@@ -77,9 +79,11 @@ class PaarController extends Controller
      */
     public function edit(string $id)
     {
-        $activity = Activity::with('branch')->findOrFail($id);
+        $activity = Activity::with(['branch', 'sarfDocuments'])->findOrFail($id);
+        $documents = $activity->sarfDocuments->keyBy('type');
+        $accomplishmentDocuments = $this->accomplishmentDocumentTypes();
 
-        return view('Dean_OSA.paar.edit', compact('activity'));
+        return view('Dean_OSA.paar.edit', compact('activity', 'documents', 'accomplishmentDocuments'));
     }
 
     public function act(string $id)
