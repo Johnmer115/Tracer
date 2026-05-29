@@ -124,25 +124,58 @@ class PaarController extends Controller
         $rules = [];
         foreach ($documentTypes as $type => $document) {
             $rules[$document['field']] = [
-                $existingDocuments->has($type) ? 'nullable' : 'required',
+                'nullable',
                 'file',
                 'mimes:pdf',
                 'max:10240',
             ];
+            $rules[$document['field'] . '_hardcopy'] = 'nullable|boolean';
         }
 
         $request->validate($rules);
 
         foreach ($documentTypes as $type => $document) {
-            if (! $request->hasFile($document['field'])) {
+            $field = $document['field'];
+            $hardcopyField = $field . '_hardcopy';
+
+            if ($existingDocuments->has($type) || $request->hasFile($field) || $request->boolean($hardcopyField)) {
                 continue;
             }
 
-            $file = $request->file($document['field']);
+            return back()
+                ->withErrors([$hardcopyField => "Upload {$document['label']} or check that its hardcopy is available."])
+                ->withInput();
+        }
+
+        foreach ($documentTypes as $type => $document) {
+            $field = $document['field'];
+            $hardcopyField = $field . '_hardcopy';
+
+            if (! $request->hasFile($field)) {
+                if (! $existingDocuments->has($type) && $request->boolean($hardcopyField)) {
+                    SarfDocument::create([
+                        'activity_id' => $activity->id,
+                        'type' => $type,
+                        'file_path' => null,
+                        'original_filename' => null,
+                    ]);
+
+                    SystemLog::record('Marked PAAR hardcopy available', 'PAAR', [
+                        'subject_type' => Activity::class,
+                        'subject_id' => $activity->id,
+                        'subject_label' => $activity->code,
+                        'description' => "Marked {$document['label']} hardcopy available for {$activity->code}.",
+                    ]);
+                }
+
+                continue;
+            }
+
+            $file = $request->file($field);
             $path = $file->store('sarf_documents', 'public');
 
             $existingDocument = $existingDocuments->get($type);
-            if ($existingDocument) {
+            if ($existingDocument?->file_path) {
                 Storage::disk('public')->delete($existingDocument->file_path);
             }
 

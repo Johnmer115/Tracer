@@ -156,14 +156,14 @@
                                     <strong style="display:block; color:#1e293b;">{{ $document['label'] }}</strong>
                                     @if($currentDocument)
                                         <span style="font-size: 13px; color:#64748b;">
-                                            {{ $currentDocument->original_filename }}
+                                            {{ $currentDocument->original_filename ?? 'Hardcopy available' }}
                                         </span>
                                     @else
                                         <span class="no-doc-badge">Not uploaded</span>
                                     @endif
                                 </div>
                             </div>
-                            @if($currentDocument)
+                            @if($currentDocument?->file_path)
                                 <div class="document-actions">
                                     <a href="{{ route('dean_osa.sarf-documents.show', $currentDocument) }}"
                                         target="_blank" class="document-check-btn">
@@ -173,6 +173,12 @@
                                         class="document-check-btn document-download-btn">
                                         <i class="fas fa-download"></i> Download File
                                     </a>
+                                </div>
+                            @elseif($currentDocument)
+                                <div class="document-actions">
+                                    <span class="document-check-btn">
+                                        <i class="fas fa-file-alt"></i> Hardcopy available
+                                    </span>
                                 </div>
                             @endif
                         </div>

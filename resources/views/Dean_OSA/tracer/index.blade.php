@@ -35,11 +35,15 @@
         };
 
         $requiresFinanceApproval = fn($activity) => $activity->funds === 'With Budget';
+        $requiresLegalApproval = fn($activity) => $activity->waiver_consent === 'With';
 
-        $getApplicableApprovalFields = function($activity) use ($approvalFields, $requiresBasicEdApproval, $requiresFinanceApproval) {
-            return collect($approvalFields)->filter(function($sig) use ($activity, $requiresBasicEdApproval, $requiresFinanceApproval) {
+        $getApplicableApprovalFields = function($activity) use ($approvalFields, $requiresBasicEdApproval, $requiresFinanceApproval, $requiresLegalApproval) {
+            return collect($approvalFields)->filter(function($sig) use ($activity, $requiresBasicEdApproval, $requiresFinanceApproval, $requiresLegalApproval) {
                 if ($sig['col'] === 'approval_dir_basic_ed') {
                     return $requiresBasicEdApproval($activity);
+                }
+                if ($sig['col'] === 'approval_vp_hrd_legal') {
+                    return $requiresLegalApproval($activity);
                 }
                 if (in_array($sig['col'], [
                     'approval_auditing',
@@ -195,15 +199,24 @@
                                     <div class="td-sub">{{ $activity->time_of_activity }}</div>
                                 @endif
                             </td>
+                            
+                             {{-- Approval Progress dots --}}
                             <td style="min-width:170px;">
+
+                                {{-- 7 dots --}}
                                 <div style="display:flex; align-items:center; gap:5px; flex-wrap:nowrap;">
                                     @foreach($applicableApprovalFields as $i => $sig)
                                         @php
-                                            $val      = $activity->{$sig['col']} ?? 'pending';
+                                            $val = $activity->{$sig['col']} ?? 'pending';
+                                            $requiredBefore = $applicableApprovalFields->take($i);
+                                            $prevApproved = $requiredBefore->every(fn($previous) => ($activity->{$previous['col']} ?? 'pending') === 'approved');
+                                            $isLocked     = !$prevApproved && $val === 'pending';
+
                                             $dotColor = match(true) {
                                                 $val === 'approved'      => '#22c55e',
                                                 $val === 'for signature' => '#014ea8',
                                                 $val === 'disapproved'   => '#da281c',
+                                                $isLocked                => '#94a3b8',
                                                 default                  => '#94a3b8',
                                             };
                                             $dotTitle = $sig['role'] . ': ' . match($val) {
@@ -214,15 +227,22 @@
                                             };
                                         @endphp
                                         <div title="{{ $dotTitle }}"
-                                            style="width:12px; height:12px; border-radius:50%; background:{{ $dotColor }}; flex-shrink:0; box-shadow:0 0 0 2px {{ $dotColor }}33;">
+                                            style="width:10px; height:10px; border-radius:50%;
+                                                background:{{ $dotColor }}; flex-shrink:0;
+                                                cursor:default; transition:transform .15s;"
+                                            onmouseover="this.style.transform='scale(1.35)'"
+                                            onmouseout="this.style.transform='scale(1)'">
                                         </div>
                                     @endforeach
-                                    <span style="font-size:11px; font-weight:700; color:#64748b; margin-left:4px; white-space:nowrap;">
+                                    <span style="font-size:10.5px; font-weight:700; color:#64748b;
+                                                 margin-left:3px; white-space:nowrap;">
                                         {{ $approvedCount }}/{{ $totalApprovals }}
                                     </span>
                                 </div>
+
+                                {{-- Sub label --}}
                                 <div style="margin-top:5px;">
-                                    @if($totalApprovals > 0 && $approvedCount === $totalApprovals)
+                                    @if($approvedCount === $totalApprovals)
                                         <span style="font-size:11px; font-weight:600; color:#15803d;">
                                             <i class="fas fa-check-circle"></i> All approved
                                         </span>

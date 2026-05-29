@@ -40,8 +40,10 @@
             return Str::contains($level, ['elementary', 'junior high', 'senior high', 'basic', 'all levels']);
         });
         $needsFinance = $activity->funds === 'With Budget';
+        $needsLegal = $activity->waiver_consent === 'With';
         $mainSignatories = collect($mainSignatories)
             ->filter(fn($sig) => $sig['field'] !== 'approval_dir_basic_ed' || $needsBasicEd)
+            ->filter(fn($sig) => $sig['field'] !== 'approval_vp_hrd_legal' || $needsLegal)
             ->values();
         $financeSignatories = $needsFinance ? collect($financeSignatories)->values() : collect();
         $allSignatories = $mainSignatories->merge($financeSignatories);

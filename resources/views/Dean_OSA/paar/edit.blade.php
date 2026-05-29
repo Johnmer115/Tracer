@@ -69,14 +69,14 @@
                                         <strong>{{ $document['label'] }}</strong>
                                         <span>
                                             @if($currentDocument)
-                                                Current: {{ $currentDocument->original_filename }}
+                                                Current: {{ $currentDocument->original_filename ?? 'Hardcopy available' }}
                                             @else
                                                 No file uploaded yet
                                             @endif
                                         </span>
                                     </label>
                                 </div>
-                                <label class="approved-dropzone is-visible" for="{{ $fieldId }}" id="dropzone-{{ $fieldId }}" @if($currentDocument) style="display:none;" @endif>
+                                <label class="approved-dropzone is-visible" for="{{ $fieldId }}" id="dropzone-{{ $fieldId }}" @if($currentDocument?->file_path) style="display:none;" @endif>
                                     <input type="file" name="{{ $fieldId }}" id="{{ $fieldId }}"
                                         accept=".pdf" onchange="updateApprovedFileName('{{ $fieldId }}', this)">
                                     <span class="approved-dropzone-inner">
@@ -86,8 +86,31 @@
                                         <span class="approved-file-chip">
                                             <i class="fas fa-file-pdf"></i>
                                             <span id="approved_fname_{{ $fieldId }}">
-                                                {{ $currentDocument ? $currentDocument->original_filename : 'No file chosen' }}
+                                                @if($currentDocument?->file_path)
+                                                    {{ $currentDocument->original_filename }}
+                                                @elseif($currentDocument)
+                                                    Hardcopy available
+                                                @else
+                                                    No file chosen
+                                                @endif
                                             </span>
+                                        </span>
+                                    </span>
+                                </label>
+                                <label for="{{ $fieldId }}_hardcopy"
+                                    style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; border:1px solid {{ $currentDocument && !$currentDocument->file_path ? '#86efac' : '#cbd5e1' }}; border-radius:10px; background:{{ $currentDocument && !$currentDocument->file_path ? '#f0fdf4' : '#f8fafc' }}; cursor:pointer; margin-top:12px;">
+                                    <input type="checkbox"
+                                        id="{{ $fieldId }}_hardcopy"
+                                        name="{{ $fieldId }}_hardcopy"
+                                        value="1"
+                                        style="width:18px; height:18px; margin-top:2px; accent-color:#16a34a;"
+                                        @checked(old($fieldId . '_hardcopy', $currentDocument && !$currentDocument->file_path))>
+                                    <span style="display:flex; flex-direction:column; gap:3px;">
+                                        <span style="font-size:13px; font-weight:700; color:#0f172a;">
+                                            {{ $document['label'] }} hardcopy is available
+                                        </span>
+                                        <span style="font-size:12px; color:#64748b; line-height:1.45;">
+                                            Check this when the PAAR document exists as a physical document. A PDF upload is still optional.
                                         </span>
                                     </span>
                                 </label>
@@ -98,7 +121,7 @@
                                         id="preview_btn_{{ $fieldId }}">
                                         <i class="fas fa-eye"></i> Preview Selected File
                                     </a>
-                                    @if($currentDocument)
+                                    @if($currentDocument?->file_path)
                                         <a href="{{ route('dean_osa.sarf-documents.show', $currentDocument) }}"
                                             target="_blank" class="document-check-btn">
                                             <i class="fas fa-file-pdf"></i> View Document
@@ -110,10 +133,17 @@
                                             class="document-check-btn document-download-btn">
                                             <i class="fas fa-download"></i> Download File
                                         </a>
+                                    @elseif($currentDocument)
+                                        <span class="document-check-btn">
+                                            <i class="fas fa-file-alt"></i> Hardcopy available
+                                        </span>
                                     @endif
                                 </div>
                             </div>
                             @error($fieldId)
+                                <div class="field-error">{{ $message }}</div>
+                            @enderror
+                            @error($fieldId . '_hardcopy')
                                 <div class="field-error">{{ $message }}</div>
                             @enderror
 
