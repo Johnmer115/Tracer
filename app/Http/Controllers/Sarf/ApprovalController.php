@@ -387,8 +387,9 @@ class ApprovalController extends Controller
         $request->validate([
             'current_tab' => 'nullable|integer|in:1,2,3,4',
             'approved_remark' => 'nullable|string|max:1000',
+            'approved_sarf_hardcopy' => 'nullable|boolean',
             'approved_sarf_file' => [
-                $existingDocument ? 'nullable' : 'required',
+                'nullable',
                 'file',
                 'mimes:pdf',
                 'max:10240',
@@ -396,10 +397,21 @@ class ApprovalController extends Controller
         ]);
 
         $remark = trim((string) $request->input('approved_remark', ''));
+        $hardcopyAvailable = $request->boolean('approved_sarf_hardcopy');
+
+        if (! $existingDocument && ! $request->hasFile('approved_sarf_file') && ! $hardcopyAvailable) {
+            return back()
+                ->withErrors(['approved_sarf_hardcopy' => 'Upload a PDF or check that the approved SARF hardcopy is available.'])
+                ->withInput();
+        }
 
         if ($request->hasFile('approved_sarf_file')) {
             $file = $request->file('approved_sarf_file');
             $path = $file->store('sarf_documents', 'public');
+
+            if ($existingDocument?->file_path) {
+                Storage::disk('public')->delete($existingDocument->file_path);
+            }
 
             $document = SarfDocument::updateOrCreate(
                 ['activity_id' => $activity->id, 'type' => $approvedSarfType],
@@ -407,6 +419,15 @@ class ApprovalController extends Controller
             );
         } else {
             $document = $existingDocument;
+
+            if (! $document && $hardcopyAvailable) {
+                $document = SarfDocument::create([
+                    'activity_id' => $activity->id,
+                    'type' => $approvedSarfType,
+                    'file_path' => null,
+                    'original_filename' => null,
+                ]);
+            }
         }
 
         if ($document && $remark !== '') {
@@ -420,13 +441,15 @@ class ApprovalController extends Controller
             'subject_type' => Activity::class,
             'subject_id' => $activity->id,
             'subject_label' => $activity->code,
-            'description' => "Uploaded approved SARF for {$activity->code}.",
+            'description' => $document->file_path
+                ? "Uploaded approved SARF for {$activity->code}."
+                : "Marked approved SARF hardcopy available for {$activity->code}.",
         ]);
 
         $tab = (int) $request->input('current_tab', 3);
         return redirect()
             ->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => $tab])
-            ->with('success', 'Approved SARF uploaded successfully.');
+            ->with('success', $document->file_path ? 'Approved SARF uploaded successfully.' : 'Approved SARF hardcopy saved successfully.');
     }
 
     /* ══════════════════════════════════════════════

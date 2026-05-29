@@ -1067,9 +1067,9 @@
                                 <div style="font-weight:700; font-size:13.5px; color:#0f172a;">Approved SARF</div>
                                 <div style="font-size:12px; color:#94a3b8;">
                                     @if($approvedSarfDoc)
-                                        {{ $approvedSarfDoc->original_filename }}
+                                        {{ $approvedSarfDoc->original_filename ?? 'Hardcopy available' }}
                                     @else
-                                        No file uploaded yet
+                                        No approved SARF saved yet
                                     @endif
                                 </div>
                             </div>
@@ -1088,12 +1088,14 @@
                                 <span class="approved-dropzone-inner">
                                     <i class="fas fa-cloud-upload-alt"></i>
                                     <span class="approved-dropzone-main">Choose a file or drag and drop it here</span>
-                                    <span class="approved-dropzone-sub">PDF format, up to 10MB</span>
+                                    <span class="approved-dropzone-sub">PDF upload is optional. Saving without a file marks hardcopy as available.</span>
                                     <span class="approved-file-chip">
                                         <i class="fas fa-file-pdf"></i>
                                         <span id="approved_fname_sarf">
-                                            @if($approvedSarfDoc)
+                                            @if($approvedSarfDoc?->file_path)
                                                 {{ $approvedSarfDoc->original_filename }}
+                                            @elseif($approvedSarfDoc)
+                                                Hardcopy available
                                             @else
                                                 No file chosen
                                             @endif
@@ -1102,6 +1104,27 @@
                                 </span>
                             </label>
 
+                            <label for="approved_sarf_hardcopy"
+                                style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; border:1px solid {{ $approvedSarfDoc && !$approvedSarfDoc->file_path ? '#86efac' : '#cbd5e1' }}; border-radius:10px; background:{{ $approvedSarfDoc && !$approvedSarfDoc->file_path ? '#f0fdf4' : '#f8fafc' }}; cursor:pointer;">
+                                <input type="checkbox"
+                                    id="approved_sarf_hardcopy"
+                                    name="approved_sarf_hardcopy"
+                                    value="1"
+                                    style="width:18px; height:18px; margin-top:2px; accent-color:#16a34a;"
+                                    @checked(old('approved_sarf_hardcopy', $approvedSarfDoc && !$approvedSarfDoc->file_path))>
+                                <span style="display:flex; flex-direction:column; gap:3px;">
+                                    <span style="font-size:13px; font-weight:700; color:#0f172a;">
+                                        Approved SARF hardcopy is available
+                                    </span>
+                                    <span style="font-size:12px; color:#64748b; line-height:1.45;">
+                                        Check this when the signed approved SARF exists as a physical document. A PDF upload is still optional.
+                                    </span>
+                                </span>
+                            </label>
+                            @error('approved_sarf_hardcopy')
+                                <div style="color:#b91c1c; font-size:12px;">{{ $message }}</div>
+                            @enderror
+
                             <div class="document-check-row">
                                 <a href="#"
                                     target="_blank"
@@ -1109,7 +1132,7 @@
                                     id="preview_btn_sarf">
                                     <i class="fas fa-eye"></i> Preview Selected File
                                 </a>
-                                @if($approvedSarfDoc)
+                                @if($approvedSarfDoc?->file_path)
                                     <a href="{{ route('dean_osa.sarf-documents.show', $approvedSarfDoc) }}"
                                         target="_blank" class="document-check-btn">
                                         <i class="fas fa-file-pdf"></i> View Document
@@ -1118,6 +1141,10 @@
                                         class="document-check-btn document-download-btn">
                                         <i class="fas fa-download"></i> Download File
                                     </a>
+                                @elseif($approvedSarfDoc)
+                                    <span class="document-check-btn">
+                                        <i class="fas fa-file-alt"></i> Hardcopy available
+                                    </span>
                                 @endif
                             </div>
 
