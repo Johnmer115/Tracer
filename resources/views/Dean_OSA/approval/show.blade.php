@@ -651,7 +651,10 @@
                         <span style="margin-left:auto; font-size:12px; font-weight:400; color:#64748b;">
                             {{ $docs->count() }} of {{ count($sarfLabels) }} types attached
                         </span>
-                        @if($docs->isNotEmpty())
+                        @php
+                            $hasDigitalDocs = $docs->contains(fn ($doc) => filled($doc->file_path));
+                        @endphp
+                        @if($hasDigitalDocs)
                             <a href="{{ route('dean_osa.sarf-documents.print-activity', $activity) }}"
                                 target="_blank" class="attachment-view-btn">
                                 <i class="fas fa-print"></i> Print All
@@ -671,17 +674,28 @@
                                         <div>
                                             <div class="td-main">{{ $label }}</div>
                                             <div class="td-sub">
-                                                <i class="fas fa-file-pdf" style="color:#ef4444;"></i>
-                                                {{ $docs[$type]->original_filename }}
+                                                @if($docs[$type]->file_path)
+                                                    <i class="fas fa-file-pdf" style="color:#ef4444;"></i>
+                                                    {{ $docs[$type]->original_filename }}
+                                                @else
+                                                    <i class="fas fa-file-alt" style="color:#64748b;"></i>
+                                                    Hardcopy available
+                                                @endif
                                                 &nbsp;·&nbsp; {{ $docs[$type]->created_at?->format('M j, Y') }}
                                             </div>
                                         </div>
                                     </div>
                                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                        <a href="{{ route('dean_osa.sarf-documents.show', $docs[$type]) }}"
-                                            target="_blank" class="attachment-view-btn">
-                                            <i class="fas fa-file-pdf"></i> View PDF
-                                        </a>
+                                        @if($docs[$type]->file_path)
+                                            <a href="{{ route('dean_osa.sarf-documents.show', $docs[$type]) }}"
+                                                target="_blank" class="attachment-view-btn">
+                                                <i class="fas fa-file-pdf"></i> View PDF
+                                            </a>
+                                        @else
+                                            <span class="attachment-view-btn">
+                                                <i class="fas fa-file-alt"></i> Hardcopy available
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
                             @endif

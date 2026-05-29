@@ -540,9 +540,7 @@
                     <div class="form-step" id="step-3" style="display:none;">
                         <p class="step-section-title"><i class="fas fa-paperclip"></i> Attachment Files</p>
                         <p class="td-muted" style="margin: 0 0 16px;">
-                            Checked types with an existing file will be kept. Upload a new PDF to replace,
-                            or uncheck a type to remove it on save.
-                            <strong>At least one attachment is required.</strong>
+                            Check the SARF types that apply to this activity. Uploading a PDF is optional &mdash; a checked item indicates that a <strong>hardcopy is available</strong>. You may still upload a digital copy if preferred.
                         </p>
 
                         @php
@@ -580,7 +578,7 @@
                                     <div class="file-upload-wrap" id="upload-wrap-{{ $type }}"
                                         style="display:{{ $isChecked ? 'flex' : 'none' }};">
 
-                                        @if($hasDoc)
+                                        @if($hasDoc && $doc->file_path)
                                             <a href="{{ route('dean_osa.sarf-documents.show', $doc) }}"
                                                target="_blank"
                                                class="existing-doc-link"
@@ -589,6 +587,11 @@
                                                 <span>Existing file</span>
                                                 <i class="fas fa-external-link-alt" style="font-size:10px;"></i>
                                             </a>
+                                        @elseif($hasDoc)
+                                            <span class="existing-doc-link" title="Hardcopy available">
+                                                <i class="fas fa-file-alt"></i>
+                                                <span>Hardcopy available</span>
+                                            </span>
                                         @endif
 
                                         <input type="file" name="file_{{ $type }}"
@@ -596,12 +599,12 @@
                                             onchange="updateFileName('{{ $type }}', this)">
                                         <label for="file_{{ $type }}" class="file-label">
                                             <i class="fas fa-upload"></i>
-                                            {{ $hasDoc ? 'Replace PDF' : 'Choose PDF' }}
+                                            {{ $hasDoc && $doc->file_path ? 'Replace PDF' : 'Choose PDF' }}
                                         </label>
                                         <span class="file-name-display" id="fname_{{ $type }}">No file chosen</span>
                                         <span id="err-file_{{ $type }}"
                                             style="display:none; color:#dc2626; font-size:12px;">
-                                            PDF file is required for this type.
+                                            Optional &mdash; upload a digital copy if available.
                                         </span>
                                     </div>
                                 </div>
@@ -829,13 +832,8 @@ function validateStep(step, jumpOnFail = false) {
         if (!attachOk) valid = false;
 
         checkedBoxes.forEach(cb => {
-            const type    = cb.value;
-            const fileIn  = document.getElementById('file_' + type);
-            /* Existing docs don't need a new upload */
-            const fileOk  = existingDocTypes.includes(type) || (fileIn && fileIn.files.length > 0);
-            const errEl   = document.getElementById('err-file_' + type);
-            if (errEl) errEl.style.display = fileOk ? 'none' : 'inline';
-            if (!fileOk) valid = false;
+            const errEl = document.getElementById('err-file_' + cb.value);
+            if (errEl) errEl.style.display = 'none';
         });
     }
 

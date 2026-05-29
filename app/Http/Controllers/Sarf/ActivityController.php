@@ -13,9 +13,12 @@ use App\Models\Organization;
 use App\Models\SarfDocument;
 use App\Models\SchoolYear;
 use App\Support\SarfListFilters;
+use Illuminate\Support\Facades\Storage;
 
 class ActivityController extends Controller
 {
+    private const SARF_TYPES = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A10'];
+
     public function index(Request $request)
     {
         $search  = trim((string) $request->query('search', ''));
@@ -174,19 +177,7 @@ class ActivityController extends Controller
             ]);
         });
 
-        foreach ($request->input('types', []) as $type) {
-            $fileKey = 'file_' . $type;
-            if ($request->hasFile($fileKey)) {
-                $file = $request->file($fileKey);
-                $path = $file->store('sarf_documents', 'public');
-                SarfDocument::create([
-                    'activity_id'       => $activity->id,
-                    'type'              => $type,
-                    'file_path'         => $path,
-                    'original_filename' => $file->getClientOriginalName(),
-                ]);
-            }
-        }
+        $this->syncSarfDocuments($activity, $request);
 
         return redirect()->route('dean_osa.activity.index')
                          ->with('success', 'Activity created successfully.');
@@ -384,17 +375,7 @@ class ActivityController extends Controller
 
         $activity->update($updateData);
 
-        foreach ($request->input('types', []) as $type) {
-            $fileKey = 'file_' . $type;
-            if ($request->hasFile($fileKey)) {
-                $file = $request->file($fileKey);
-                $path = $file->store('sarf_documents', 'public');
-                SarfDocument::updateOrCreate(
-                    ['activity_id' => $activity->id, 'type' => $type],
-                    ['file_path' => $path, 'original_filename' => $file->getClientOriginalName()]
-                );
-            }
-        }
+        $this->syncSarfDocuments($activity, $request);
 
         // Clear modification fields after successful revision
         if ($activity->modification_type === 'revision') {
@@ -457,5 +438,56 @@ class ActivityController extends Controller
         }
 
         return date('g:i A', strtotime($start)) . ' - ' . date('g:i A', strtotime($end));
+    }
+
+    private function syncSarfDocuments(Activity $activity, Request $request): void
+    {
+        $selectedTypes = collect($request->input('types', []))
+            ->filter(fn ($type) => in_array($type, self::SARF_TYPES, true))
+            ->unique()
+            ->values();
+
+        $existingDocuments = SarfDocument::where('activity_id', $activity->id)
+            ->whereIn('type', self::SARF_TYPES)
+            ->get()
+            ->keyBy('type');
+
+        foreach ($existingDocuments as $type => $document) {
+            if ($selectedTypes->contains($type)) {
+                continue;
+            }
+
+            if ($document->file_path) {
+                Storage::disk('public')->delete($document->file_path);
+            }
+
+            $document->delete();
+        }
+
+        foreach ($selectedTypes as $type) {
+            $fileKey = 'file_' . $type;
+
+            if ($request->hasFile($fileKey)) {
+                $file = $request->file($fileKey);
+                $path = $file->store('sarf_documents', 'public');
+                $existingDocument = $existingDocuments->get($type);
+
+                if ($existingDocument?->file_path) {
+                    Storage::disk('public')->delete($existingDocument->file_path);
+                }
+
+                SarfDocument::updateOrCreate(
+                    ['activity_id' => $activity->id, 'type' => $type],
+                    ['file_path' => $path, 'original_filename' => $file->getClientOriginalName()]
+                );
+
+                continue;
+            }
+
+            SarfDocument::firstOrCreate(
+                ['activity_id' => $activity->id, 'type' => $type],
+                ['file_path' => null, 'original_filename' => null]
+            );
+        }
     }
 }

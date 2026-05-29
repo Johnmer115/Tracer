@@ -396,19 +396,23 @@
                         <div style="display:flex;align-items:center;gap:10px;">
                             <span class="badge b-pending">{{ $doc->type }}</span>
                             <div>
-                                <div style="font-weight:600;font-size:13px;">{{ $doc->original_filename }}</div>
+                                <div style="font-weight:600;font-size:13px;">{{ $doc->original_filename ?? 'Hardcopy available' }}</div>
                                 <div class="td-muted" style="font-size:11px;">Uploaded {{ $doc->created_at?->format('M d, Y') }}</div>
                             </div>
                         </div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <a href="{{ route('dean_osa.sarf-documents.show', $doc) }}"
-                                target="_blank" class="abtn abtn-view" title="View">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                            <a href="{{ route('dean_osa.sarf-documents.show', ['document' => $doc, 'download' => 1]) }}"
-                                class="abtn abtn-edit" title="Download">
-                                <i class="fas fa-download"></i>
-                            </a>
+                            @if($doc->file_path)
+                                <a href="{{ route('dean_osa.sarf-documents.show', $doc) }}"
+                                    target="_blank" class="abtn abtn-view" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ route('dean_osa.sarf-documents.show', ['document' => $doc, 'download' => 1]) }}"
+                                    class="abtn abtn-edit" title="Download">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            @else
+                                <span class="td-muted" style="font-size:12px;">Hardcopy only</span>
+                            @endif
                         </div>
                     </div>
                 @empty

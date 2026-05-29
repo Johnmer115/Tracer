@@ -324,6 +324,7 @@
                 'A10' => 'Requested Materials',
             ];
             $docs = $activity->sarfDocuments->keyBy('type');
+            $hasDigitalDocs = $docs->contains(fn ($doc) => filled($doc->file_path));
             @endphp
 
             <div class="show-section">
@@ -332,7 +333,7 @@
                     <span style="margin-left:auto; font-size:12px; font-weight:400; color:#64748b;">
                         {{ $docs->count() }} of {{ count($sarfLabels) }} types attached
                     </span>
-                    @if($docs->isNotEmpty())
+                    @if($hasDigitalDocs)
                         <a href="{{ route('dean_osa.sarf-documents.print-activity', $activity) }}"
                            target="_blank"
                            class="attachment-view-btn">
@@ -354,11 +355,17 @@
                                     <span>{{ $label }}</span>
                                 </div>
                                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                    <a href="{{ route('dean_osa.sarf-documents.show', $docs[$type]) }}"
-                                       target="_blank"
-                                       class="attachment-view-btn">
-                                        <i class="fas fa-file-pdf"></i> View PDF
-                                    </a>
+                                    @if($docs[$type]->file_path)
+                                        <a href="{{ route('dean_osa.sarf-documents.show', $docs[$type]) }}"
+                                           target="_blank"
+                                           class="attachment-view-btn">
+                                            <i class="fas fa-file-pdf"></i> View PDF
+                                        </a>
+                                    @else
+                                        <span class="attachment-view-btn">
+                                            <i class="fas fa-file-alt"></i> Hardcopy available
+                                        </span>
+                                    @endif
                                 </div>
                             </div>
                         @endif

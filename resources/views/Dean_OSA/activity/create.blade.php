@@ -528,8 +528,7 @@
                 <div class="form-step" id="step-3" style="display:none;">
                     <p class="step-section-title"><i class="fas fa-paperclip"></i> Attachment Files</p>
                     <p class="td-muted" style="margin: 0 0 16px;">
-                        Check the SARF types needed and upload the corresponding PDF file.
-                        <strong>At least one attachment is required.</strong>
+                        Check the SARF types that apply to this activity. Uploading a PDF is optional &mdash; a checked item indicates that a <strong>hardcopy is available</strong>. You may still upload a digital copy if preferred.
                     </p>
 
                     @php
@@ -569,7 +568,7 @@
                                     <span class="file-name-display" id="fname_{{ $type }}">No file chosen</span>
                                     <span class="field-error visible" id="err-file_{{ $type }}"
                                         style="display:none; color:#dc2626; font-size:12px;">
-                                        PDF file is required for this type.
+                                        Optional &mdash; upload a digital copy if available.
                                     </span>
                                 </div>
                             </div>
@@ -827,14 +826,9 @@ function validateStep(step, jumpOnFail = false) {
         showError('err-attachments', !attachOk);
         if (!attachOk) valid = false;
 
-        /* Each checked attachment must have a file */
         checkedBoxes.forEach(cb => {
-            const type    = cb.value;
-            const fileIn  = document.getElementById('file_' + type);
-            const fileOk  = fileIn && fileIn.files.length > 0;
-            const errEl   = document.getElementById('err-file_' + type);
-            if (errEl) errEl.style.display = fileOk ? 'none' : 'inline';
-            if (!fileOk) valid = false;
+            const errEl = document.getElementById('err-file_' + cb.value);
+            if (errEl) errEl.style.display = 'none';
         });
     }
 
