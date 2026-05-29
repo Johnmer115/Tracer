@@ -93,50 +93,59 @@
     @endphp
 
     <!-- PRINT HEADER PLACEHOLDER -->
-    <div class="print-only print-header" style="position: fixed; top: 0; left: 0; right: 0; width: 100%; background: #fff; z-index: 1000;">
-        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 10px;">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <!-- LOGO HERE -->
-                <div class="print-logo">
-                    <img src="{{ asset('image/logo/arellano_logo.png') }}" alt="Arellano University Logo" style="width: 50px; height: auto;">
-                </div>
-                <!-- /LOGO HERE -->
-                <div>
-                    <!-- SCHOOL NAME -->
-                    <div class="print-school-name" style="font-size: 14px; font-weight: 700; text-transform: uppercase;">
-                        Arellano University
-                    </div>
-                    <!-- /SCHOOL NAME -->
-                    <div class="print-doc-title" style="font-size: 16px; font-weight: 800; color: #014ea8;">
-                        {{ $activity->title }}
-                    </div>
-                </div>
+    <div class="print-only print-header" style="position: fixed; top: 0; left: 0; right: 0; width: 100%; background: #fff; z-index: 1000; padding: 4px 0.8in 0 0.8in; margin: 0; background: #fff;">
+        <div style="padding: 0; margin: 0; display: flex; align-items: center; justify-content: center; gap: 16px; border-bottom: 3px solid #000;">
+            <img src="{{ asset('image/logo/arellano_logo.png') }}" style="width:60px; height:auto;">
+            <div style="text-align: center;">
+                <div style="font-size:15px; font-weight:800; text-transform:uppercase; color:#000;">ARELLANO UNIVERSITY</div>
+                <div style="font-size:12px; font-weight:700; color:#000;">OFFICE FOR STUDENT AFFAIRS</div>
+                <div style="font-size:9px; color:#374151; font-weight:400;">2600 Legarda Street, Sampaloc, Manila</div>
             </div>
-            <div style="text-align: right; font-size: 12px;">
-                <strong>Code:</strong> {{ $activity->code }}<br>
-                <strong>Activity:</strong> {{ $activity->title }}
-            </div>
+            <img src="{{ asset('image/logo/au_osa_logo.png') }}" style="width:60px; height:auto;">
         </div>
+        <div style="height:2px; background:#000; margin-top:3px;"></div>
     </div>
     <!-- /PRINT HEADER PLACEHOLDER -->
 
     <!-- PRINT FOOTER PLACEHOLDER -->
-    <div class="print-only print-footer" style="position: fixed; bottom: 0; left: 0; right: 0; width: 100%; background: #fff; z-index: 1000;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #000; padding-top: 5px; font-size: 10px; width: 100%;">
+    <div class="print-only print-footer" style="position: fixed; bottom: 0; left: 0; right: 0; width: 100%; background: #fff; z-index: 1000; padding: 0 0.8in; margin: 0;">
+        <div style="display:flex;align-items:center;gap:22px;padding:8px 0 5px 0;">
             <!-- FOOTER LEFT -->
-            <div class="print-footer-left">
-                Footer Left Placeholder
+            <div class="print-footer-left" style="font-size:20px;font-weight:900;color:#000;white-space:nowrap;">
+                #oneArellano
             </div>
             <!-- /FOOTER LEFT -->
 
             <!-- FOOTER CENTER -->
-            <div class="print-footer-center">
-                Footer Center Placeholder
+            <div class="print-footer-center" style="text-align:left;flex:0 0 auto;">
+                <img src="{{ asset('image/logo/osa_logo.png') }}" style="width:128px;height:auto;display:block;">
             </div>
             <!-- /FOOTER CENTER -->
 
             <!-- FOOTER RIGHT -->
-            <div class="print-footer-right"></div>
+            <div class="print-footer-right" style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:#000;margin-left:auto;min-width:380px;">
+                <div style="height:3px;background:#000;"></div>
+                <div style="height:1.5px;background:#000;margin-top:-2px;margin-bottom:5px;"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px 24px;">
+                    <span style="display:flex;align-items:center;gap:7px;white-space:nowrap;">
+                        <img src="{{ asset('image/logo/globe.logo.png') }}" style="width:17px;height:17px;">
+                        www.arellano.edu.ph
+                    </span>
+                    <span style="display:flex;align-items:center;gap:7px;white-space:nowrap;">
+                        <img src="{{ asset('image/logo/gmail_logo.png') }}" style="width:17px;height:17px;">
+                        main.osa@arellano.edu.ph
+                    </span>
+                    <span style="display:flex;align-items:center;gap:7px;white-space:nowrap;">
+                        <img src="{{ asset('image/logo/call_logo.png') }}" style="width:17px;height:17px;">
+                        (02) 8 734 7371 to 75 loc. 206
+                    </span>
+                    <span style="display:flex;align-items:center;gap:7px;white-space:nowrap;">
+                        <i class="fab fa-facebook" style="font-size:17px;color:#000;"></i>
+                        <i class="fab fa-instagram" style="font-size:17px;color:#000;"></i>
+                        <span>ArellanoUniversityOSA</span>
+                    </span>
+                </div>
+            </div>
             <!-- /FOOTER RIGHT -->
         </div>
     </div>
@@ -154,16 +163,27 @@
                     &nbsp;|&nbsp;
                     <i class="fas fa-calendar"></i> {{ $activity->date_of_activity?->format('M d, Y') ?? 'N/A' }}
                 </span>
-                <button onclick="window.print()" class="btn btn-filter" style="cursor: pointer; margin-right: 5px;">
-                    <i class="fas fa-print"></i> Print
+                <button type="button"
+                    id="downloadTracerPdf"
+                    class="btn btn-add no-pdf tracer-print-btn"
+                    style="cursor: pointer; margin-right: 5px;"
+                    data-filename="{{ Str::slug($activity->code ?: $activity->title) }}-tracer.pdf">
+                    <i class="fas fa-file-pdf"></i> Tracer Print/Download
                 </button>
-                <a href="{{ route('dean_osa.tracer.index') }}" class="btn btn-filter">
+                <a href="{{ route('dean_osa.tracer.index') }}" class="btn btn-filter no-pdf">
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
             </div>
         </div>
 
-        <div style="padding: 24px;" class="print-padding">
+        <div id="tracerPdfContent" style="padding: 24px; box-sizing: border-box; max-width: 100%; overflow: hidden;" class="print-padding tracer-pdf-content">
+            <div class="print-only print-title-code">
+                <span>{{ $activity->title }}</span>
+                <span>|</span>
+                <span>{{ $activity->code ?: 'No Code' }}</span>
+            </div>
+
+            <div class="print-page print-first-page">
             {{-- ===== Details first ===== --}}
             <div class="print-details" style="padding:16px;background:#f9fafb;border:1px solid var(--border);border-radius:10px;margin-bottom:20px;">
                 <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:#374151;">
@@ -205,15 +225,15 @@
 
             {{-- ===== Tracer middle ===== --}}
             @if(!in_array($activity->status, ['cancelled', 'for revision']))
-                <div style="display:flex;align-items:center;margin-bottom:20px;padding:12px 16px;background:#f8fafc;border:1px solid var(--border);border-radius:10px;overflow-x:auto;">
+                <div class="pipeline-tracker">
                     @foreach($pipeline as $pi => $ps)
                         @php $done = $ps['done']; $active = $ps['active']; @endphp
-                        <div style="display:flex;align-items:center;flex:1;min-width:80px;">
-                            <div style="text-align:center;flex:1;">
-                                <div style="width:26px;height:26px;border-radius:50%;margin:0 auto 4px;display:flex;align-items:center;justify-content:center;
+                        <div class="pipeline-step">
+                            <div class="pipeline-step-inner">
+                                <div style="width:34px;height:34px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;
                                     background:{{ $done ? '#dcfce7' : ($active ? 'var(--primary)' : '#e2e8f0') }};
                                     color:{{ $done ? '#16a34a' : ($active ? '#fff' : '#94a3b8') }};
-                                    font-size:11px;box-shadow:{{ $active ? '0 0 0 3px rgba(1,78,168,.15)' : 'none' }};">
+                                    font-size:13px;box-shadow:{{ $active ? '0 0 0 3px rgba(1,78,168,.15)' : 'none' }};">
                                     <i class="fas {{ $done ? 'fa-check' : 'fa-circle' }}"></i>
                                 </div>
                                 <div style="font-size:9px;font-weight:{{ $active ? 700 : 500 }};color:{{ $done ? '#16a34a' : ($active ? 'var(--primary)' : '#94a3b8') }};">
@@ -221,7 +241,7 @@
                                 </div>
                             </div>
                             @if(!$loop->last)
-                                <div style="flex:0 0 14px;height:2px;border-radius:2px;background:{{ $done ? '#86efac' : '#e2e8f0' }};"></div>
+                                <div class="pipeline-connector" style="background:{{ $done ? '#86efac' : '#e2e8f0' }};"></div>
                             @endif
                         </div>
                     @endforeach
@@ -245,17 +265,24 @@
                         <div class="approval-group-title" style="margin-bottom:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding-left:4px;">
                             For Approval
                         </div>
-                        <div style="display:flex;flex-direction:column;gap:0;position:relative;padding-left:28px;margin-bottom:8px;">
-                            <div style="position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:#e2e8f0;"></div>
+                        <div class="approval-track" style="display:flex;flex-direction:column;gap:0;position:relative;padding-left:28px;margin-bottom:8px;">
+                            <div class="approval-line" style="position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:#e2e8f0;"></div>
 
                             @foreach($mainSignatories as $sig)
                                 @php
-                                    [$icon, $color, $bg, $border, $label] = $approvalIcon($activity->{$sig['field']} ?? 'pending');
+                                    $statusVal = $activity->{$sig['field']} ?? 'pending';
+                                    [$icon, $color, $bg, $border, $label] = $approvalIcon($statusVal);
                                     $approvedAt = $activity->{$sig['time']} ?? null;
                                     $approvedBudget = $activity->{$sig['budget']} ?? null;
+                                    $statusClass = match($statusVal) {
+                                        'approved' => 'status-approved',
+                                        'for signature' => 'status-for-signature',
+                                        'disapproved' => 'status-disapproved',
+                                        default => 'status-pending',
+                                    };
                                 @endphp
-                                <div style="position:relative;display:flex;align-items:flex-start;gap:12px;padding:10px 14px;margin-bottom:8px;background:{{ $bg }};border:1px solid {{ $border }};border-radius:8px;">
-                                    <div style="position:absolute;left:-22px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:{{ $color }};border:2px solid #fff;box-shadow:0 0 0 2px {{ $border }};"></div>
+                                <div class="approval-card {{ $statusClass }}">
+                                    <div class="approval-dot" style="position:absolute;left:-22px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:{{ $color }};border:2px solid #fff;box-shadow:0 0 0 2px {{ $border }};"></div>
                                     <i class="{{ $icon }}" style="color:{{ $color }};font-size:16px;margin-top:2px;flex-shrink:0;"></i>
                                     <div style="flex:1;">
                                         <div style="font-weight:600;font-size:13px;color:#1e293b;">{{ $sig['role'] }}</div>
@@ -288,25 +315,35 @@
                     </div>
                 @endunless
             </div>
+            </div>
 
             @if(!$financeSignatories->isEmpty() || filled($activity->reschedule_requested_at))
-                <div class="print-second-page">
+                <div class="pdf-page-break html2pdf__page-break" aria-hidden="true"></div>
+                <div class="print-page print-second-page">
                     @unless($financeSignatories->isEmpty())
                         <div class="approval-group print-finance-group" style="margin-bottom:24px;">
                             <div class="approval-group-title" style="margin-bottom:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding-left:4px;">
-                                Finance Approval
+                                <span class="no-print">Finance Approval</span>
+                                <span class="print-only print-inline">Finance Tracer</span>
                             </div>
-                            <div style="display:flex;flex-direction:column;gap:0;position:relative;padding-left:28px;margin-bottom:8px;">
-                                <div style="position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:#e2e8f0;"></div>
+                            <div class="approval-track" style="display:flex;flex-direction:column;gap:0;position:relative;padding-left:28px;margin-bottom:8px;">
+                                <div class="approval-line" style="position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:#e2e8f0;"></div>
 
                                 @foreach($financeSignatories as $sig)
                                     @php
-                                        [$icon, $color, $bg, $border, $label] = $approvalIcon($activity->{$sig['field']} ?? 'pending');
+                                        $statusVal = $activity->{$sig['field']} ?? 'pending';
+                                        [$icon, $color, $bg, $border, $label] = $approvalIcon($statusVal);
                                         $approvedAt = $activity->{$sig['time']} ?? null;
                                         $approvedBudget = $activity->{$sig['budget']} ?? null;
+                                        $statusClass = match($statusVal) {
+                                            'approved' => 'status-approved',
+                                            'for signature' => 'status-for-signature',
+                                            'disapproved' => 'status-disapproved',
+                                            default => 'status-pending',
+                                        };
                                     @endphp
-                                    <div style="position:relative;display:flex;align-items:flex-start;gap:12px;padding:10px 14px;margin-bottom:8px;background:{{ $bg }};border:1px solid {{ $border }};border-radius:8px;">
-                                        <div style="position:absolute;left:-22px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:{{ $color }};border:2px solid #fff;box-shadow:0 0 0 2px {{ $border }};"></div>
+                                    <div class="approval-card {{ $statusClass }}">
+                                        <div class="approval-dot" style="position:absolute;left:-22px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:{{ $color }};border:2px solid #fff;box-shadow:0 0 0 2px {{ $border }};"></div>
                                         <i class="{{ $icon }}" style="color:{{ $color }};font-size:16px;margin-top:2px;flex-shrink:0;"></i>
                                         <div style="flex:1;">
                                             <div style="font-weight:600;font-size:13px;color:#1e293b;">{{ $sig['role'] }}</div>
@@ -342,7 +379,9 @@
                     @if(filled($activity->reschedule_requested_at))
                         <div class="print-reschedule" style="margin-bottom:28px;">
                             <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:#374151;display:flex;align-items:center;gap:8px;">
-                                <i class="fas fa-calendar-alt" style="color:var(--primary);"></i> Reschedule Request
+                                <i class="fas fa-calendar-alt" style="color:var(--primary);"></i>
+                                <span class="no-print">Reschedule Request</span>
+                                <span class="print-only print-inline">Rescheduling Detail</span>
                             </div>
                             <div style="padding:16px;background:#f9fafb;border:1px solid var(--border);border-radius:10px;">
                                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;">
@@ -427,9 +466,310 @@
     </div>
 </section>
 
+<div id="pdfPreviewModal" style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(15,23,42,0.85);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    color: #fff;
+    font-size: 15px;
+    font-family: sans-serif;
+">
+    <div style="text-align: center; background: #1e293b; padding: 30px 40px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; gap: 15px;">
+        <i class="fas fa-spinner fa-spin" style="font-size:40px; color:#60a5fa;"></i>
+        <div style="font-weight: 600;" id="pdfPreviewLoadingText">Preparing PDF...</div>
+        <button id="pdfPreviewClose" style="margin-top: 10px; background: #ef4444; border: none; border-radius: 6px; color: white; padding: 6px 16px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.2s;">
+            Cancel
+        </button>
+    </div>
+</div>
+
 <style>
     .print-only {
         display: none;
+    }
+
+    .tracer-print-btn {
+        background: #014ea8 !important;
+        border-color: #013f88 !important;
+        color: #fff !important;
+        font-weight: 800 !important;
+        box-shadow: 0 8px 16px rgba(1, 78, 168, 0.24) !important;
+    }
+
+    .tracer-print-btn:hover {
+        background: #013f88 !important;
+        transform: translateY(-1px);
+    }
+
+    /* Screen Styles */
+    .pipeline-tracker {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 12px 16px;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow-x: auto;
+    }
+
+    .pipeline-step {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        min-width: 80px;
+    }
+
+    .pipeline-step-inner {
+        text-align: center;
+        flex: 1;
+    }
+
+    .pipeline-connector {
+        flex: 0 0 14px;
+        height: 2px;
+        border-radius: 2px;
+    }
+
+    .approval-card {
+        position: relative;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+    }
+
+    .approval-card.status-approved {
+        background: #dcfce7;
+        border: 1px solid #86efac;
+    }
+
+    .approval-card.status-for-signature {
+        background: #dbeafe;
+        border: 1px solid #93c5fd;
+    }
+
+    .approval-card.status-disapproved {
+        background: #fef2f2;
+        border: 1px solid #fca5a5;
+    }
+
+    .approval-card.status-pending {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* PDF Export Styles */
+    .tracer-pdf-export {
+        width: 920px;
+        max-width: 920px;
+        min-width: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #fff;
+        color: #111827;
+        font-family: Arial, Helvetica, sans-serif;
+        box-sizing: border-box;
+    }
+
+    .tracer-pdf-export,
+    .tracer-pdf-export * {
+        box-shadow: none !important;
+        box-sizing: border-box;
+        overflow-wrap: anywhere;
+    }
+
+    .tracer-pdf-export .print-only {
+        display: block !important;
+    }
+
+    .tracer-pdf-export .print-inline {
+        display: inline !important;
+    }
+
+    .tracer-pdf-export .print-title-code {
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        color: #111827 !important;
+        display: flex !important;
+        gap: 8px !important;
+        align-items: center !important;
+        padding: 0 0 12px !important;
+        margin: 0 0 12px !important;
+        border-bottom: 1.5px solid #d7dee8 !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .tracer-pdf-export .print-second-page {
+        page-break-before: always !important;
+        break-before: page !important;
+        padding-top: 0 !important;
+        margin-top: -20px !important;
+    }
+
+    .tracer-pdf-export .print-second-page .approval-group {
+        margin-bottom: 8px !important;
+    }
+
+    .tracer-pdf-export .print-second-page .approval-group-title {
+        margin-bottom: 4px !important;
+    }
+
+    .tracer-pdf-export .print-details {
+        padding: 14px 0 16px !important;
+        background: #fff !important;
+        border: 0 !important;
+        border-bottom: 1.5px solid #d7dee8 !important;
+        border-radius: 0 !important;
+        margin-bottom: 16px !important;
+    }
+
+    .tracer-pdf-export .print-details > div[style*="display:grid"] {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 12px 22px !important;
+    }
+
+    .tracer-pdf-export .pipeline-tracker {
+        overflow: hidden !important;
+        overflow-x: hidden !important;
+        white-space: normal !important;
+        flex-wrap: nowrap !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        background: #fff !important;
+        border: 0 !important;
+        border-top: 1px solid #e5e7eb !important;
+        border-bottom: 1px solid #e5e7eb !important;
+        border-radius: 0 !important;
+        padding: 10px 60px 10px 0px!important;
+        margin-bottom: 18px !important;
+    }
+
+    .tracer-pdf-export .pipeline-step {
+        width: auto !important;
+        max-width: 100% !important;
+    }
+
+    .tracer-pdf-export .pipeline-step-inner {
+
+        max-width: 100% !important;
+        overflow: hidden !important;
+    }
+
+    .tracer-pdf-export .pipeline-step:first-child .pipeline-step-inner {
+        padding-left: 0 !important;
+    }
+
+    .tracer-pdf-export .pipeline-step:last-child .pipeline-step-inner {
+        padding-right: 0 !important;
+    }
+
+    .tracer-pdf-export .pipeline-step:last-child .pipeline-step-inner > div:last-child {
+        font-size: 8px !important;
+        white-space: normal !important;
+        overflow-wrap: normal !important;
+    }
+
+    .tracer-pdf-export .pipeline-connector {
+        flex: 0 0 8px !important;
+        width: 8px !important;
+        min-width: 8px !important;
+        height: 2px !important;
+    }
+
+    .tracer-pdf-export .approval-group {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        margin-bottom: 16px !important;
+    }
+
+    .tracer-pdf-export .approval-track {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-left: 0 !important;
+        margin-bottom: 4px !important;
+        overflow: hidden !important;
+    }
+
+    .tracer-pdf-export .approval-line,
+    .tracer-pdf-export .approval-dot {
+        display: none !important;
+    }
+
+    .tracer-pdf-export .approval-card {
+        align-items: flex-start !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        background: #fff !important;
+        border: 0 !important;
+        border-bottom: 1px dashed #d7dee8 !important;
+        border-radius: 0 !important;
+        margin-bottom: 2px !important;
+        padding: 5px 0 !important;
+        overflow: hidden !important;
+    }
+
+    .tracer-pdf-export .print-second-page .approval-card {
+        margin-bottom: 0 !important;
+        padding: 4px 0 !important;
+    }
+
+    .tracer-pdf-export .print-second-page .approval-card div[style*="margin-top:8px"] {
+        margin-top: 1px !important;
+    }
+
+    .tracer-pdf-export .approval-card span[style*="padding:4px 8px"] {
+        background: #fff !important;
+        padding: 0 !important;
+    }
+
+    .tracer-pdf-export .print-reschedule {
+        margin-bottom: 0 !important;
+    }
+
+    .tracer-pdf-export .print-reschedule > div:first-child {
+        margin-bottom: 6px !important;
+    }
+
+    .tracer-pdf-export .print-reschedule > div[style*="background:#f9fafb"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        background: #fff !important;
+        border: 0 !important;
+        border-top: 1px solid #d7dee8 !important;
+        border-bottom: 1px solid #d7dee8 !important;
+        border-radius: 0 !important;
+        padding: 7px 0 !important;
+        overflow: hidden !important;
+    }
+
+    .tracer-pdf-export .print-reschedule div[style*="display:grid"] {
+        gap: 8px 18px !important;
+    }
+
+    .tracer-pdf-export .pdf-page-break {
+        display: block !important;
+        height: 0 !important;
+        page-break-after: always;
+        break-after: page;
+        padding-top: 0 !important;
+    }
+
+    .tracer-pdf-export .no-pdf,
+    .tracer-pdf-export .no-print {
+        display: none !important;
     }
 </style>
 
@@ -473,8 +813,43 @@
 
     /* Content wrapper padding to clear fixed header/footer */
     .print-padding {
-        padding: 0 !important;
+        box-sizing: border-box !important;
+        width: 100% !important;
+        max-width: 100% !important;
         padding-top: 0 !important;
+        padding-right: 0.8in !important;
+        padding-bottom: 0 !important;
+        padding-left: 0.8in !important;
+        overflow: hidden !important;
+    }
+
+    #tracerPdfContent,
+    #tracerPdfContent * {
+        box-sizing: border-box !important;
+        max-width: 100% !important;
+    }
+
+    #tracerPdfContent {
+        width: 100% !important;
+        overflow: hidden !important;
+    }
+
+    .print-title-code {
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        color: #111827 !important;
+        display: flex !important;
+        gap: 8px !important;
+        align-items: center !important;
+        padding: 0 0 10px !important;
+        margin: 0 0 12px !important;
+        border-bottom: 1.5px solid #d7dee8 !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .print-inline {
+        display: inline !important;
     }
 
     /* Clean and minimal styles for Activity Details section only */
@@ -485,6 +860,17 @@
         border-radius: 0 !important;
         padding: 10px 0 !important;
         margin-bottom: 15px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+    }
+
+    .print-details > div[style*="display:grid"] {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
     }
 
     /* Rescheduling section — allow page break before so it starts cleanly on a new page */
@@ -497,7 +883,14 @@
     .print-second-page {
         page-break-before: always !important;
         break-before: page !important;
-        padding-top: 0.75in !important;
+        padding-top: 0 !important;
+    }
+
+    .pdf-page-break {
+        display: block !important;
+        height: 0 !important;
+        page-break-after: always !important;
+        break-after: page !important;
     }
 
     .print-reschedule > div[style*="background:#f9fafb"] {
@@ -509,11 +902,21 @@
     }
 
     /* Clean and minimal styles for pipeline tracker */
-    div[style*="overflow-x:auto"] {
+    .pipeline-tracker {
+        width: 100% !important;
+        max-width: 100% !important;
         background: none !important;
         border: none !important;
-        padding: 5px 0 !important;
+        padding: 5px 45px !important;
         margin-bottom: 15px !important;
+        overflow: hidden !important;
+        overflow-x: hidden !important;
+    }
+
+    .pipeline-step {
+        min-width: 0 !important;
+        width: auto !important;
+        max-width: 100% !important;
     }
 
     /* Clean and minimal styles for signatories (remove heavy borders and backgrounds) */
@@ -529,18 +932,24 @@
     }
 
     /* Reset timeline container indentation */
-    .approval-group div[style*="padding-left:28px"] {
+    .approval-track {
+        width: 100% !important;
+        max-width: 100% !important;
         padding-left: 0 !important;
         margin-bottom: 10px !important;
+        overflow: hidden !important;
     }
 
     /* Hide the timeline vertical line and circular dot to clean up space and avoid alignment issues */
-    .approval-group div[style*="position:absolute"] {
+    .approval-line,
+    .approval-dot {
         display: none !important;
     }
 
     /* Clean signatory row cards */
-    .approval-group div[style*="background"] {
+    .approval-card {
+        width: 100% !important;
+        max-width: 100% !important;
         background: none !important;
         border: none !important;
         border-bottom: 1px dashed #e2e8f0 !important;
@@ -548,6 +957,7 @@
         padding: 6px 0 !important;
         margin-bottom: 4px !important;
         box-shadow: none !important;
+        overflow: hidden !important;
     }
 
     /* Font size reductions for printing */
@@ -568,10 +978,10 @@
 
     /* Page margins — top margin tall enough for fixed header, bottom for fixed footer */
     @page {
-        size: 8.5in 13in     portrait;
-        margin-top: 1.2in;
+        size: letter portrait;
+        margin-top: 1.0in;
         margin-right: 0.8in;
-        margin-bottom: 0.7in;
+        margin-bottom: 0.9in;
         margin-left: 0.8in;
 
         @bottom-right {
@@ -622,4 +1032,414 @@
         page-break-inside: avoid;
     }
 </style>
+
+@push('scripts')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const button = document.getElementById('downloadTracerPdf');
+            const content = document.getElementById('tracerPdfContent');
+            const modal = document.getElementById('pdfPreviewModal');
+            const closeBtn = document.getElementById('pdfPreviewClose');
+            const loadingText = document.getElementById('pdfPreviewLoadingText');
+
+            if (!button || !content || !modal) {
+                return;
+            }
+
+            let logoPromise = null;
+            let fontPromise = null;
+            let cachedPdfBlob = null;
+
+            const toDataUrl = (src) => new Promise((resolve) => {
+                const image = new Image();
+                image.crossOrigin = 'anonymous';
+                image.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = image.naturalWidth;
+                    canvas.height = image.naturalHeight;
+                    const context = canvas.getContext('2d');
+                    context.drawImage(image, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                image.onerror = () => resolve(null);
+                image.src = src;
+            });
+
+            const getLogos = () => {
+                if (!logoPromise) {
+                    logoPromise = Promise.all([
+                        toDataUrl("{{ asset('image/logo/arellano_logo.png') }}"),
+                        toDataUrl("{{ asset('image/logo/au_osa_logo.png') }}"),
+                        toDataUrl("{{ asset('image/logo/osa_logo.png') }}"),
+                        toDataUrl("{{ asset('image/logo/globe.logo.png') }}"),
+                        toDataUrl("{{ asset('image/logo/gmail_logo.png') }}"),
+                        toDataUrl("{{ asset('image/logo/call_logo.png') }}"),
+                        toDataUrl("{{ asset('image/logo/fb_logo.png') }}"),
+                        toDataUrl("{{ asset('image/logo/insta_logo.png') }}"),
+                    ]);
+                }
+                return logoPromise;
+            };
+
+            const toBase64Font = async (url, name, style) => {
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) return null;
+                    const buffer = await res.arrayBuffer();
+                    const bytes = new Uint8Array(buffer);
+                    let binary = '';
+                    const len = bytes.byteLength;
+                    for (let i = 0; i < len; i++) {
+                        binary += String.fromCharCode(bytes[i]);
+                    }
+                    return { name, style, base64: btoa(binary) };
+                } catch (e) {
+                    console.error('Failed to load font:', url, e);
+                    return null;
+                }
+            };
+
+            const getFonts = () => {
+                if (!fontPromise) {
+                    fontPromise = Promise.all([
+                        toBase64Font('https://fonts.gstatic.com/s/ptsansnarrow/v17/jx5YrD424m5X1n4B3Xb3w00.ttf', 'PTSansNarrow', 'normal'),
+                        toBase64Font('https://fonts.gstatic.com/s/ptsansnarrow/v17/jx5VD424m5X1n4B3Xb3w1067t8T.ttf', 'PTSansNarrow', 'bold')
+                    ]);
+                }
+                return fontPromise;
+            };
+
+            const addPageChrome = (pdf, logos, fonts) => {
+                const pageCount = pdf.internal.getNumberOfPages();
+                const width = pdf.internal.pageSize.getWidth();
+                const height = pdf.internal.pageSize.getHeight();
+                const printInset = 20.32;
+                const centerX = width / 2;
+
+                const hasNarrow = fonts && fonts.some(f => f && f.name === 'PTSansNarrow');
+                const fontName = hasNarrow ? 'PTSansNarrow' : 'helvetica';
+
+                for (let page = 1; page <= pageCount; page += 1) {
+                    pdf.setPage(page);
+                    
+                    // Double underline matching reference
+                    pdf.setDrawColor(17, 24, 39);
+                    pdf.setLineWidth(0.65);
+                    pdf.line(printInset, 19.5, width - printInset, 19.5);
+                    pdf.setLineWidth(0.2);
+                    pdf.line(printInset, 20.4, width - printInset, 20.4);
+
+                    // Set font details to measure the width of the main title
+                    pdf.setFont(fontName, 'bold');
+                    const titleFontSize = hasNarrow ? 14 : 11.5;
+                    pdf.setFontSize(titleFontSize);
+                    
+                    const titleText = 'ARELLANO UNIVERSITY';
+                    const titleWidth = pdf.getTextWidth(titleText);
+                    const gap = 3.5; // gap between logo and text
+                    const logoSize = 13.5; // size of the circular logos
+
+                    const leftLogoX = centerX - (titleWidth / 2) - gap - logoSize;
+                    const rightLogoX = centerX + (titleWidth / 2) + gap;
+
+                    // Left Logo
+                    if (logos.arellano) {
+                        pdf.addImage(logos.arellano, 'PNG', leftLogoX, 3.8, logoSize, logoSize);
+                    }
+
+                    // Right Logo
+                    if (logos.auOsa) {
+                        pdf.addImage(logos.auOsa, 'PNG', rightLogoX, 3.8, logoSize, logoSize);
+                    }
+
+                    // Center-aligned text block
+                    pdf.text(titleText, centerX, 8.2, { align: 'center' });
+                    
+                    pdf.setFontSize(hasNarrow ? 11 : 9.5);
+                    pdf.text('OFFICE FOR STUDENT AFFAIRS', centerX, 12.2, { align: 'center' });
+                    
+                    pdf.setFont(fontName, 'normal');
+                    pdf.setFontSize(hasNarrow ? 9.5 : 8);
+                    pdf.text('2600 Legarda Street, Sampaloc, Manila', centerX, 15.8, { align: 'center' });
+
+                    // Footer layout matching the print reference
+                    const footerTopY = height - 16.5;
+                    const footerBaseY = height - 7.2;
+                    const footerLogoX = printInset + 36;
+                    const footerContactX = printInset + 70;
+                    const footerRightX = width - printInset;
+
+                    // Double underline above contact information
+                    const lineStartX = footerContactX;
+                    pdf.setDrawColor(17, 24, 39);
+                    pdf.setLineWidth(0.65);
+                    pdf.line(lineStartX, footerTopY, footerRightX, footerTopY);
+                    pdf.setLineWidth(0.2);
+                    pdf.line(lineStartX, footerTopY + 1.1, footerRightX, footerTopY + 1.1);
+
+                    // #oneArellano on the left
+                    pdf.setFont(fontName, 'bold');
+                    pdf.setFontSize(hasNarrow ? 14 : 11.5);
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.text('#oneArellano', printInset, footerBaseY);
+
+                    // OSA Logo beside #oneArellano (circular/square 1:1 aspect ratio)
+                    if (logos.osa) {
+                        pdf.addImage(logos.osa, 'PNG', footerLogoX, height - 17.5, 12.5, 12.5);
+                    }
+
+                    // Contact Info Details
+                    pdf.setFont(fontName, 'normal');
+                    pdf.setFontSize(hasNarrow ? 8.5 : 7.2);
+                    pdf.setTextColor(0, 0, 0);
+
+                    const iconSize = 3.6;
+                    const row1Y = height - 11.2;
+                    const row2Y = height - 7.2;
+                    const col1X = footerContactX;
+                    const col2X = footerContactX + 54;
+
+                    if (logos.globe) {
+                        pdf.addImage(logos.globe, 'PNG', col1X, row1Y - 3.1, iconSize, iconSize);
+                    }
+                    pdf.text('www.arellano.edu.ph', col1X + 5, row1Y);
+
+                    if (logos.call) {
+                        pdf.addImage(logos.call, 'PNG', col1X, row2Y - 3.1, iconSize, iconSize);
+                    }
+                    pdf.text('(02) 8 734 7371 to 75 loc. 206', col1X + 5, row2Y);
+
+                    if (logos.gmail) {
+                        pdf.addImage(logos.gmail, 'PNG', col2X, row1Y - 3.1, iconSize, iconSize);
+                    }
+                    pdf.text('main.osa@arellano.edu.ph', col2X + 5, row1Y);
+
+                    // Use the fb and insta image logos
+                    if (logos.fb) {
+                        pdf.addImage(logos.fb, 'PNG', col2X, row2Y - 3.1, iconSize, iconSize);
+                    }
+                    if (logos.insta) {
+                        pdf.addImage(logos.insta, 'PNG', col2X + 4.5, row2Y - 3.1, iconSize, iconSize);
+                    }
+                    pdf.text('ArellanoUniversityOSA', col2X + 9.5, row2Y);
+
+                    // Page number at the very bottom right
+                    pdf.setFontSize(hasNarrow ? 7.5 : 6);
+                    pdf.text(`Page ${page} of ${pageCount}`, width - printInset, height - 3, { align: 'right' });
+                }
+            };
+
+            const createExportNode = () => {
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'absolute';
+                wrapper.style.left = '0';
+                wrapper.style.top = '-9999px';
+                wrapper.style.width = '920px';
+                wrapper.style.maxWidth = '920px';
+                wrapper.style.overflow = 'hidden';
+                wrapper.style.zIndex = '-9999';
+                wrapper.style.background = '#fff';
+
+                const clone = content.cloneNode(true);
+                clone.removeAttribute('id');
+                clone.classList.add('tracer-pdf-export');
+                clone.style.width = '920px';
+                clone.style.maxWidth = '920px';
+                clone.style.minWidth = '0';
+                clone.style.overflow = 'hidden';
+                clone.style.overflowX = 'hidden';
+                clone.style.boxSizing = 'border-box';
+                clone.style.padding = '0';
+                clone.style.background = '#fff';
+
+                wrapper.appendChild(clone);
+                document.body.appendChild(wrapper);
+
+                // Force layout recalculation so html2canvas measures correctly
+                void wrapper.offsetWidth;
+                void wrapper.offsetHeight;
+
+                return { wrapper, clone };
+            };
+
+            const createPdfPageNode = (clone, selectors) => {
+                const page = document.createElement('div');
+                page.className = 'tracer-pdf-export tracer-pdf-page';
+                page.style.width = '920px';
+                page.style.maxWidth = '920px';
+                page.style.minWidth = '0';
+                page.style.overflow = 'hidden';
+                page.style.boxSizing = 'border-box';
+                page.style.padding = '0';
+                page.style.margin = '0';
+                page.style.background = '#fff';
+
+                selectors.forEach((selector) => {
+                    const node = clone.querySelector(selector);
+                    if (node) {
+                        const copy = node.cloneNode(true);
+                        copy.style.marginTop = '0';
+                        page.appendChild(copy);
+                    }
+                });
+
+                return page.childElementCount ? page : null;
+            };
+
+            const renderPageToCanvas = (page) => html2canvas(page, {
+                scale: 1.5,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: 920,
+                width: 920,
+                x: 0,
+                y: 0,
+                ignoreElements: (el) => el.classList.contains('no-pdf') || el.classList.contains('no-print'),
+            });
+
+            const generatePdf = async (onProgress) => {
+                if (cachedPdfBlob) {
+                    return cachedPdfBlob;
+                }
+
+                if (onProgress) onProgress('Creating export node...');
+                const { wrapper, clone } = createExportNode();
+
+                if (onProgress) onProgress('Waiting for layout to settle...');
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                if (onProgress) onProgress('Loading logos...');
+                const logos = await getLogos();
+
+                if (onProgress) onProgress('Loading fonts...');
+                const fonts = await getFonts();
+
+                if (onProgress) onProgress('Rendering PDF...');
+                const options = {
+                    margin: [22, 0, 17, 20.32],
+                    filename: button.dataset.filename || 'sarf-tracer.pdf',
+                    image: { type: 'jpeg', quality: 0.92 },
+                    html2canvas: {
+                        scale: 1.5,
+                        useCORS: true,
+                        backgroundColor: '#ffffff',
+                        scrollX: -window.scrollX,
+                        scrollY: -window.scrollY,
+                        windowWidth: 920,
+                        width: 920,
+                        x: 0,
+                        y: 0,
+                        ignoreElements: (el) => el.classList.contains('no-pdf') || el.classList.contains('no-print'),
+                    },
+                    jsPDF: {
+                        unit: 'mm',
+                        format: 'letter',
+                        orientation: 'portrait',
+                        compress: true,
+                    },
+                    pagebreak: {
+                        mode: ['css', 'legacy'],
+                        before: ['.print-second-page', '.html2pdf__page-break'],
+                        avoid: ['.approval-card', '.approval-group-title', '.print-details', '.print-reschedule'],
+                    },
+                };
+
+                return new Promise((resolve, reject) => {
+                    html2pdf()
+                        .set(options)
+                        .from(clone)
+                        .toPdf()
+                        .get('pdf')
+                        .then((pdf) => {
+                            if (onProgress) onProgress('Adding headers and footers...');
+                            
+                            if (fonts) {
+                                fonts.forEach(f => {
+                                    if (f && f.base64) {
+                                        const filename = `${f.name}-${f.style}.ttf`;
+                                        pdf.addFileToVFS(filename, f.base64);
+                                        pdf.addFont(filename, f.name, f.style);
+                                    }
+                                });
+                            }
+
+                            addPageChrome(pdf, {
+                                arellano: logos[0],
+                                auOsa: logos[1],
+                                osa: logos[2],
+                                globe: logos[3],
+                                gmail: logos[4],
+                                call: logos[5],
+                                fb: logos[6],
+                                insta: logos[7],
+                            }, fonts);
+                            const blob = pdf.output('blob');
+                            cachedPdfBlob = blob;
+                            wrapper.remove();
+                            resolve(blob);
+                        })
+                        .catch((err) => {
+                            wrapper.remove();
+                            reject(err);
+                        });
+                });
+            };
+
+            const openPreview = async () => {
+                if (typeof html2pdf === 'undefined') {
+                    window.print();
+                    return;
+                }
+
+                modal.style.display = 'flex';
+                loadingText.textContent = 'Generating PDF...';
+
+                try {
+                    const blob = await generatePdf((message) => {
+                        loadingText.textContent = message;
+                    });
+
+                    const blobUrl = URL.createObjectURL(blob);
+                    
+                    // Close the modal cleanly
+                    closeModal();
+                    
+                    // Open the PDF blob in a new browser window/tab
+                    window.open(blobUrl, '_blank');
+                } catch (error) {
+                    console.error('PDF generation failed:', error);
+                    loadingText.textContent = 'Failed to generate PDF';
+                    setTimeout(closeModal, 1500);
+                }
+            };
+
+            const closeModal = () => {
+                modal.style.display = 'none';
+                cachedPdfBlob = null;
+            };
+
+            button.addEventListener('click', openPreview);
+            closeBtn.addEventListener('click', closeModal);
+
+            // Close modal on backdrop click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            // Close modal on Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && modal.style.display === 'flex') {
+                    closeModal();
+                }
+            });
+        });
+    </script>
+@endpush
 @endsection
