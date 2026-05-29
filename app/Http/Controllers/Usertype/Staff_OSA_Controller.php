@@ -218,9 +218,12 @@ class Staff_OSA_Controller extends Controller
         }
 
         $fields += [
-            'approval_vp_acad'     => 'Pending in Acad',
-            'approval_vp_hrd_legal' => 'Pending in Legal',
+            'approval_vp_acad' => 'Pending in Acad',
         ];
+
+        if ($activity->waiver_consent === 'With') {
+            $fields['approval_vp_hrd_legal'] = 'Pending in Legal';
+        }
 
         if ($activity->funds === 'With Budget') {
             $fields += [

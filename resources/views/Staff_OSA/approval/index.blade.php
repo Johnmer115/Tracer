@@ -41,10 +41,15 @@
     };
 
     $requiresFinanceApproval = fn($activity) => $activity->funds === 'With Budget';
+    $requiresLegalApproval = fn($activity) => $activity->waiver_consent === 'With';
 
-    $isApprovalRequired = function($activity, $field) use ($requiresBasicEdApproval, $requiresFinanceApproval) {
+    $isApprovalRequired = function($activity, $field) use ($requiresBasicEdApproval, $requiresFinanceApproval, $requiresLegalApproval) {
         if ($field === 'approval_dir_basic_ed') {
             return $requiresBasicEdApproval($activity);
+        }
+
+        if ($field === 'approval_vp_hrd_legal') {
+            return $requiresLegalApproval($activity);
         }
 
         if (in_array($field, [

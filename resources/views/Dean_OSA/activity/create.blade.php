@@ -377,6 +377,20 @@
                                 </div>
                             </div>
 
+                            <div class="form-group">
+                                <label class="form-label">Waiver / Consent / Legal Concern</label>
+                                <div class="radio-group">
+                                    <label class="radio-option">
+                                        <input type="radio" name="waiver_consent" value="With"
+                                            @checked(old('waiver_consent') === 'With')> With
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="waiver_consent" value="Without"
+                                            @checked(old('waiver_consent') === 'Without')> Without
+                                    </label>
+                                </div>
+                            </div>
+
                         </div>
                     </div>{{-- /1-C --}}
 

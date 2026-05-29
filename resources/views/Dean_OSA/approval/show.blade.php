@@ -90,9 +90,11 @@
             return Str::contains($level, ['elementary','junior high','senior high','basic','all levels']);
         });
         $requiresFinanceApproval = $activity->funds === 'With Budget';
+        $requiresLegalApproval = $activity->waiver_consent === 'With';
 
         $applicableMainFields = collect($mainFields)
             ->reject(fn($f) => $f === 'approval_dir_basic_ed' && !$requiresBasicEdApproval)
+            ->reject(fn($f) => $f === 'approval_vp_hrd_legal' && !$requiresLegalApproval)
             ->values()
             ->all();
         $applicableFinanceFields = $requiresFinanceApproval ? $financeFields : [];

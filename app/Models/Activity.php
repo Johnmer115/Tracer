@@ -26,6 +26,7 @@ class Activity extends Model
         'date_of_activity',
         'time_of_activity',
         'public_poster',
+        'waiver_consent',
         'mode_of_conduct',
         'venue',
         'venue_type',            

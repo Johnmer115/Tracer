@@ -332,7 +332,8 @@ class ApprovalController extends Controller
     {
         return array_values(array_filter(
             self::MAIN_FIELDS,
-            fn($field) => $field !== 'approval_dir_basic_ed' || $this->requiresBasicEdApproval($activity)
+            fn($field) => ($field !== 'approval_dir_basic_ed' || $this->requiresBasicEdApproval($activity))
+                && ($field !== 'approval_vp_hrd_legal' || $this->requiresLegalApproval($activity))
         ));
     }
 
@@ -361,6 +362,11 @@ class ApprovalController extends Controller
     private function requiresFinanceApproval(Activity $activity): bool
     {
         return $activity->funds === 'With Budget';
+    }
+
+    private function requiresLegalApproval(Activity $activity): bool
+    {
+        return $activity->waiver_consent === 'With';
     }
 
     public function storeDocument(Request $request, string $id)
