@@ -3,9 +3,27 @@
 @section('title', 'School Year | SARF Tracking')
 @section('page-title', 'School Year Management')
 
+@push('styles')
+<style>
+    .sy-delete-overlay{display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.58);backdrop-filter:blur(3px)}
+    .sy-delete-overlay.active{display:flex}
+    .sy-delete-modal{width:min(460px,100%);background:#fff;border:1px solid #fecaca;border-radius:8px;box-shadow:0 24px 60px rgba(15,23,42,.24);overflow:hidden}
+    .sy-delete-head{display:flex;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid #fee2e2;color:#991b1b;font-weight:800}
+    .sy-delete-head i{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;color:#dc2626;background:#fee2e2}
+    .sy-delete-body{padding:18px 20px;color:#475569;font-size:14px;line-height:1.5}
+    .sy-delete-name{margin:12px 0;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#0f172a;font-weight:700}
+    .sy-delete-warning{display:flex;gap:10px;margin:14px 0;padding:12px;border:1px solid #fecaca;border-radius:8px;background:#fef2f2;color:#991b1b;font-size:13px}
+    .sy-delete-input{width:100%;margin-top:8px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-weight:700;letter-spacing:.06em}
+    .sy-delete-input:focus{outline:none;border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+    .sy-delete-actions{display:flex;justify-content:flex-end;gap:10px;padding:16px 20px 20px}
+    .sy-delete-actions .btn-danger{background:#dc2626;color:#fff;border:1px solid #dc2626}
+    .sy-delete-actions .btn-danger:disabled{cursor:not-allowed;opacity:.55}
+    @media (max-width:640px){.sy-delete-actions{flex-direction:column-reverse}.sy-delete-actions .btn{justify-content:center}}
+</style>
+@endpush
+
 @section('content')
 <section class="panel" style="padding: 25px;">
-    
     @if ($message = Session::get('success'))
         <div class="alert alert-success"><b>{{ $message }}</b></div>
     @endif
@@ -13,7 +31,7 @@
     <div class="panel">
         <div class="panel-header">
             <div class="panel-title"><i class="fas fa-calendar"></i> School Years</div>
-                       <form method="GET" action="{{ route('dean_osa.schoolyear.index') }}" class="panel-controls">
+            <form method="GET" action="{{ route('dean_osa.schoolyear.index') }}" class="panel-controls">
                 <div class="search-wrap">
                     <i class="fas fa-search"></i>
                     <input
@@ -21,8 +39,7 @@
                         type="text"
                         name="search"
                         value="{{ request('search', '') }}"
-                        placeholder="Search by school year name or code..."
-                    >
+                        placeholder="Search by school year name or code...">
                 </div>
                 <select class="filter-select" name="status" onchange="this.form.submit()">
                     <option value="">All Status</option>
@@ -36,6 +53,7 @@
                 </a>
             </form>
         </div>
+
         <div class="table-wrap">
             <table>
                 <thead>
@@ -70,16 +88,16 @@
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         </form>
-                                    @endif
 
-                                    @if(!$sy->is_current)
                                         <form action="{{ route('dean_osa.schoolyear.destroy', $sy->id) }}"
                                             method="POST" style="display:inline;"
                                             id="delete-form-{{ $sy->id }}">
                                             @csrf
                                             @method('DELETE')
                                             <button type="button" class="abtn abtn-del" title="Delete School Year"
-                                                onclick="confirmDelete('{{ $sy->id }}', '{{ $sy->name }}')">
+                                                data-delete-id="{{ $sy->id }}"
+                                                data-delete-name="{{ $sy->name }}"
+                                                onclick="openSchoolYearDeleteModal(this)">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </form>
@@ -98,7 +116,10 @@
 
         <div class="panel-footer">
             <div class="footer-left">
-                <span class="footer-info">Showing {{ $schoolYears->firstItem() ?? 0 }}-{{ $schoolYears->lastItem() ?? 0 }} of {{ $schoolYears->total() }} entries</span>
+                <span class="footer-info">
+                    Showing {{ $schoolYears->firstItem() ?? 0 }}-{{ $schoolYears->lastItem() ?? 0 }}
+                    of {{ $schoolYears->total() }} entries
+                </span>
                 <form method="GET" action="{{ route('dean_osa.schoolyear.index') }}" class="show-wrap">
                     @if(request('search'))
                         <input type="hidden" name="search" value="{{ request('search') }}">
@@ -140,19 +161,84 @@
     </div>
 </section>
 
-<script>
-    function confirmDelete(id, name) {
-        const input = prompt(
-            `⚠️ WARNING: You are about to delete school year "${name}".\n\n` +
-            `This will permanently delete ALL activities under this school year.\n\n` +
-            `Type DELETE to confirm:`
-        );
+<div class="sy-delete-overlay" id="schoolYearDeleteModal" aria-hidden="true" onclick="closeSchoolYearDeleteModal()">
+    <div class="sy-delete-modal" role="dialog" aria-modal="true" aria-labelledby="schoolYearDeleteTitle" onclick="event.stopPropagation()">
+        <div class="sy-delete-head">
+            <i class="fas fa-trash-alt"></i>
+            <span id="schoolYearDeleteTitle">Delete school year?</span>
+        </div>
+        <div class="sy-delete-body">
+            <p style="margin:0;">This action cannot be undone.</p>
+            <div class="sy-delete-name" id="schoolYearDeleteName">School Year</div>
+            <div class="sy-delete-warning">
+                <i class="fas fa-exclamation-triangle" style="margin-top:2px;"></i>
+                <span>Deleting this school year will permanently delete all activities under it.</span>
+            </div>
+            <label for="schoolYearDeleteInput" style="font-size:12px;font-weight:800;color:#334155;text-transform:uppercase;">
+                Type DELETE to confirm
+            </label>
+            <input id="schoolYearDeleteInput" class="sy-delete-input" type="text" autocomplete="off">
+        </div>
+        <div class="sy-delete-actions">
+            <button type="button" class="btn btn-filter" onclick="closeSchoolYearDeleteModal()">Cancel</button>
+            <button type="button" class="btn btn-danger" id="schoolYearDeleteConfirm" onclick="submitSchoolYearDelete()" disabled>
+                <i class="fas fa-trash-alt"></i> Delete
+            </button>
+        </div>
+    </div>
+</div>
 
-        if (input === 'DELETE') {
-            document.getElementById('delete-form-' + id).submit();
-        } else {
-            alert('Deletion cancelled. You must type DELETE exactly to confirm.');
+<script>
+    let selectedSchoolYearDeleteId = null;
+
+    function openSchoolYearDeleteModal(button) {
+        selectedSchoolYearDeleteId = button.dataset.deleteId;
+
+        const modal = document.getElementById('schoolYearDeleteModal');
+        const name = document.getElementById('schoolYearDeleteName');
+        const input = document.getElementById('schoolYearDeleteInput');
+        const confirmButton = document.getElementById('schoolYearDeleteConfirm');
+
+        if (name) name.textContent = button.dataset.deleteName || 'Selected school year';
+        if (input) input.value = '';
+        if (confirmButton) confirmButton.disabled = true;
+        if (modal) {
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
         }
+
+        setTimeout(() => input?.focus(), 50);
     }
+
+    function closeSchoolYearDeleteModal() {
+        const modal = document.getElementById('schoolYearDeleteModal');
+        if (modal) {
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        selectedSchoolYearDeleteId = null;
+    }
+
+    function submitSchoolYearDelete() {
+        if (!selectedSchoolYearDeleteId) return;
+
+        const input = document.getElementById('schoolYearDeleteInput');
+        if (input?.value !== 'DELETE') {
+            input?.focus();
+            return;
+        }
+
+        document.getElementById('delete-form-' + selectedSchoolYearDeleteId)?.submit();
+    }
+
+    document.getElementById('schoolYearDeleteInput')?.addEventListener('input', (event) => {
+        const confirmButton = document.getElementById('schoolYearDeleteConfirm');
+        if (confirmButton) confirmButton.disabled = event.target.value !== 'DELETE';
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeSchoolYearDeleteModal();
+    });
 </script>
 @endsection

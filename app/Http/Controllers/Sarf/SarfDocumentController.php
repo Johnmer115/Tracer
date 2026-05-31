@@ -12,6 +12,8 @@ class SarfDocumentController extends Controller
 {
     public function show(Request $request, SarfDocument $document)
     {
+        $this->authorizeBranchDocument($document);
+
         abort_unless(Storage::disk('public')->exists($document->file_path), 404);
 
         if ($request->boolean('print')) {
@@ -36,6 +38,8 @@ class SarfDocumentController extends Controller
 
     public function printActivity(Request $request, Activity $activity)
     {
+        $this->authorizeBranchActivity($activity);
+
         $documents = $activity->sarfDocuments()
             ->orderBy('type')
             ->get()
@@ -59,5 +63,27 @@ class SarfDocumentController extends Controller
         $prefix = str($routeName)->before('.sarf-documents.');
 
         return $prefix . '.sarf-documents.show';
+    }
+
+    private function authorizeBranchDocument(SarfDocument $document): void
+    {
+        if (auth()->user()?->usertype !== 'Branch_OSA') {
+            return;
+        }
+
+        $activity = $document->activity()->firstOrFail();
+        $this->authorizeBranchActivity($activity);
+    }
+
+    private function authorizeBranchActivity(Activity $activity): void
+    {
+        if (auth()->user()?->usertype !== 'Branch_OSA') {
+            return;
+        }
+
+        $branchId = auth()->user()?->branch_id;
+
+        abort_if(! $branchId, 404);
+        abort_unless((int) $activity->branch_id === (int) $branchId, 404);
     }
 }

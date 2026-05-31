@@ -88,29 +88,41 @@ class ActivityController extends Controller
     {
         $request->validate([
             'title'              => 'required|string|max:255',
-            'branch_id'          => 'nullable|exists:branches,id',
+            'branch_id'          => 'required|exists:branches,id',
             'level'              => 'required|array|min:1',
             'level.*'            => 'string|max:255',
-            'department'         => 'nullable|array',
+            'department'         => 'required|array|min:1',
             'department.*'       => 'string|max:255',
             'organizations'      => 'nullable|array',
             'organizations.*'    => 'string|max:255',
+            'description'        => 'required|string|max:2000',
+            'objectives'         => 'required|array|min:1',
+            'objectives.*'       => 'required|string|max:1000',
             'type_of_activity'   => 'required|in:Extra-Curricular,Co-Curricular',
             'event_type'         => 'required|in:Internal,External',
             'activity_level'     => 'required|in:Organization,Local,Interbranch,Off-Campus',
             'mode_of_conduct'    => 'required|in:Face to Face,Online,Hybrid',
             'date_of_activity'   => 'required|date',
-            'time_start'         => 'nullable|required_with:time_end|date_format:H:i',
-            'time_end'           => 'nullable|required_with:time_start|date_format:H:i|after:time_start',
-            'waiver_consent'     => 'nullable|in:With,Without',
+            'time_start'         => 'required|date_format:H:i',
+            'time_end'           => 'required|date_format:H:i|after:time_start',
+            'venue'              => 'required_if:mode_of_conduct,Face to Face,Hybrid|nullable|string|max:255',
+            'venue_type'         => 'required_if:mode_of_conduct,Face to Face,Hybrid|nullable|in:On-Campus,Off-Campus',
+            'platform'           => 'required_if:mode_of_conduct,Online,Hybrid|nullable|string|max:255',
+            'participants_profile' => 'required|string|max:255',
+            'participants_count' => 'required|integer|min:1',
+            'public_poster'      => 'required|in:With,Without',
+            'waiver_consent'     => 'required|in:With,Without',
             'funds'              => 'required|in:With Budget,ATC,No Fee',
             'amount'             => 'required_if:funds,With Budget,ATC|nullable|numeric|min:0',
+            'source'             => 'required_if:funds,With Budget|nullable|string|max:255',
+            'expected_collection' => 'required_if:funds,ATC|nullable|numeric|min:0',
+            'canteen'            => 'required_if:funds,With Budget,ATC|nullable|in:With,Without',
+            'procurement'        => 'required_if:funds,With Budget,ATC|nullable|in:With,Without',
             'types'              => 'nullable|array',
             'types.*'            => 'in:A0,A1,A2,A3,A4,A5,A6,A7,A8,A10',
-            'participants_count' => 'nullable|integer|min:0',
         ], [
-            'time_start.required_with' => 'Please enter the activity start time.',
-            'time_end.required_with'   => 'Please enter the activity end time.',
+            'time_start.required' => 'Please enter the activity start time.',
+            'time_end.required'   => 'Please enter the activity end time.',
             'time_end.after'           => 'The activity end time must be after the start time.',
         ], [
             'time_start' => 'start time',
@@ -179,7 +191,7 @@ class ActivityController extends Controller
 
         $this->syncSarfDocuments($activity, $request);
 
-        return redirect()->route('dean_osa.activity.index')
+        return redirect()->route($this->routeName('activity.index'))
                          ->with('success', 'Activity created successfully.');
     }
 
@@ -199,7 +211,7 @@ class ActivityController extends Controller
 
         // Approved/completed activities should keep their approval history visible.
         if (in_array($activity->status, ['approved', 'completed'], true)) {
-            return redirect()->route('dean_osa.approval.show', $id);
+            return redirect()->route($this->routeName('approval.show'), $id);
         }
 
         return view('Dean_OSA.activity.view', compact('activity'));
@@ -229,14 +241,14 @@ class ActivityController extends Controller
             $request->validate([
                 'mode_of_conduct'    => 'required|in:Face to Face,Online,Hybrid',
                 'date_of_activity'   => 'required|date',
-                'time_start'         => 'nullable|required_with:time_end|date_format:H:i',
-                'time_end'           => 'nullable|required_with:time_start|date_format:H:i|after:time_start',
-                'venue'              => 'nullable|string|max:255',
-                'venue_type'         => 'nullable|in:On-Campus,Off-Campus',
-                'platform'           => 'nullable|string|max:255',
+                'time_start'         => 'required|date_format:H:i',
+                'time_end'           => 'required|date_format:H:i|after:time_start',
+                'venue'              => 'required_if:mode_of_conduct,Face to Face,Hybrid|nullable|string|max:255',
+                'venue_type'         => 'required_if:mode_of_conduct,Face to Face,Hybrid|nullable|in:On-Campus,Off-Campus',
+                'platform'           => 'required_if:mode_of_conduct,Online,Hybrid|nullable|string|max:255',
             ], [
-                'time_start.required_with' => 'Please enter the activity start time.',
-                'time_end.required_with'   => 'Please enter the activity end time.',
+                'time_start.required' => 'Please enter the activity start time.',
+                'time_end.required'   => 'Please enter the activity end time.',
                 'time_end.after'           => 'The activity end time must be after the start time.',
             ], [
                 'time_start' => 'start time',
@@ -270,40 +282,52 @@ class ActivityController extends Controller
                 'modification_remarks'    => null,
             ]);
 
-            return redirect()->route('dean_osa.activity.index')
+            return redirect()->route($this->routeName('activity.index'))
                              ->with('success', 'Rescheduling changes submitted. The current schedule stays unchanged until the new schedule is approved.');
         }
 
         $rules = [
             'title'              => 'required|string|max:255',
-            'branch_id'          => 'nullable|exists:branches,id',
+            'branch_id'          => 'required|exists:branches,id',
             'level'              => 'required|array|min:1',
             'level.*'            => 'string|max:255',
-            'department'         => 'nullable|array',
+            'department'         => 'required|array|min:1',
             'department.*'       => 'string|max:255',
             'organizations'      => 'nullable|array',
             'organizations.*'    => 'string|max:255',
+            'description'        => 'required|string|max:2000',
+            'objectives'         => 'required|array|min:1',
+            'objectives.*'       => 'required|string|max:1000',
             'type_of_activity'   => 'required|in:Extra-Curricular,Co-Curricular',
             'event_type'         => 'required|in:Internal,External',
             'activity_level'     => 'required|in:Organization,Local,Interbranch,Off-Campus',
             'mode_of_conduct'    => 'required|in:Face to Face,Online,Hybrid',
             'date_of_activity'   => 'required|date',
-            'time_start'         => 'nullable|required_with:time_end|date_format:H:i',
-            'time_end'           => 'nullable|required_with:time_start|date_format:H:i|after:time_start',
-            'waiver_consent'     => 'nullable|in:With,Without',
+            'time_start'         => 'required|date_format:H:i',
+            'time_end'           => 'required|date_format:H:i|after:time_start',
+            'venue'              => 'required_if:mode_of_conduct,Face to Face,Hybrid|nullable|string|max:255',
+            'venue_type'         => 'required_if:mode_of_conduct,Face to Face,Hybrid|nullable|in:On-Campus,Off-Campus',
+            'platform'           => 'required_if:mode_of_conduct,Online,Hybrid|nullable|string|max:255',
+            'participants_profile' => 'required|string|max:255',
+            'participants_count' => 'required|integer|min:1',
+            'public_poster'      => 'required|in:With,Without',
+            'waiver_consent'     => 'required|in:With,Without',
             'types'              => 'nullable|array',
             'types.*'            => 'in:A0,A1,A2,A3,A4,A5,A6,A7,A8,A10',
-            'participants_count' => 'nullable|integer|min:0',
         ];
 
         $rules = array_merge($rules, [
             'funds'              => 'required|in:With Budget,ATC,No Fee',
             'amount'             => 'required_if:funds,With Budget,ATC|nullable|numeric|min:0',
+            'source'             => 'required_if:funds,With Budget|nullable|string|max:255',
+            'expected_collection' => 'required_if:funds,ATC|nullable|numeric|min:0',
+            'canteen'            => 'required_if:funds,With Budget,ATC|nullable|in:With,Without',
+            'procurement'        => 'required_if:funds,With Budget,ATC|nullable|in:With,Without',
         ]);
 
         $request->validate($rules, [
-            'time_start.required_with' => 'Please enter the activity start time.',
-            'time_end.required_with'   => 'Please enter the activity end time.',
+            'time_start.required' => 'Please enter the activity start time.',
+            'time_end.required'   => 'Please enter the activity end time.',
             'time_end.after'           => 'The activity end time must be after the start time.',
         ], [
             'time_start' => 'start time',
@@ -385,14 +409,14 @@ class ActivityController extends Controller
             ]);
         }
 
-        return redirect()->route('dean_osa.activity.index')
+        return redirect()->route($this->routeName('activity.index'))
                          ->with('success', 'Activity updated successfully.');
     }
 
     public function destroy(string $id)
     {
         Activity::destroy($id);
-        return redirect()->route('dean_osa.activity.index')
+        return redirect()->route($this->routeName('activity.index'))
                          ->with('success', 'Activity deleted successfully.');
     }
 

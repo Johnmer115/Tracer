@@ -1,4 +1,4 @@
-@extends('Dean_OSA.layouts.layout')
+@extends($layout ?? 'Dean_OSA.layouts.layout')
 
 @section('title', 'New Activity | SARF Tracking')
 @section('page-title', 'New Activity')
@@ -32,7 +32,7 @@
                         <span id="sarf-code-preview">{{ $activeSchoolYear->code }}s{{ str_pad($nextSequence ?? 1, 4, '0', STR_PAD_LEFT) }}</span>
                     </div>
                 @endif
-                <a href="{{ route('dean_osa.activity.index') }}" class="btn btn-filter" onclick="clearActivityDraft()">
+                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.activity.index') }}" class="btn btn-filter" onclick="clearActivityDraft()">
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
             </div>
@@ -63,7 +63,7 @@
                 @endforeach
             </div>
 
-            <form action="{{ route('dean_osa.activity.store') }}"
+            <form action="{{ route(($routePrefix ?? 'dean_osa') . '.activity.store') }}"
                   method="POST"
                   enctype="multipart/form-data"
                   id="sarf-form"
@@ -130,7 +130,7 @@
 
                             {{-- Department / Organization (multi-tag) --}}
                             <div class="form-group full">
-                                <label class="form-label">Department(s)</label>
+                                <label class="form-label">Department(s) <span class="req">*</span></label>
                                 <p class="field-hint">Choose from the current branch records, or add manual departments one at a time.</p>
                                 <div class="tag-input-wrap" id="dept-wrap">
                                     <div class="tag-list" id="dept-tags"></div>
@@ -153,6 +153,7 @@
                                     </div>
                                 </div>
                                 <div id="dept-hidden"></div>
+                                <span class="field-error" id="err-department">Please add at least one department.</span>
                             </div>
 
                             <div class="form-group full">
@@ -201,9 +202,10 @@
                             </div>
 
                             <div class="form-group full">
-                                <label class="form-label">Short Description</label>
+                                <label class="form-label">Short Description <span class="req">*</span></label>
                                 <textarea name="description" class="form-control" rows="3"
                                     placeholder="Brief description of the activity">{{ old('description') }}</textarea>
+                                <span class="field-error" id="err-description">Short description is required.</span>
                             </div>
 
                             {{-- Bulleted Objectives --}}
@@ -334,7 +336,7 @@
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">Start Time</label>
+                                <label class="form-label">Start Time <span class="req">*</span></label>
                                 <input type="time" name="time_start" class="form-control"
                                     id="time-start-input"
                                     value="{{ old('time_start') }}">
@@ -342,7 +344,7 @@
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">End Time</label>
+                                <label class="form-label">End Time <span class="req">*</span></label>
                                 <input type="time" name="time_end" class="form-control"
                                     id="time-end-input"
                                     value="{{ old('time_end') }}">
@@ -350,21 +352,23 @@
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">Number of Participants</label>
-                                <input type="number" name="participants_count" class="form-control" min="0"
+                                <label class="form-label">Number of Participants <span class="req">*</span></label>
+                                <input type="number" name="participants_count" class="form-control" min="1"
                                     placeholder="e.g. 150"
                                     value="{{ old('participants_count') }}">
+                                <span class="field-error" id="err-participants_count">Please enter the number of participants.</span>
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">Participant Profile</label>
+                                <label class="form-label">Participant Profile <span class="req">*</span></label>
                                 <input type="text" name="participants_profile" class="form-control"
                                     placeholder="e.g. All students, Faculty"
                                     value="{{ old('participants_profile') }}">
+                                <span class="field-error" id="err-participants_profile">Participant profile is required.</span>
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">Public Poster</label>
+                                <label class="form-label">Public Poster <span class="req">*</span></label>
                                 <div class="radio-group">
                                     <label class="radio-option">
                                         <input type="radio" name="public_poster" value="With"
@@ -375,10 +379,11 @@
                                             @checked(old('public_poster') === 'Without')> Without
                                     </label>
                                 </div>
+                                <span class="field-error" id="err-public_poster">Please select a public poster option.</span>
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">Waiver / Consent / Legal Concern</label>
+                                <label class="form-label">Waiver / Consent / Legal Concern <span class="req">*</span></label>
                                 <div class="radio-group">
                                     <label class="radio-option">
                                         <input type="radio" name="waiver_consent" value="With"
@@ -389,6 +394,7 @@
                                             @checked(old('waiver_consent') === 'Without')> Without
                                     </label>
                                 </div>
+                                <span class="field-error" id="err-waiver_consent">Please select a waiver / consent / legal concern option.</span>
                             </div>
 
                         </div>
@@ -450,12 +456,13 @@
 
                         {{-- Expected Collection (ATC only) --}}
                         <div class="form-group" id="expected-block" style="display:none;">
-                            <label class="form-label">Expected Collection (₱)</label>
+                            <label class="form-label">Expected Collection <span class="req">*</span></label>
                             <input type="number" name="expected_collection" class="form-control"
                                 id="expected-collection-input"
                                 step="0.01" min="0"
                                 placeholder="0.00"
                                 value="{{ old('expected_collection') }}">
+                            <span class="field-error" id="err-expected_collection">Please enter the expected collection.</span>
                         </div>
 
                         {{-- Canteen --}}
@@ -689,12 +696,22 @@ function validateStep(step, jumpOnFail = false) {
         showError('err-level', !levelOk);
         if (!levelOk) valid = false;
 
+        const deptOk = tags['dept'].length > 0;
+        showError('err-department', !deptOk);
+        if (!deptOk) valid = false;
+
         /* Title */
         const title  = document.querySelector('[name="title"]');
         const titleOk = title && title.value.trim() !== '';
         markInvalid(title, !titleOk);
         showError('err-title', !titleOk);
         if (!titleOk) valid = false;
+
+        const description = document.querySelector('[name="description"]');
+        const descriptionOk = description && description.value.trim() !== '';
+        markInvalid(description, !descriptionOk);
+        showError('err-description', !descriptionOk);
+        if (!descriptionOk) valid = false;
 
         /* Objectives */
         const objOk = objectives.length > 0;
@@ -733,11 +750,11 @@ function validateStep(step, jumpOnFail = false) {
         const timeEnd = document.querySelector('[name="time_end"]');
         const hasTimeStart = timeStart && timeStart.value.trim() !== '';
         const hasTimeEnd = timeEnd && timeEnd.value.trim() !== '';
-        const timeRangeOk = (!hasTimeStart && !hasTimeEnd) || (hasTimeStart && hasTimeEnd && timeEnd.value > timeStart.value);
+        const timeRangeOk = hasTimeStart && hasTimeEnd && timeEnd.value > timeStart.value;
         markInvalid(timeStart, !timeRangeOk && !hasTimeStart);
         markInvalid(timeEnd, !timeRangeOk && (!hasTimeEnd || timeEnd.value <= timeStart.value));
-        showError('err-time_start', hasTimeEnd && !hasTimeStart);
-        showError('err-time_end', hasTimeStart && (!hasTimeEnd || timeEnd.value <= timeStart.value));
+        showError('err-time_start', !hasTimeStart);
+        showError('err-time_end', !hasTimeEnd || (hasTimeStart && timeEnd.value <= timeStart.value));
         if (!timeRangeOk) valid = false;
 
         /* Mode of Conduct */
@@ -753,6 +770,8 @@ function validateStep(step, jumpOnFail = false) {
             markInvalid(venueIn, !venueOk);
             showError('err-venue', !venueOk);
             if (!venueOk) valid = false;
+            const venueTypeOk = !!document.querySelector('[name="venue_type"]:checked');
+            if (!venueTypeOk) valid = false;
         } else {
             showError('err-venue', false);
         }
@@ -767,6 +786,26 @@ function validateStep(step, jumpOnFail = false) {
         } else {
             showError('err-platform', false);
         }
+
+        const participantCount = document.querySelector('[name="participants_count"]');
+        const participantCountOk = participantCount && participantCount.value.trim() !== '' && parseInt(participantCount.value, 10) > 0;
+        markInvalid(participantCount, !participantCountOk);
+        showError('err-participants_count', !participantCountOk);
+        if (!participantCountOk) valid = false;
+
+        const participantProfile = document.querySelector('[name="participants_profile"]');
+        const participantProfileOk = participantProfile && participantProfile.value.trim() !== '';
+        markInvalid(participantProfile, !participantProfileOk);
+        showError('err-participants_profile', !participantProfileOk);
+        if (!participantProfileOk) valid = false;
+
+        const publicPosterOk = !!document.querySelector('[name="public_poster"]:checked');
+        showError('err-public_poster', !publicPosterOk);
+        if (!publicPosterOk) valid = false;
+
+        const waiverConsentOk = !!document.querySelector('[name="waiver_consent"]:checked');
+        showError('err-waiver_consent', !waiverConsentOk);
+        if (!waiverConsentOk) valid = false;
     }
 
     if (step === 2) {
@@ -797,6 +836,14 @@ function validateStep(step, jumpOnFail = false) {
                 if (!amtOk) valid = false;
             }
 
+            if (fundsVal === 'ATC') {
+                const expected = document.getElementById('expected-collection-input');
+                const expectedOk = expected && expected.value.trim() !== '' && parseFloat(expected.value) >= 0;
+                markInvalid(expected, !expectedOk);
+                showError('err-expected_collection', !expectedOk);
+                if (!expectedOk) valid = false;
+            }
+
             /* Canteen & Procurement (With Budget or ATC) */
             if (fundsVal === 'With Budget' || fundsVal === 'ATC') {
                 const canteenChecked    = document.querySelector('[name="canteen"]:checked');
@@ -820,16 +867,7 @@ function validateStep(step, jumpOnFail = false) {
     }
 
     if (step === 3) {
-        /* At least one attachment checked */
-        const checkedBoxes = document.querySelectorAll('[name="types[]"]:checked');
-        const attachOk     = checkedBoxes.length > 0;
-        showError('err-attachments', !attachOk);
-        if (!attachOk) valid = false;
-
-        checkedBoxes.forEach(cb => {
-            const errEl = document.getElementById('err-file_' + cb.value);
-            if (errEl) errEl.style.display = 'none';
-        });
+        showError('err-attachments', false);
     }
 
     if (!valid) {
@@ -1012,8 +1050,12 @@ function populateActivityContextOptions() {
 
     if (!departmentSelect || !organizationSelect) return;
 
-    const matchingDepartments = activityDepartments.filter(department => String(department.branch_id) === String(branchId));
-    const matchingOrganizations = activityOrganizations.filter(organization => String(organization.branch_id) === String(branchId));
+    const matchingDepartments = branchId
+        ? activityDepartments.filter(department => String(department.branch_id) === String(branchId))
+        : activityDepartments;
+    const matchingOrganizations = branchId
+        ? activityOrganizations.filter(organization => String(organization.branch_id) === String(branchId))
+        : activityOrganizations;
 
     departmentSelect.innerHTML = '<option value="">Select department from branch</option>' +
         matchingDepartments.map(department =>
@@ -1026,8 +1068,12 @@ function populateActivityContextOptions() {
             return `<option value="${organization.id}" data-name="${escapeHtml(organization.name)}" data-level="${escapeHtml(organization.level || '')}">${escapeHtml(optionLabel(organization) + suffix)}</option>`;
         }).join('');
 
-    departmentSelect.disabled = !branchId || matchingDepartments.length === 0;
-    organizationSelect.disabled = !branchId || matchingOrganizations.length === 0;
+    departmentSelect.disabled = matchingDepartments.length === 0;
+    organizationSelect.disabled = matchingOrganizations.length === 0;
+    departmentSelect.value = '';
+    organizationSelect.value = '';
+    departmentSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    organizationSelect.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 function addValueTag(key, val) {

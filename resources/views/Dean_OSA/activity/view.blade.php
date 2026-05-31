@@ -1,4 +1,4 @@
-@extends('Dean_OSA.layouts.layout')
+@extends($layout ?? 'Dean_OSA.layouts.layout')
 
 @section('title', 'View Activity | SARF Tracking')
 @section('page-title', 'View Activity')
@@ -31,7 +31,7 @@
                 </div>
                 {{-- Status pill --}}
                 @include('partials.sarf-status-badge', ['activity' => $activity])
-                <a href="{{ route('dean_osa.activity.index') }}" class="btn btn-filter">
+                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.activity.index') }}" class="btn btn-filter">
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
             </div>
@@ -169,11 +169,6 @@
                         <div class="show-value">{{ $activity->activity_level ?? '—' }}</div>
                     </div>
 
-                    <div class="show-field">
-                        <div class="show-label">Public Poster</div>
-                        <div class="show-value">{{ $activity->public_poster ?? '—' }}</div>
-                    </div>
-
 
                 </div>
             </div>
@@ -236,6 +231,15 @@
                     <div class="show-field">
                         <div class="show-label">Participant Profile</div>
                         <div class="show-value">{{ $activity->participants_profile ?? '—' }}</div>
+                    </div>
+                    <div class="show-field">
+                        <div class="show-label">Public Poster</div>
+                        <div class="show-value">{{ $activity->public_poster ?? '---' }}</div>
+                    </div>
+
+                    <div class="show-field">
+                        <div class="show-label">Waiver / Consent / Legal Concern</div>
+                        <div class="show-value">{{ $activity->waiver_consent ?? '---' }}</div>
                     </div>
 
                 </div>
@@ -333,13 +337,6 @@
                     <span style="margin-left:auto; font-size:12px; font-weight:400; color:#64748b;">
                         {{ $docs->count() }} of {{ count($sarfLabels) }} types attached
                     </span>
-                    @if($hasDigitalDocs)
-                        <a href="{{ route('dean_osa.sarf-documents.print-activity', $activity) }}"
-                           target="_blank"
-                           class="attachment-view-btn">
-                            <i class="fas fa-print"></i> Print All
-                        </a>
-                    @endif
                 </div>
 
                 @if($docs->isEmpty())
@@ -356,10 +353,9 @@
                                 </div>
                                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                                     @if($docs[$type]->file_path)
-                                        <a href="{{ route('dean_osa.sarf-documents.show', $docs[$type]) }}"
-                                           target="_blank"
+                                        <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', ['document' => $docs[$type], 'download' => 1]) }}"
                                            class="attachment-view-btn">
-                                            <i class="fas fa-file-pdf"></i> View PDF
+                                            <i class="fas fa-download"></i> Download File
                                         </a>
                                     @else
                                         <span class="attachment-view-btn">
@@ -381,7 +377,7 @@
                     </span>
                 </div>
                 <div class="show-actions-right">
-                    <a href="{{ route('dean_osa.activity.index') }}" class="btn btn-filter">
+                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.activity.index') }}" class="btn btn-filter">
                         <i class="fas fa-arrow-left"></i> Back to List
                     </a>
                 </div>

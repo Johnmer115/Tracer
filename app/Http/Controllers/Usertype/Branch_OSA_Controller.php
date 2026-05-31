@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Activity;
 use App\Models\DashboardMessage;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class Branch_OSA_Controller extends Controller
 {
@@ -49,58 +48,7 @@ class Branch_OSA_Controller extends Controller
             'messages'   => $messages,
         ]);
     }
-
-    /**
-     * Tracer — list activities for this user's branch with search + pagination.
-     */
-    public function tracerIndex(Request $request)
-    {
-        $branchId = auth()->user()->branch_id;
-        $search   = trim((string) $request->query('search', ''));
-        $perPage  = (int) $request->query('per_page', 10);
-
-        if (!in_array($perPage, [10, 25, 50], true)) {
-            $perPage = 10;
-        }
-
-        $activities = Activity::with('branch')
-            ->where('branch_id', $branchId)
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($inner) use ($search) {
-                    $inner->where('title',  'like', "%{$search}%")
-                          ->orWhere('code',   'like', "%{$search}%")
-                          ->orWhere('status', 'like', "%{$search}%");
-                });
-            })
-            ->latest()
-            ->paginate($perPage)
-            ->withQueryString();
-
-        $branchName = auth()->user()->branch->name ?? 'Your Branch';
-
-        return view('Branch_OSA.tracer.index', compact('activities', 'branchName'));
-    }
-
-    /**
-     * Tracer show — read-only view of a specific activity (scoped to branch).
-     */
-    public function tracerShow(string $id)
-    {
-        $branchId = auth()->user()->branch_id;
-
-        $activity = Activity::with([
-            'sarfDocuments',
-            'branch',
-            'receivedBy',
-            'encodedBy',
-        ])
-            ->where('branch_id', $branchId)
-            ->findOrFail($id);
-
-        return view('Branch_OSA.tracer.show', compact('activity'));
-    }
-
-    /* ── Private helpers ── */
+    /* Private helpers */
 
     private function approvalLocation(Activity $activity): ?string
     {

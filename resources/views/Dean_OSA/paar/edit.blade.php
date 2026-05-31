@@ -1,4 +1,4 @@
-@extends('Dean_OSA.layouts.layout')
+@extends($layout ?? 'Dean_OSA.layouts.layout')
 
 @section('title', 'Edit PAAR | SARF Tracking')
 @section('page-title', 'Edit PAAR')
@@ -21,21 +21,30 @@
         </div>
     @endif
 
-    <div class="notice-card">
-        <i class="fas fa-info-circle"></i>
-        <span>
-            Modify the accomplishment files for
-            <strong>{{ $activity->code }}</strong> - {{ $activity->title }}.
-        </span>
-    </div>
-
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title"><i class="fas fa-edit"></i> Edit PAAR Accomplishment</div>
+            <div class="panel-controls">
+                <div class="sarf-code-display sarf-code-display--header">
+                    <span class="code-label">SARF Code</span>
+                    <i class="fas fa-hashtag" style="color:#93c5fd; font-size:12px;"></i>
+                    <span>{{ $activity->code }}</span>
+                </div>
+                @include('partials.sarf-status-badge', ['activity' => $activity])
+                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.paar.index') }}" class="btn btn-filter">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+        <div style="padding:24px;">
     <div class="show-section">
         <div class="show-section-header">
             <i class="fas fa-edit"></i> Edit PAAR Accomplishment Documents
         </div>
         <div style="padding:16px 20px;">
-            <form action="{{ route('dean_osa.paar.update', $activity->id) }}"
+            <form action="{{ route(($routePrefix ?? 'dean_osa') . '.paar.update', $activity->id) }}"
                 method="POST" enctype="multipart/form-data"
+                id="paarAccomplishmentForm"
                 style="display:flex; flex-direction:column; gap:16px;">
                 @csrf
                 @method('PATCH')
@@ -122,14 +131,14 @@
                                         <i class="fas fa-eye"></i> Preview Selected File
                                     </a>
                                     @if($currentDocument?->file_path)
-                                        <a href="{{ route('dean_osa.sarf-documents.show', $currentDocument) }}"
+                                        <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', $currentDocument) }}"
                                             target="_blank" class="document-check-btn">
                                             <i class="fas fa-file-pdf"></i> View Document
                                         </a>
                                         <button type="button" class="document-check-btn" onclick="toggleReplaceDropzone('{{ $fieldId }}')">
                                             <i class="fas fa-pencil-alt"></i> Replace File
                                         </button>
-                                        <a href="{{ route('dean_osa.sarf-documents.show', ['document' => $currentDocument, 'download' => 1]) }}"
+                                        <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', ['document' => $currentDocument, 'download' => 1]) }}"
                                             class="document-check-btn document-download-btn">
                                             <i class="fas fa-download"></i> Download File
                                         </a>
@@ -159,8 +168,7 @@
                                         Next <i class="fas fa-arrow-right"></i>
                                     </button>
                                 @else
-                                    <button type="submit" class="btn btn-add"
-                                        onclick="return confirm('Update this accomplishment and mark the activity as completed?');">
+                                    <button type="button" class="btn btn-add" onclick="openPaarConfirmModal()">
                                         <i class="fas fa-check-circle"></i> Save Changes
                                     </button>
                                 @endif
@@ -169,19 +177,54 @@
                     @endforeach
                 </div>
 
-                <div style="display:flex; justify-content:space-between;">
-                    <a href="{{ route('dean_osa.paar.index') }}" class="btn btn-filter">
-                        <i class="fas fa-arrow-left"></i> Back to List
-                    </a>
-                </div>
             </form>
         </div>
     </div>
+        </div>
+    </div>
 </section>
+
+<div class="paar-confirm-overlay" id="paarConfirmModal" aria-hidden="true">
+    <div class="paar-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="paarConfirmTitle">
+        <div class="paar-confirm-head">
+            <i class="fas fa-check-circle"></i>
+            <span id="paarConfirmTitle">Save PAAR changes?</span>
+        </div>
+        <div class="paar-confirm-body">
+            This will update the PAAR documents and keep the activity marked as completed.
+        </div>
+        <div class="paar-confirm-actions">
+            <button type="button" class="btn btn-filter" onclick="closePaarConfirmModal()">Cancel</button>
+            <button type="button" class="btn btn-add" onclick="submitPaarAccomplishment()">
+                <i class="fas fa-check-circle"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
 <script>
+function openPaarConfirmModal() {
+    const modal = document.getElementById('paarConfirmModal');
+    if (modal) {
+        modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+}
+
+function closePaarConfirmModal() {
+    const modal = document.getElementById('paarConfirmModal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+}
+
+function submitPaarAccomplishment() {
+    document.getElementById('paarAccomplishmentForm')?.submit();
+}
+
 function updateApprovedFileName(type, input) {
     const display = document.getElementById('approved_fname_' + type);
     const preview = document.getElementById('preview_btn_' + type);

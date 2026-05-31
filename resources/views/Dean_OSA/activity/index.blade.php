@@ -1,4 +1,4 @@
-@extends('Dean_OSA.layouts.layout')
+@extends($layout ?? 'Dean_OSA.layouts.layout')
 
 @section('title', 'Org Activities | SARF Tracking')
 @section('page-title', 'Org Activities')
@@ -12,7 +12,7 @@
     <div class="panel">
         <div class="panel-header">
             <div class="panel-title"><i class="fas fa-file-alt"></i> SARF Requests</div>
-            <form method="GET" action="{{ route('dean_osa.activity.index') }}" class="panel-controls">
+            <form method="GET" action="{{ route(($routePrefix ?? 'dean_osa') . '.activity.index') }}" class="panel-controls">
                 <div class="search-wrap">
                     <i class="fas fa-search"></i>
                     <input
@@ -23,24 +23,24 @@
                         placeholder="Search title, code, status…">
                 </div>
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
-                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => 'dean_osa.activity.index'])
+                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => ($routePrefix ?? 'dean_osa') . '.activity.index'])
                 @include('Dean_OSA.partials.sarf-filters', [
                     'filterMode' => 'button',
-                    'filterRoute' => 'dean_osa.activity.index',
+                    'filterRoute' => ($routePrefix ?? 'dean_osa') . '.activity.index',
                     'pipelineStatuses' => [
                         'pending' => 'Pending',
                         'for revision' => 'For Revision',
                         'for reschedule' => 'For Rescheduling',
                     ],
                 ])
-                <a href="{{ route('dean_osa.activity.create') }}" class="btn btn-add">
+                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.activity.create') }}" class="btn btn-add">
                     <i class="fas fa-plus"></i> New Activity
                 </a>
             </form>
         </div>
 
         @include('Dean_OSA.partials.sarf-filters', [
-            'filterRoute' => 'dean_osa.activity.index',
+            'filterRoute' => ($routePrefix ?? 'dean_osa') . '.activity.index',
             'pipelineStatuses' => [
                 'pending' => 'Pending',
                 'for revision' => 'For Revision',
@@ -201,31 +201,28 @@
                             {{-- Actions --}}
                             <td>
                                 <div class="action-cell">
-                                    <a href="{{ route('dean_osa.activity.show', $activity->id) }}"
+                                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.activity.show', $activity->id) }}"
                                         class="abtn abtn-view" title="View Activity Details">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     @if($activity->status === 'for reschedule' || $activity->modification_type === 'rescheduling')
-                                        <a href="{{ route('dean_osa.activity.edit', $activity->id) }}"
+                                        <a href="{{ route(($routePrefix ?? 'dean_osa') . '.activity.edit', $activity->id) }}"
                                             class="abtn abtn-resched" title="Reschedule Activity">
                                             <i class="fas fa-calendar-alt"></i>
                                         </a>
                                     @elseif(in_array($activity->status, ['pending', 'for revision']))
-                                        <a href="{{ route('dean_osa.activity.edit', $activity->id) }}"
+                                        <a href="{{ route(($routePrefix ?? 'dean_osa') . '.activity.edit', $activity->id) }}"
                                             class="abtn abtn-edit" title="Edit Activity">
                                             <i class="fas fa-pencil-alt"></i>
                                         </a>
                                     @endif
                                     @if(in_array($activity->status, ['pending', 'for revision', 'for reschedule']))
-                                        <form action="{{ route('dean_osa.activity.destroy', $activity->id) }}"
-                                            method="POST" style="display:inline;"
-                                            onsubmit="return confirm('Are you sure you want to delete this activity? This action cannot be undone.');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="abtn abtn-del" title="Delete Activity">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button"
+                                            class="abtn abtn-del"
+                                            title="Delete Activity"
+                                            onclick="openDeleteModal('{{ route(($routePrefix ?? 'dean_osa') . '.activity.destroy', $activity->id) }}', '{{ addslashes($activity->code) }}')">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
                                     @endif
                                 </div>
                             </td>
@@ -248,11 +245,11 @@
                     Showing {{ $activities->firstItem() ?? 0 }}–{{ $activities->lastItem() ?? 0 }}
                     of {{ $activities->total() }} entries
                 </span>
-                <form method="GET" action="{{ route('dean_osa.activity.index') }}" class="show-wrap">
+                <form method="GET" action="{{ route(($routePrefix ?? 'dean_osa') . '.activity.index') }}" class="show-wrap">
                     @if(request('search'))
                         <input type="hidden" name="search" value="{{ request('search') }}">
                     @endif
-                    @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => 'dean_osa.activity.index'])
+                    @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => ($routePrefix ?? 'dean_osa') . '.activity.index'])
                     Show
                     <select name="per_page" onchange="this.form.submit()">
                         <option value="10" @selected(request('per_page', 10) == 10)>10</option>
@@ -286,5 +283,155 @@
         </div>
     </div>
 </section>
+
+{{-- DELETE MODAL --}}
+<div class="mod-overlay" id="deleteOverlay" onclick="closeDeleteModal()">
+    <div class="mod-modal delete-modal" onclick="event.stopPropagation()">
+        <div class="mod-modal-header delete-modal-header">
+            <div class="mod-modal-icon delete-modal-icon">
+                <i class="fas fa-trash-alt"></i>
+            </div>
+            <div>
+                <h3 class="mod-modal-title">Delete Activity</h3>
+                <p class="mod-modal-subtitle" id="deleteSubtitle">SARF Code: -</p>
+            </div>
+            <button type="button" class="mod-close" onclick="closeDeleteModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="deleteForm" method="POST" action="">
+            @csrf
+            @method('DELETE')
+
+            <div class="mod-modal-body">
+                <div class="delete-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>This will permanently delete the activity and its uploaded SARF documents.</strong>
+                        <span>This action cannot be undone.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mod-modal-footer">
+                <button type="button" class="btn btn-filter" onclick="closeDeleteModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash-alt"></i> Delete
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.mod-overlay {
+    display:none;
+    position:fixed; inset:0; z-index:9999;
+    background:rgba(15,23,42,0.55);
+    backdrop-filter:blur(4px);
+    align-items:center; justify-content:center;
+    animation:modFadeIn .2s ease;
+}
+.mod-overlay.active { display:flex; }
+
+@keyframes modFadeIn  { from { opacity:0; } to { opacity:1; } }
+@keyframes modSlideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+.mod-modal {
+    background:#fff;
+    border-radius:16px;
+    box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);
+    width:520px; max-width:94vw;
+    overflow:hidden;
+    animation:modSlideUp .25s ease;
+}
+.mod-modal-header {
+    display:flex; align-items:center; gap:14px;
+    padding:20px 24px;
+    background:linear-gradient(135deg,#f0f9ff 0%,#e0f2fe 100%);
+    border-bottom:1px solid #e0e7ff;
+    position:relative;
+}
+.mod-modal-icon {
+    width:44px; height:44px; border-radius:12px;
+    background:#dbeafe; color:#1d4ed8;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; flex-shrink:0;
+}
+.mod-modal-title {
+    font-size:17px; font-weight:700; color:#0f172a; margin:0;
+}
+.mod-modal-subtitle {
+    font-size:12px; color:#64748b; margin:2px 0 0; font-weight:500;
+}
+.mod-close {
+    position:absolute; top:16px; right:16px;
+    background:none; border:none; cursor:pointer;
+    color:#94a3b8; font-size:16px;
+    width:32px; height:32px; border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    transition:all .15s;
+}
+.mod-close:hover { background:#e2e8f0; color:#334155; }
+.mod-modal-body { padding:24px; }
+.mod-modal-footer {
+    display:flex; justify-content:flex-end; gap:10px;
+    padding:16px 24px;
+    background:#f8fafc;
+    border-top:1px solid #e5e7eb;
+}
+.delete-modal-header {
+    background:linear-gradient(135deg,#fff1f2 0%,#ffe4e6 100%);
+    border-bottom-color:#fecdd3;
+}
+.delete-modal-icon {
+    background:#ffe4e6;
+    color:#be123c;
+}
+.delete-warning {
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    padding:14px 16px;
+    border:1px solid #fecdd3;
+    border-radius:12px;
+    background:#fff1f2;
+    color:#9f1239;
+    font-size:13px;
+    line-height:1.5;
+}
+.delete-warning i {
+    color:#e11d48;
+    margin-top:2px;
+}
+.delete-warning span {
+    display:block;
+    margin-top:2px;
+    color:#be123c;
+}
+</style>
+
+<script>
+function openDeleteModal(action, code) {
+    const overlay = document.getElementById('deleteOverlay');
+    const form = document.getElementById('deleteForm');
+    const subtitle = document.getElementById('deleteSubtitle');
+
+    form.action = action;
+    subtitle.textContent = 'SARF Code: ' + code;
+    overlay.classList.add('active');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteOverlay').classList.remove('active');
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDeleteModal();
+});
+</script>
 
 @endsection

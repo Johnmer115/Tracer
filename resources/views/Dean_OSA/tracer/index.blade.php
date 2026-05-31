@@ -1,4 +1,4 @@
-@extends('Dean_OSA.layouts.layout')
+@extends($layout ?? 'Dean_OSA.layouts.layout')
 
 @section('title', 'Org Activities | SARF Tracking')
 @section('page-title', 'Org Activities')
@@ -110,7 +110,7 @@
     <div class="panel">
         <div class="panel-header">
             <div class="panel-title"><i class="fas fa-file-alt"></i> SARF Requests</div>
-            <form method="GET" action="{{ route('dean_osa.tracer.index') }}" class="panel-controls">
+            <form method="GET" action="{{ route(($routePrefix ?? 'dean_osa') . '.tracer.index') }}" class="panel-controls">
                 <div class="search-wrap">
                     <i class="fas fa-search"></i>
                     <input
@@ -121,16 +121,18 @@
                         placeholder="Search title, code, status…">
                 </div>
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
-                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden',  'filterRoute' => 'dean_osa.tracer.index'])
-                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'button',  'filterRoute' => 'dean_osa.tracer.index'])
-                <a href="{{ route('dean_osa.activity.create') }}" class="btn btn-add">
-                    <i class="fas fa-plus"></i> New Activity
-                </a>
+                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden',  'filterRoute' => ($routePrefix ?? 'dean_osa') . '.tracer.index'])
+                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'button',  'filterRoute' => ($routePrefix ?? 'dean_osa') . '.tracer.index'])
+                @if (Route::has(($routePrefix ?? 'dean_osa') . '.activity.create'))
+                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.activity.create') }}" class="btn btn-add">
+                        <i class="fas fa-plus"></i> New Activity
+                    </a>
+                @endif
             </form>
         </div>
 
         {{-- Active filter chips + filter drawer --}}
-        @include('Dean_OSA.partials.sarf-filters', ['filterRoute' => 'dean_osa.tracer.index'])
+        @include('Dean_OSA.partials.sarf-filters', ['filterRoute' => ($routePrefix ?? 'dean_osa') . '.tracer.index'])
 
         <div class="table-wrap">
             <table>
@@ -279,7 +281,7 @@
                             </td>
                             <td>
                                 <div class="action-cell">
-                                    <a href="{{ route('dean_osa.tracer.show', $activity->id) }}"
+                                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.tracer.show', $activity->id) }}"
                                         class="abtn abtn-view" title="View Activity Tracer">
                                         <i class="fas fa-route"></i>
                                     </a>
@@ -304,11 +306,11 @@
                     Showing {{ $activities->firstItem() ?? 0 }}–{{ $activities->lastItem() ?? 0 }}
                     of {{ $activities->total() }} entries
                 </span>
-                <form method="GET" action="{{ route('dean_osa.tracer.index') }}" class="show-wrap">
+                <form method="GET" action="{{ route(($routePrefix ?? 'dean_osa') . '.tracer.index') }}" class="show-wrap">
                     @if(request('search'))
                         <input type="hidden" name="search" value="{{ request('search') }}">
                     @endif
-                    @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => 'dean_osa.tracer.index'])
+                    @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => ($routePrefix ?? 'dean_osa') . '.tracer.index'])
                     Show
                     <select name="per_page" onchange="this.form.submit()">
                         <option value="10" @selected(request('per_page', 10) == 10)>10</option>

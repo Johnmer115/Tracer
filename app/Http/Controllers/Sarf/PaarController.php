@@ -25,7 +25,7 @@ class PaarController extends Controller
         }
 
         $filters = SarfListFilters::fromRequest($request);
-        $query = Activity::with('branch')
+        $query = Activity::with(['branch', 'sarfDocuments'])
             ->whereIn('status', ['approved', 'completed'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
@@ -92,12 +92,16 @@ class PaarController extends Controller
 
         if (! in_array($activity->status, ['approved', 'completed'], true)) {
             return redirect()
-                ->route('dean_osa.paar.index')
+                ->route($this->routeName('paar.index'))
                 ->withErrors(['status' => 'Only approved or completed activities can be opened for accomplishment.']);
         }
 
         $documents = $activity->sarfDocuments->keyBy('type');
         $accomplishmentDocuments = $this->accomplishmentDocumentTypes();
+
+        if ($this->hasAccomplishmentInput($documents, $accomplishmentDocuments)) {
+            return redirect()->route($this->routeName('paar.edit'), $activity->id);
+        }
 
         return view('Dean_OSA.paar.act', compact('activity', 'documents', 'accomplishmentDocuments'));
     }
@@ -112,7 +116,7 @@ class PaarController extends Controller
 
         if ($activity->status !== 'approved' && $activity->status !== 'completed') {
             return redirect()
-                ->route('dean_osa.paar.index')
+                ->route($this->routeName('paar.index'))
                 ->withErrors(['status' => 'Only approved activities can be moved to completed.']);
         }
 
@@ -202,7 +206,7 @@ class PaarController extends Controller
         ]);
 
         return redirect()
-            ->route('dean_osa.paar.index')
+            ->route($this->routeName('paar.index'))
             ->with('success', 'Activity accomplishment completed.');
     }
 
@@ -238,5 +242,16 @@ class PaarController extends Controller
                 'label' => 'Summary Report of Accomplishment',
             ],
         ];
+    }
+
+    private function hasAccomplishmentInput($documents, array $accomplishmentDocuments): bool
+    {
+        foreach (array_keys($accomplishmentDocuments) as $type) {
+            if ($documents->has($type)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

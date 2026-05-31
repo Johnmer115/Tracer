@@ -19,12 +19,12 @@
     <p class="sb-section">SARF</p>
     <ul class="sb-list">
         <li>
-            <a href="{{ route('dean_osa.activity.index') }}" class="sb-item {{ request()->routeIs('dean_osa.activity.index') ? 'active' : '' }}" title="Activities">
+            <a href="{{ route('dean_osa.activity.index') }}" class="sb-item {{ request()->routeIs('dean_osa.activity.*') ? 'active' : '' }}" title="Activities">
                 <i class="fas fa-file-alt"></i><span>Activities</span>
             </a>
         </li>
         <li>
-            <a href="{{ route('dean_osa.approval.index') }}" class="sb-item {{ request()->routeIs('dean_osa.approval.index') ? 'active' : '' }}" title="Approvals">
+            <a href="{{ route('dean_osa.approval.index') }}" class="sb-item {{ request()->routeIs('dean_osa.approval.*') ? 'active' : '' }}" title="Approvals">
                 <i class="fas fa-check-circle"></i><span>Approvals</span>
             </a>
         </li>
@@ -43,12 +43,12 @@
     <p class="sb-section">Management</p>
     <ul class="sb-list">
         <li>
-            <a href="{{ route('dean_osa.schoolyear.index') }}" class="sb-item {{ request()->routeIs('dean_osa.schoolyear.index') ? 'active' : '' }}" title="School Year">
+            <a href="{{ route('dean_osa.schoolyear.index') }}" class="sb-item {{ request()->routeIs('dean_osa.schoolyear.*') ? 'active' : '' }}" title="School Year">
                 <i class="fas fa-calendar"></i><span>School Year</span>
             </a>
         </li>
         <li>
-            <a href="{{ route('dean_osa.account.index') }}" class="sb-item {{ request()->routeIs('dean_osa.account.index') ? 'active' : '' }}" title="Account">
+            <a href="{{ route('dean_osa.account.index') }}" class="sb-item {{ request()->routeIs('dean_osa.account.*') ? 'active' : '' }}" title="Account">
                 <i class="fas fa-users"></i><span>Account</span>
             </a>
         </li>

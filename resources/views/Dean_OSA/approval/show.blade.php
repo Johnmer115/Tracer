@@ -1,4 +1,4 @@
-@extends('Dean_OSA.layouts.layout')
+@extends($layout ?? 'Dean_OSA.layouts.layout')
 
 @section('title', 'Review Activity | SARF Tracking')
 @section('page-title', 'Review Activity')
@@ -220,7 +220,7 @@
                     <i class="fas fa-hashtag" style="color:#93c5fd; font-size:12px;"></i>
                     <span>{{ $activity->code }}</span>
                 </div>
-                <a href="{{ route('dean_osa.approval.index') }}" class="btn btn-filter">
+                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.approval.index') }}" class="btn btn-filter">
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
             </div>
@@ -261,7 +261,7 @@
             @if(!in_array($activity->status, ['approved','cancelled']))
             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; align-items:center;">
                 @if($activity->status === 'ongoing')
-                    <form action="{{ route('dean_osa.approval.status', $activity->id) }}" method="POST">
+                    <form action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.status', $activity->id) }}" method="POST">
                         @csrf
                         <input type="hidden" name="status" value="for approval">
                         <input type="hidden" name="current_tab" value="2">
@@ -272,7 +272,7 @@
                     </form>
                 @endif
                 @if($activity->status === 'for revision')
-                    <form action="{{ route('dean_osa.approval.status', $activity->id) }}" method="POST">
+                    <form action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.status', $activity->id) }}" method="POST">
                         @csrf
                         <input type="hidden" name="status" value="ongoing">
                         <input type="hidden" name="current_tab" value="1">
@@ -290,7 +290,7 @@
                                 <i class="ti ti-adjustments-horizontal"></i> Request Modification
                             </button>
                         @endif
-                        <form action="{{ route('dean_osa.approval.status', $activity->id) }}" method="POST"
+                        <form action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.status', $activity->id) }}" method="POST"
                             onsubmit="return confirm('Cancel this activity?');">
                             @csrf
                             <input type="hidden" name="status" value="cancelled">
@@ -471,11 +471,6 @@
                             <div class="show-value">{{ $activity->activity_level ?? '—' }}</div>
                         </div>
 
-                        <div class="show-field">
-                            <div class="show-label">Public Poster</div>
-                            <div class="show-value">{{ $activity->public_poster ?? '—' }}</div>
-                        </div>
-
                     </div>
                 </div>
 
@@ -535,6 +530,15 @@
                         <div class="show-field">
                             <div class="show-label">Participant Profile</div>
                             <div class="show-value">{{ $activity->participants_profile ?? '—' }}</div>
+                        </div>
+                        <div class="show-field">
+                            <div class="show-label">Public Poster</div>
+                            <div class="show-value">{{ $activity->public_poster ?? '---' }}</div>
+                        </div>
+
+                        <div class="show-field">
+                            <div class="show-label">Waiver / Consent / Legal Concern</div>
+                            <div class="show-value">{{ $activity->waiver_consent ?? '---' }}</div>
                         </div>
 
 
@@ -651,15 +655,6 @@
                         <span style="margin-left:auto; font-size:12px; font-weight:400; color:#64748b;">
                             {{ $docs->count() }} of {{ count($sarfLabels) }} types attached
                         </span>
-                        @php
-                            $hasDigitalDocs = $docs->contains(fn ($doc) => filled($doc->file_path));
-                        @endphp
-                        @if($hasDigitalDocs)
-                            <a href="{{ route('dean_osa.sarf-documents.print-activity', $activity) }}"
-                                target="_blank" class="attachment-view-btn">
-                                <i class="fas fa-print"></i> Print All
-                            </a>
-                        @endif
                     </div>
                     @if($docs->isEmpty())
                         <div style="padding:20px; text-align:center; color:#94a3b8; font-style:italic; font-size:13px;">
@@ -687,9 +682,9 @@
                                     </div>
                                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
                                         @if($docs[$type]->file_path)
-                                            <a href="{{ route('dean_osa.sarf-documents.show', $docs[$type]) }}"
-                                                target="_blank" class="attachment-view-btn">
-                                                <i class="fas fa-file-pdf"></i> View PDF
+                                            <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', ['document' => $docs[$type], 'download' => 1]) }}"
+                                                class="attachment-view-btn">
+                                                <i class="fas fa-download"></i> Download File
                                             </a>
                                         @else
                                             <span class="attachment-view-btn">
@@ -810,7 +805,7 @@
                                                     : 'Waiting for previous signatory.') }}
                                         </span>
                                     @else
-                                        <form action="{{ route('dean_osa.approval.approve', $activity->id) }}"
+                                        <form action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.approve', $activity->id) }}"
                                             method="POST"
                                             class="approval-row-form">
                                             @csrf
@@ -905,7 +900,7 @@
                                                     : 'Waiting for previous signatory.') }}
                                         </span>
                                     @else
-                                        <form action="{{ route('dean_osa.approval.approve', $activity->id) }}"
+                                        <form action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.approve', $activity->id) }}"
                                             method="POST"
                                             class="approval-row-form">
                                             @csrf
@@ -1075,7 +1070,7 @@
                             </div>
                         </div>
 
-                        <form action="{{ route('dean_osa.approval.document.store', $activity->id) }}"
+                        <form action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.document.store', $activity->id) }}"
                             method="POST" enctype="multipart/form-data"
                             style="display:flex; flex-direction:column; gap:16px;">
                             @csrf
@@ -1133,11 +1128,11 @@
                                     <i class="fas fa-eye"></i> Preview Selected File
                                 </a>
                                 @if($approvedSarfDoc?->file_path)
-                                    <a href="{{ route('dean_osa.sarf-documents.show', $approvedSarfDoc) }}"
+                                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', $approvedSarfDoc) }}"
                                         target="_blank" class="document-check-btn">
                                         <i class="fas fa-file-pdf"></i> View Document
                                     </a>
-                                    <a href="{{ route('dean_osa.sarf-documents.show', ['document' => $approvedSarfDoc, 'download' => 1]) }}"
+                                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', ['document' => $approvedSarfDoc, 'download' => 1]) }}"
                                         class="document-check-btn document-download-btn">
                                         <i class="fas fa-download"></i> Download File
                                     </a>
@@ -1276,11 +1271,11 @@
                                     <span style="font-weight:600;">{{ $reschedulePaperDoc->original_filename }}</span>
                                 </div>
                                 <div class="document-check-row" style="padding:16px;">
-                                    <a href="{{ route('dean_osa.sarf-documents.show', $reschedulePaperDoc) }}"
+                                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', $reschedulePaperDoc) }}"
                                         target="_blank" class="document-check-btn">
                                         <i class="fas fa-file-pdf"></i> View Reschedule Paper
                                     </a>
-                                    <a href="{{ route('dean_osa.sarf-documents.show', ['document' => $reschedulePaperDoc, 'download' => 1]) }}"
+                                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', ['document' => $reschedulePaperDoc, 'download' => 1]) }}"
                                         class="document-check-btn document-download-btn">
                                         <i class="fas fa-download"></i> Download File
                                     </a>
@@ -1447,7 +1442,7 @@
                                         </div>
                                     </div>
                                 @else
-                                <form action="{{ route('dean_osa.approval.reschedule.approve', $activity->id) }}"
+                                <form action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.reschedule.approve', $activity->id) }}"
                                     method="POST"
                                     id="reschedApprovalForm">
                                     @csrf
@@ -1532,7 +1527,7 @@
                                                 <div>Save Step 1 status as <strong>Approved</strong> first to unlock document upload.</div>
                                             </div>
                                         @endif
-                                            <form action="{{ route('dean_osa.approval.reschedule.approve', $activity->id) }}"
+                                            <form action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.reschedule.approve', $activity->id) }}"
                                                 method="POST"
                                                 enctype="multipart/form-data"
                                                 id="reschedDocForm">
@@ -1576,11 +1571,11 @@
 
                                         @if($reschedulePaperDoc)
                                             <div class="document-check-row" style="margin-top:14px;">
-                                                <a href="{{ route('dean_osa.sarf-documents.show', $reschedulePaperDoc) }}"
+                                                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', $reschedulePaperDoc) }}"
                                                     target="_blank" class="document-check-btn">
                                                     <i class="fas fa-file-pdf"></i> View Current Paper
                                                 </a>
-                                                <a href="{{ route('dean_osa.sarf-documents.show', ['document' => $reschedulePaperDoc, 'download' => 1]) }}"
+                                                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', ['document' => $reschedulePaperDoc, 'download' => 1]) }}"
                                                     class="document-check-btn document-download-btn">
                                                     <i class="fas fa-download"></i> Download File
                                                 </a>
@@ -1828,7 +1823,7 @@ function openModificationModal(activityId, code, status) {
     const rescheduleInput = rescheduleCard?.querySelector('input');
     const canReschedule = status === 'approved';
 
-    form.action = `{{ url('dean_osa/approval') }}/${activityId}/modification`;
+    form.action = `{{ url(($routePrefix ?? 'dean_osa') . '/approval') }}/${activityId}/modification`;
     subtitle.textContent = 'SARF Code: ' + code;
 
     form.reset();

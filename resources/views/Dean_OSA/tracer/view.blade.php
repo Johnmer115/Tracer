@@ -1,4 +1,4 @@
-@extends('Dean_OSA.layouts.layout')
+@extends($layout ?? 'Dean_OSA.layouts.layout')
 
 @section('title', 'SARF Tracker Details | SARF Tracking')
 @section('page-title', 'SARF Tracker')
@@ -170,7 +170,7 @@
                     data-filename="{{ Str::slug($activity->code ?: $activity->title) }}-tracer.pdf">
                     <i class="fas fa-file-pdf"></i> Tracer Print/Download
                 </button>
-                <a href="{{ route('dean_osa.tracer.index') }}" class="btn btn-filter no-pdf">
+                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.tracer.index') }}" class="btn btn-filter no-pdf">
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
             </div>
@@ -443,11 +443,11 @@
                         </div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             @if($doc->file_path)
-                                <a href="{{ route('dean_osa.sarf-documents.show', $doc) }}"
+                                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', $doc) }}"
                                     target="_blank" class="abtn abtn-view" title="View">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{{ route('dean_osa.sarf-documents.show', ['document' => $doc, 'download' => 1]) }}"
+                                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', ['document' => $doc, 'download' => 1]) }}"
                                     class="abtn abtn-edit" title="Download">
                                     <i class="fas fa-download"></i>
                                 </a>

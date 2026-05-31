@@ -1,4 +1,4 @@
-@extends('Dean_OSA.layouts.layout')
+@extends($layout ?? 'Dean_OSA.layouts.layout')
 
 @section('title', 'Approvals | SARF Tracking')
 @section('page-title', 'Approvals')
@@ -135,7 +135,7 @@
             <div class="panel-title">
                 <i class="fas fa-check-circle"></i> SARF Approvals
             </div>
-            <form method="GET" action="{{ route('dean_osa.approval.index') }}" class="panel-controls">
+            <form method="GET" action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.index') }}" class="panel-controls">
                 <div class="search-wrap">
                     <i class="fas fa-search"></i>
                     <input class="search-input" type="text" name="search"
@@ -143,12 +143,12 @@
                         placeholder="Search title or code…">
                 </div>
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
-                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => 'dean_osa.approval.index'])
-                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'button', 'filterRoute' => 'dean_osa.approval.index'])
+                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => ($routePrefix ?? 'dean_osa') . '.approval.index'])
+                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'button', 'filterRoute' => ($routePrefix ?? 'dean_osa') . '.approval.index'])
             </form>
         </div>
 
-        @include('Dean_OSA.partials.sarf-filters', ['filterRoute' => 'dean_osa.approval.index'])
+        @include('Dean_OSA.partials.sarf-filters', ['filterRoute' => ($routePrefix ?? 'dean_osa') . '.approval.index'])
 
         {{-- ── Summary chips ── 
         <div style="display:flex; gap:8px; flex-wrap:wrap; padding:14px 20px; border-bottom:1px solid #e5e7eb;">
@@ -165,7 +165,7 @@
                 ];
             @endphp
             @foreach($chipData as $chip)
-                <a href="{{ route('dean_osa.approval.index', ['status' => $chip['status']]) }}"
+                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.approval.index', ['status' => $chip['status']]) }}"
                     style="text-decoration:none;">
                     <span style="
                         display:inline-flex; align-items:center; gap:5px;
@@ -389,7 +389,7 @@
                             {{-- Actions --}}
                             <td style="white-space:nowrap;">
                                 <div class="action-cell" style="display:inline-flex; gap:8px; align-items:center; flex-wrap:nowrap; white-space:nowrap;">
-                                    <a href="{{ route('dean_osa.approval.review', $activity->id) }}"
+                                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.approval.review', $activity->id) }}"
                                         class="abtn abtn-view" title="Review & Approve Activity" style="flex-shrink:0;">
                                         <i class="fas fa-stamp"></i>
                                     </a>
@@ -406,7 +406,7 @@
                                         class="abtn abtn-del"
                                         title="Delete Activity"
                                         style="flex-shrink:0;"
-                                        onclick="openDeleteModal('{{ route('dean_osa.approval.destroy', $activity->id) }}', '{{ addslashes($activity->code) }}')">
+                                        onclick="openDeleteModal('{{ route(($routePrefix ?? 'dean_osa') . '.approval.destroy', $activity->id) }}', '{{ addslashes($activity->code) }}')">
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </div>
@@ -431,9 +431,9 @@
                     Showing {{ $activities->firstItem() ?? 0 }}–{{ $activities->lastItem() ?? 0 }}
                     of {{ $activities->total() }} entries
                 </span>
-                <form method="GET" action="{{ route('dean_osa.approval.index') }}" class="show-wrap">
+                <form method="GET" action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.index') }}" class="show-wrap">
                     @if(request('search'))  <input type="hidden" name="search"   value="{{ request('search') }}">  @endif
-                    @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => 'dean_osa.approval.index'])
+                    @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => ($routePrefix ?? 'dean_osa') . '.approval.index'])
                     Show
                     <select name="per_page" onchange="this.form.submit()">
                         <option value="10"  @selected(request('per_page',10)==10)>10</option>
@@ -777,7 +777,7 @@ function openModificationModal(activityId, code, canRevision, canRescheduling) {
     const revisionInput = revisionCard?.querySelector('input');
     const reschedulingInput = reschedulingCard?.querySelector('input');
 
-    form.action = `{{ url('dean_osa/approval') }}/${activityId}/modification`;
+    form.action = `{{ url(($routePrefix ?? 'dean_osa') . '/approval') }}/${activityId}/modification`;
     subtitle.textContent = 'SARF Code: ' + code;
 
     // Reset state

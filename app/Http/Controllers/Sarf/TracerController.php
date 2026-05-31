@@ -14,6 +14,8 @@ class TracerController extends Controller
      */
     public function index(Request $request)
     {
+        $isBranchUser = auth()->user()?->usertype === 'Branch_OSA';
+        $branchId = $isBranchUser ? auth()->user()?->branch_id : null;
         $search = trim((string) $request->query('search', ''));
         $perPage = (int) $request->query('per_page', 10);
 
@@ -23,6 +25,9 @@ class TracerController extends Controller
 
         $filters = SarfListFilters::fromRequest($request);
         $query = Activity::with(['branch', 'sarfDocuments'])
+            ->when($isBranchUser, fn ($query) => $branchId
+                ? $query->where('branch_id', $branchId)
+                : $query->whereRaw('1 = 0'))
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('title', 'like', "%{$search}%")
@@ -65,7 +70,14 @@ class TracerController extends Controller
      */
     public function show(string $id)
     {
-        $activity = Activity::with(['branch', 'sarfDocuments'])->findOrFail($id);
+        $isBranchUser = auth()->user()?->usertype === 'Branch_OSA';
+        $branchId = $isBranchUser ? auth()->user()?->branch_id : null;
+
+        abort_if($isBranchUser && ! $branchId, 404);
+
+        $activity = Activity::with(['branch', 'sarfDocuments'])
+            ->when($isBranchUser, fn ($query) => $query->where('branch_id', $branchId))
+            ->findOrFail($id);
 
         return view('Dean_OSA.tracer.view', compact('activity'));
     }

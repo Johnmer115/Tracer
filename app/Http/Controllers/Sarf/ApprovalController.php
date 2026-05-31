@@ -149,14 +149,14 @@ class ApprovalController extends Controller
         if ($activity->status === 'for approval for rescheduling' && $activity->reschedule_status === 'pending') {
             $activity->update(['reschedule_status' => 'for approval']);
 
-            return redirect()->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => 4]);
+            return redirect()->route($this->routeName('approval.show'), ['id' => $activity->id, 'tab' => 4]);
         }
 
         if ($activity->status === 'pending') {
             $activity->update(['status' => 'ongoing']);
         }
 
-        return redirect()->route('dean_osa.approval.show', $activity->id);
+        return redirect()->route($this->routeName('approval.show'), $activity->id);
     }
 
     /**
@@ -192,7 +192,7 @@ class ApprovalController extends Controller
         }
 
         return redirect()
-            ->route('dean_osa.approval.show', $params)
+            ->route($this->routeName('approval.show'), $params)
             ->with('success', 'Status updated successfully.');
     }
 
@@ -301,7 +301,7 @@ class ApprovalController extends Controller
         }
 
         return redirect()
-            ->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => $tab, 'focus' => $focus])
+            ->route($this->routeName('approval.show'), ['id' => $activity->id, 'tab' => $tab, 'focus' => $focus])
             ->with('success', 'Approval updated successfully.');
     }
 
@@ -448,7 +448,7 @@ class ApprovalController extends Controller
 
         $tab = (int) $request->input('current_tab', 3);
         return redirect()
-            ->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => $tab])
+            ->route($this->routeName('approval.show'), ['id' => $activity->id, 'tab' => $tab])
             ->with('success', $document->file_path ? 'Approved SARF uploaded successfully.' : 'Approved SARF hardcopy saved successfully.');
     }
 
@@ -509,7 +509,7 @@ class ApprovalController extends Controller
         ]);
 
         return redirect()
-            ->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => 4])
+            ->route($this->routeName('approval.show'), ['id' => $activity->id, 'tab' => 4])
             ->with('success', 'Reschedule request submitted. Signatory approvals are paused until this is resolved.');
     }
 
@@ -566,7 +566,7 @@ class ApprovalController extends Controller
             ]);
 
             return redirect()
-                ->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => 4])
+                ->route($this->routeName('approval.show'), ['id' => $activity->id, 'tab' => 4])
                 ->with('success', 'Reschedule document saved successfully.');
         }
 
@@ -640,12 +640,12 @@ class ApprovalController extends Controller
 
         if ($rescheduleStatus === 'disapproved') {
             return redirect()
-                ->route('dean_osa.approval.index')
+                ->route($this->routeName('approval.index'))
                 ->with('success', 'Reschedule disapproved. Activity sent back for schedule re-editing.');
         }
 
         return redirect()
-            ->route('dean_osa.approval.show', ['id' => $activity->id, 'tab' => 4])
+            ->route($this->routeName('approval.show'), ['id' => $activity->id, 'tab' => 4])
             ->with('success', 'Reschedule approval updated successfully.');
     }
     /**
@@ -698,7 +698,7 @@ class ApprovalController extends Controller
         ]);
 
         return redirect()
-            ->route('dean_osa.approval.index')
+            ->route($this->routeName('approval.index'))
             ->with('success', 'Reschedule rejected. Activity sent back for schedule re-editing.');
     }
 
@@ -773,7 +773,7 @@ class ApprovalController extends Controller
         ]);
 
         return redirect()
-            ->route('dean_osa.approval.index')
+            ->route($this->routeName('approval.index'))
             ->with('success', "Activity {$activity->code} sent for " . ucfirst($type) . '. It will now appear in the Activities module for editing.');
     }
 
@@ -801,7 +801,7 @@ class ApprovalController extends Controller
         $activity->delete();
 
         return redirect()
-            ->route('dean_osa.approval.index')
+            ->route($this->routeName('approval.index'))
             ->with('success', "Activity {$code} deleted successfully.");
     }
 }

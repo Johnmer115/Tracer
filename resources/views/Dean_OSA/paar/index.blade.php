@@ -1,9 +1,18 @@
-@extends('Dean_OSA.layouts.layout')
+@extends($layout ?? 'Dean_OSA.layouts.layout')
 
 @section('title', 'Post-Activity Reports | SARF Tracking')
 @section('page-title', 'Post-Activity Reports')
 
 @section('content')
+@php
+    $paarDocumentTypes = [
+        'PAAR_LIQUIDATION',
+        'PAAR_NARRATIVE_REPORT',
+        'PAAR_PHOTO_DOCUMENTS',
+        'PAAR_SUMMARY_REPORT',
+    ];
+@endphp
+
 <section class="panel" style="padding: 25px;">
     @if ($message = Session::get('success'))
         <div class="alert alert-success"><b>{{ $message }}</b></div>
@@ -20,7 +29,7 @@
             <div class="panel-title">
                 <i class="fas fa-file-medical"></i> Completed Activities for PAAR
             </div>
-            <form method="GET" action="{{ route('dean_osa.paar.index') }}" class="panel-controls">
+            <form method="GET" action="{{ route(($routePrefix ?? 'dean_osa') . '.paar.index') }}" class="panel-controls">
                 <div class="search-wrap">
                     <i class="fas fa-search"></i>
                     <input
@@ -31,17 +40,17 @@
                         placeholder="Search code or activity">
                 </div>
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
-                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => 'dean_osa.paar.index'])
+                @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => ($routePrefix ?? 'dean_osa') . '.paar.index'])
                 @include('Dean_OSA.partials.sarf-filters', [
                     'filterMode' => 'button',
-                    'filterRoute' => 'dean_osa.paar.index',
+                    'filterRoute' => ($routePrefix ?? 'dean_osa') . '.paar.index',
                     'pipelineStatuses' => ['completed' => 'Completed'],
                 ])
             </form>
         </div>
 
         @include('Dean_OSA.partials.sarf-filters', [
-            'filterRoute' => 'dean_osa.paar.index',
+            'filterRoute' => ($routePrefix ?? 'dean_osa') . '.paar.index',
             'pipelineStatuses' => ['completed' => 'Completed'],
         ])
 
@@ -59,6 +68,11 @@
                 </thead>
                 <tbody>
                     @forelse($activities as $activity)
+                        @php
+                            $hasPaarInput = $activity->sarfDocuments
+                                ->whereIn('type', $paarDocumentTypes)
+                                ->isNotEmpty();
+                        @endphp
                         <tr>
                             <td style="white-space:nowrap;">
                                 <span class="row-id">{{ $activity->code }}</span>
@@ -117,19 +131,21 @@
                             </td>
                             <td>
                                 <div class="action-cell">
-                                    <a href="{{ route('dean_osa.paar.show', $activity->id) }}"
+                                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.paar.show', $activity->id) }}"
                                         class="abtn abtn-view" title="View PAAR Details">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{{ route('dean_osa.paar.edit', $activity->id) }}"
-                                        class="abtn abtn-edit" title="Edit PAAR">
-                                        <i class="fas fa-pencil-alt"></i>
-                                    </a>
-                                    <a href="{{ route('dean_osa.paar.act', $activity->id) }}"
-                                        class="abtn abtn-approve"
-                                        title="{{ $activity->status === 'completed' ? 'View Accomplishment Files' : 'Add Accomplishment' }}">
-                                        <i class="fas fa-check-circle"></i>
-                                    </a>
+                                    @if($hasPaarInput)
+                                        <a href="{{ route(($routePrefix ?? 'dean_osa') . '.paar.edit', $activity->id) }}"
+                                            class="abtn abtn-edit" title="Edit PAAR">
+                                            <i class="fas fa-pencil-alt"></i>
+                                        </a>
+                                    @else
+                                        <a href="{{ route(($routePrefix ?? 'dean_osa') . '.paar.act', $activity->id) }}"
+                                            class="abtn abtn-approve" title="Add Accomplishment">
+                                            <i class="fas fa-check-circle"></i>
+                                        </a>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -150,11 +166,11 @@
                     Showing {{ $activities->firstItem() ?? 0 }}&ndash;{{ $activities->lastItem() ?? 0 }}
                     of {{ $activities->total() }} entries
                 </span>
-                <form method="GET" action="{{ route('dean_osa.paar.index') }}" class="show-wrap">
+                <form method="GET" action="{{ route(($routePrefix ?? 'dean_osa') . '.paar.index') }}" class="show-wrap">
                     @if(request('search'))
                         <input type="hidden" name="search" value="{{ request('search') }}">
                     @endif
-                    @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => 'dean_osa.paar.index'])
+                    @include('Dean_OSA.partials.sarf-filters', ['filterMode' => 'hidden', 'filterRoute' => ($routePrefix ?? 'dean_osa') . '.paar.index'])
                     Show
                     <select name="per_page" onchange="this.form.submit()">
                         <option value="10" @selected(request('per_page', 10) == 10)>10</option>

@@ -100,19 +100,32 @@ Route::middleware(['auth', 'Staff_OSA'])->prefix('staff_osa')
         // Dashboard
         Route::get('/', [Staff_OSA_Controller::class, 'index'])->name('index');
 
-        // Activities (read-only)
-        Route::get('activity', [Staff_OSA_Controller::class, 'activityIndex'])->name('activity.index');
-        Route::get('activity/{id}', [Staff_OSA_Controller::class, 'activityShow'])->name('activity.show');
+        // Activity Management
+        Route::resource('activity', ActivityController::class);
 
-        // Approvals
-        Route::get('approval', [Staff_OSA_Controller::class, 'approvalIndex'])->name('approval.index');
+        // Approval Management
+        Route::get('approval', [ApprovalController::class, 'index'])->name('approval.index');
+        Route::get('approval/{id}', [ApprovalController::class, 'show'])->name('approval.show');
+        Route::get('approval/{id}/review', [ApprovalController::class, 'review'])->name('approval.review');
+        Route::delete('approval/{id}', [ApprovalController::class, 'destroy'])->name('approval.destroy');
+        Route::match(['post', 'patch'], 'approval/{id}/status', [ApprovalController::class, 'updateStatus'])->name('approval.status');
+        Route::match(['post', 'patch'], 'approval/{id}/approve', [ApprovalController::class, 'approve'])->name('approval.approve');
+        Route::post('approval/{id}/document', [ApprovalController::class, 'storeDocument'])->name('approval.document.store');
+        Route::post('approval/{id}/reschedule', [ApprovalController::class, 'requestReschedule'])->name('approval.reschedule.request');
+        Route::post('approval/{id}/reschedule/approve', [ApprovalController::class, 'approveReschedule'])->name('approval.reschedule.approve');
+        Route::post('approval/{id}/reschedule/reject', [ApprovalController::class, 'rejectReschedule'])->name('approval.reschedule.reject');
+        Route::post('approval/{id}/modification', [ApprovalController::class, 'requestModification'])->name('approval.modification');
 
         // SARF Documents (view/download/print)
         Route::get('sarf-documents/activity/{activity}/print', [SarfDocumentController::class, 'printActivity'])->name('sarf-documents.print-activity');
         Route::get('sarf-documents/{document}', [SarfDocumentController::class, 'show'])->name('sarf-documents.show');
 
         // PAAR (Post-Activity Accomplishment Report)
-        Route::get('paar', [Staff_OSA_Controller::class, 'paarIndex'])->name('paar.index');
+        Route::get('paar', [PaarController::class, 'index'])->name('paar.index');
+        Route::get('paar/{id}', [PaarController::class, 'show'])->name('paar.show');
+        Route::get('paar/{id}/edit', [PaarController::class, 'edit'])->name('paar.edit');
+        Route::get('paar/{id}/act', [PaarController::class, 'act'])->name('paar.act');
+        Route::match(['post', 'patch'], 'paar/{id}', [PaarController::class, 'update'])->name('paar.update');
 
     });
 
@@ -125,8 +138,8 @@ Route::middleware(['auth', 'Branch_OSA'])->prefix('branch_osa')
         Route::get('/', [Branch_OSA_Controller::class, 'index'])->name('index');
 
         // Tracer (scoped to user's designated branch)
-        Route::get('tracer', [Branch_OSA_Controller::class, 'tracerIndex'])->name('tracer.index');
-        Route::get('tracer/{id}', [Branch_OSA_Controller::class, 'tracerShow'])->name('tracer.show');
+        Route::get('tracer', [TracerController::class, 'index'])->name('tracer.index');
+        Route::get('tracer/{id}', [TracerController::class, 'show'])->name('tracer.show');
 
         // SARF Documents (view/download/print)
         Route::get('sarf-documents/activity/{activity}/print', [SarfDocumentController::class, 'printActivity'])->name('sarf-documents.print-activity');

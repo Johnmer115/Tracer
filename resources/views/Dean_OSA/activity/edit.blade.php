@@ -1,4 +1,4 @@
-@extends('Dean_OSA.layouts.layout')
+@extends($layout ?? 'Dean_OSA.layouts.layout')
 
 @section('title', 'Edit Activity | SARF Tracking')
 @section('page-title', 'Edit Activity')
@@ -32,7 +32,7 @@
                     <span>{{ $activity->code }}</span>
                 </div>
                 @include('partials.sarf-status-badge', ['activity' => $activity])
-                <a href="{{ route('dean_osa.activity.index') }}" class="btn btn-filter">
+                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.activity.index') }}" class="btn btn-filter">
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
             </div>
@@ -108,7 +108,7 @@
                 @endforeach
             </div>
 
-            <form action="{{ route('dean_osa.activity.update', $activity->id) }}"
+            <form action="{{ route(($routePrefix ?? 'dean_osa') . '.activity.update', $activity->id) }}"
                   method="POST"
                   enctype="multipart/form-data"
                   id="sarf-form"
@@ -131,7 +131,7 @@
 
                             <div class="form-group">
                                 <label class="form-label">Branch <span class="req">*</span></label>
-                                <select name="branch_id" class="form-control" required data-label="Branch">
+                                <select name="branch_id" id="activity-branch-id" class="form-control searchable-select" required data-label="Branch">
                                     <option value="">— Select Branch —</option>
                                     @foreach($branches as $branch)
                                         <option value="{{ $branch->id }}"
@@ -168,29 +168,48 @@
                             </div>
 
                             <div class="form-group full">
-                                <label class="form-label">Department(s)</label>
-                                <p class="field-hint">Press <kbd>Enter</kbd> or click <strong>Add</strong> after each entry.</p>
+                                <label class="form-label">Department(s) <span class="req">*</span></label>
+                                <p class="field-hint">Choose from the current branch records, or add manual departments one at a time.</p>
                                 <div class="tag-input-wrap" id="dept-wrap">
                                     <div class="tag-list" id="dept-tags"></div>
+                                    <div class="tag-row" style="margin-bottom:8px;">
+                                        <select id="department-select" class="form-control searchable-select">
+                                            <option value="">Select department from branch</option>
+                                        </select>
+                                        <button type="button" class="btn btn-filter btn-sm"
+                                            onclick="addSelectedDepartment()">
+                                            <i class="fas fa-plus"></i> Add
+                                        </button>
+                                    </div>
                                     <div class="tag-row">
                                         <input type="text" id="dept-input" class="form-control tag-input"
-                                            placeholder="e.g. Computer Science">
+                                            placeholder="Manual department">
                                         <button type="button" class="btn btn-filter btn-sm" onclick="addTag('dept')">
                                             <i class="fas fa-plus"></i> Add
                                         </button>
                                     </div>
                                 </div>
                                 <div id="dept-hidden"></div>
+                                <span class="field-error" id="err-department">Please add at least one department.</span>
                             </div>
 
                             <div class="form-group full">
                                 <label class="form-label">Organization(s) <span class="muted">(optional)</span></label>
-                                <p class="field-hint">Enter organizations separately from departments. Leave blank when not applicable.</p>
+                                <p class="field-hint">Select or enter organizations separately from departments. Leave blank when not applicable.</p>
                                 <div class="tag-input-wrap" id="org-wrap">
                                     <div class="tag-list" id="org-tags"></div>
+                                    <div class="tag-row" style="margin-bottom:8px;">
+                                        <select id="organization-select" class="form-control searchable-select">
+                                            <option value="">Select organization from branch</option>
+                                        </select>
+                                        <button type="button" class="btn btn-filter btn-sm"
+                                            onclick="addSelectedOrganization()">
+                                            <i class="fas fa-plus"></i> Add
+                                        </button>
+                                    </div>
                                     <div class="tag-row">
                                         <input type="text" id="org-input" class="form-control tag-input"
-                                            placeholder="e.g. Student Council">
+                                            placeholder="Manual organization">
                                         <button type="button" class="btn btn-filter btn-sm" onclick="addTag('org')">
                                             <i class="fas fa-plus"></i> Add
                                         </button>
@@ -216,9 +235,10 @@
                             </div>
 
                             <div class="form-group full">
-                                <label class="form-label">Short Description</label>
+                                <label class="form-label">Short Description <span class="req">*</span></label>
                                 <textarea name="description" class="form-control" rows="3"
                                     placeholder="Brief description of the activity">{{ old('description', $activity->description) }}</textarea>
+                                <span class="field-error" id="err-description">Short description is required.</span>
                             </div>
 
                             <div class="form-group full">
@@ -362,7 +382,7 @@
                             @endphp
 
                             <div class="form-group">
-                                <label class="form-label">Start Time</label>
+                                <label class="form-label">Start Time <span class="req">*</span></label>
                                 <input type="time" name="time_start" class="form-control"
                                     id="time-start-input"
                                     value="{{ old('time_start', $storedStartTime) }}">
@@ -370,7 +390,7 @@
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">End Time</label>
+                                <label class="form-label">End Time <span class="req">*</span></label>
                                 <input type="time" name="time_end" class="form-control"
                                     id="time-end-input"
                                     value="{{ old('time_end', $storedEndTime) }}">
@@ -379,21 +399,23 @@
 
                             @unless($isRescheduling)
                             <div class="form-group">
-                                <label class="form-label">Number of Participants</label>
-                                <input type="number" name="participants_count" class="form-control" min="0"
+                                <label class="form-label">Number of Participants <span class="req">*</span></label>
+                                <input type="number" name="participants_count" class="form-control" min="1"
                                     placeholder="e.g. 150"
                                     value="{{ old('participants_count', $activity->participants_count) }}">
+                                <span class="field-error" id="err-participants_count">Please enter the number of participants.</span>
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">Participant Profile</label>
+                                <label class="form-label">Participant Profile <span class="req">*</span></label>
                                 <input type="text" name="participants_profile" class="form-control"
                                     placeholder="e.g. All students, Faculty"
                                     value="{{ old('participants_profile', $activity->participants_profile) }}">
+                                <span class="field-error" id="err-participants_profile">Participant profile is required.</span>
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">Public Poster</label>
+                                <label class="form-label">Public Poster <span class="req">*</span></label>
                                 <div class="radio-group">
                                     <label class="radio-option">
                                         <input type="radio" name="public_poster" value="With"
@@ -404,6 +426,22 @@
                                             @checked(old('public_poster', $activity->public_poster) === 'Without')> Without
                                     </label>
                                 </div>
+                                <span class="field-error" id="err-public_poster">Please select a public poster option.</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Waiver / Consent / Legal Concern <span class="req">*</span></label>
+                                <div class="radio-group">
+                                    <label class="radio-option">
+                                        <input type="radio" name="waiver_consent" value="With"
+                                            @checked(old('waiver_consent', $activity->waiver_consent) === 'With')> With
+                                    </label>
+                                    <label class="radio-option">
+                                        <input type="radio" name="waiver_consent" value="Without"
+                                            @checked(old('waiver_consent', $activity->waiver_consent) === 'Without')> Without
+                                    </label>
+                                </div>
+                                <span class="field-error" id="err-waiver_consent">Please select a waiver / consent / legal concern option.</span>
                             </div>
                             @endunless
 
@@ -468,10 +506,11 @@
                             </div>
 
                             <div class="form-group" id="expected-block" style="display:none;">
-                                <label class="form-label">Expected Collection (₱)</label>
+                                <label class="form-label">Expected Collection <span class="req">*</span></label>
                                 <input type="number" name="expected_collection" class="form-control"
                                     id="expected-collection-input" step="0.01" min="0" placeholder="0.00"
                                     value="{{ old('expected_collection', $activity->expected_collection) }}">
+                                <span class="field-error" id="err-expected_collection">Please enter the expected collection.</span>
                             </div>
 
                             <div class="form-group" id="canteen-block" style="display:none;">
@@ -579,7 +618,7 @@
                                         style="display:{{ $isChecked ? 'flex' : 'none' }};">
 
                                         @if($hasDoc && $doc->file_path)
-                                            <a href="{{ route('dean_osa.sarf-documents.show', $doc) }}"
+                                            <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', $doc) }}"
                                                target="_blank"
                                                class="existing-doc-link"
                                                title="View existing file">
@@ -725,10 +764,19 @@ function validateStep(step, jumpOnFail = false) {
         showError('err-level', !levelOk);
         if (!levelOk) valid = false;
 
+        const deptOk = tags['dept'].length > 0;
+        showError('err-department', !deptOk);
+        if (!deptOk) valid = false;
+
         const title   = document.querySelector('[name="title"]');
         const titleOk = title && title.value.trim() !== '';
         markInvalid(title, !titleOk); showError('err-title', !titleOk);
         if (!titleOk) valid = false;
+
+        const description = document.querySelector('[name="description"]');
+        const descriptionOk = description && description.value.trim() !== '';
+        markInvalid(description, !descriptionOk); showError('err-description', !descriptionOk);
+        if (!descriptionOk) valid = false;
 
         const objOk = objectives.length > 0;
         showError('err-objectives', !objOk);
@@ -759,11 +807,11 @@ function validateStep(step, jumpOnFail = false) {
         const timeEnd = document.querySelector('[name="time_end"]');
         const hasTimeStart = timeStart && timeStart.value.trim() !== '';
         const hasTimeEnd = timeEnd && timeEnd.value.trim() !== '';
-        const timeRangeOk = (!hasTimeStart && !hasTimeEnd) || (hasTimeStart && hasTimeEnd && timeEnd.value > timeStart.value);
+        const timeRangeOk = hasTimeStart && hasTimeEnd && timeEnd.value > timeStart.value;
         markInvalid(timeStart, !timeRangeOk && !hasTimeStart);
         markInvalid(timeEnd, !timeRangeOk && (!hasTimeEnd || timeEnd.value <= timeStart.value));
-        showError('err-time_start', hasTimeEnd && !hasTimeStart);
-        showError('err-time_end', hasTimeStart && (!hasTimeEnd || timeEnd.value <= timeStart.value));
+        showError('err-time_start', !hasTimeStart);
+        showError('err-time_end', !hasTimeEnd || (hasTimeStart && timeEnd.value <= timeStart.value));
         if (!timeRangeOk) valid = false;
 
         const modeChecked = document.querySelector('[name="mode_of_conduct"]:checked');
@@ -776,6 +824,8 @@ function validateStep(step, jumpOnFail = false) {
             const venueOk = venueIn && venueIn.value.trim() !== '';
             markInvalid(venueIn, !venueOk); showError('err-venue', !venueOk);
             if (!venueOk) valid = false;
+            const venueTypeOk = !!document.querySelector('[name="venue_type"]:checked');
+            if (!venueTypeOk) valid = false;
         } else { showError('err-venue', false); }
 
         if (modeChecked && (modeChecked.value === 'Online' || modeChecked.value === 'Hybrid')) {
@@ -784,6 +834,28 @@ function validateStep(step, jumpOnFail = false) {
             markInvalid(platIn, !platOk); showError('err-platform', !platOk);
             if (!platOk) valid = false;
         } else { showError('err-platform', false); }
+
+        if (!IS_RESCHEDULING) {
+            const participantCount = document.querySelector('[name="participants_count"]');
+            const participantCountOk = participantCount && participantCount.value.trim() !== '' && parseInt(participantCount.value, 10) > 0;
+            markInvalid(participantCount, !participantCountOk);
+            showError('err-participants_count', !participantCountOk);
+            if (!participantCountOk) valid = false;
+
+            const participantProfile = document.querySelector('[name="participants_profile"]');
+            const participantProfileOk = participantProfile && participantProfile.value.trim() !== '';
+            markInvalid(participantProfile, !participantProfileOk);
+            showError('err-participants_profile', !participantProfileOk);
+            if (!participantProfileOk) valid = false;
+
+            const publicPosterOk = !!document.querySelector('[name="public_poster"]:checked');
+            showError('err-public_poster', !publicPosterOk);
+            if (!publicPosterOk) valid = false;
+
+            const waiverConsentOk = !!document.querySelector('[name="waiver_consent"]:checked');
+            showError('err-waiver_consent', !waiverConsentOk);
+            if (!waiverConsentOk) valid = false;
+        }
     }
 
     if (step === 2) {
@@ -806,6 +878,12 @@ function validateStep(step, jumpOnFail = false) {
                 markInvalid(amt, !amtOk); showError('err-amount', !amtOk);
                 if (!amtOk) valid = false;
             }
+            if (fundsVal === 'ATC') {
+                const expected = document.getElementById('expected-collection-input');
+                const expectedOk = expected && expected.value.trim() !== '' && parseFloat(expected.value) >= 0;
+                markInvalid(expected, !expectedOk); showError('err-expected_collection', !expectedOk);
+                if (!expectedOk) valid = false;
+            }
             if (fundsVal === 'With Budget' || fundsVal === 'ATC') {
                 const canteenOk = !!document.querySelector('[name="canteen"]:checked');
                 const procureOk = !!document.querySelector('[name="procurement"]:checked');
@@ -826,15 +904,7 @@ function validateStep(step, jumpOnFail = false) {
     }
 
     if (step === 3) {
-        const checkedBoxes = document.querySelectorAll('[name="types[]"]:checked');
-        const attachOk     = checkedBoxes.length > 0;
-        showError('err-attachments', !attachOk);
-        if (!attachOk) valid = false;
-
-        checkedBoxes.forEach(cb => {
-            const errEl = document.getElementById('err-file_' + cb.value);
-            if (errEl) errEl.style.display = 'none';
-        });
+        showError('err-attachments', false);
     }
 
     if (!valid) {
@@ -963,6 +1033,94 @@ function updateFileName(type, input) {
 }
 
 /* ── Tag inputs ── */
+@php
+    $activityDepartments = $departments->map(function ($department) {
+        return [
+            'id' => $department->id,
+            'branch_id' => $department->branch_id,
+            'name' => $department->name,
+            'code' => $department->code,
+        ];
+    })->values();
+
+    $activityOrganizations = $organizations->map(function ($organization) {
+        return [
+            'id' => $organization->id,
+            'branch_id' => optional($organization->department)->branch_id,
+            'department_id' => $organization->department_id,
+            'name' => $organization->name,
+            'code' => $organization->code,
+            'level' => $organization->level,
+            'department_name' => optional($organization->department)->name,
+        ];
+    })->values();
+@endphp
+
+const activityDepartments = @json($activityDepartments);
+const activityOrganizations = @json($activityOrganizations);
+
+function optionLabel(item) {
+    return item.name;
+}
+
+function populateActivityContextOptions() {
+    const branchId = document.getElementById('activity-branch-id')?.value || '';
+    const departmentSelect = document.getElementById('department-select');
+    const organizationSelect = document.getElementById('organization-select');
+
+    if (!departmentSelect || !organizationSelect) return;
+
+    const matchingDepartments = branchId
+        ? activityDepartments.filter(department => String(department.branch_id) === String(branchId))
+        : activityDepartments;
+    const matchingOrganizations = branchId
+        ? activityOrganizations.filter(organization => String(organization.branch_id) === String(branchId))
+        : activityOrganizations;
+
+    departmentSelect.innerHTML = '<option value="">Select department from branch</option>' +
+        matchingDepartments.map(department =>
+            `<option value="${department.id}" data-name="${escapeHtml(department.name)}">${escapeHtml(optionLabel(department))}</option>`
+        ).join('');
+
+    organizationSelect.innerHTML = '<option value="">Select organization from branch</option>' +
+        matchingOrganizations.map(organization => {
+            const suffix = organization.department_name ? ` - ${organization.department_name}` : '';
+            return `<option value="${organization.id}" data-name="${escapeHtml(organization.name)}" data-level="${escapeHtml(organization.level || '')}">${escapeHtml(optionLabel(organization) + suffix)}</option>`;
+        }).join('');
+
+    departmentSelect.disabled = matchingDepartments.length === 0;
+    organizationSelect.disabled = matchingOrganizations.length === 0;
+    departmentSelect.value = '';
+    organizationSelect.value = '';
+    departmentSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    organizationSelect.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function addValueTag(key, val) {
+    if (!val || tags[key].includes(val)) return;
+    tags[key].push(val);
+    renderTags(key);
+    if (key === 'level') {
+        syncLevelPresetButtons();
+        showError('err-level', false);
+    }
+    if (key === 'dept') {
+        showError('err-department', false);
+    }
+}
+
+function addSelectedDepartment() {
+    const selected = document.getElementById('department-select')?.selectedOptions[0];
+    addValueTag('dept', selected?.dataset.name || '');
+}
+
+function addSelectedOrganization() {
+    const selected = document.getElementById('organization-select')?.selectedOptions[0];
+    addValueTag('org', selected?.dataset.name || '');
+    addValueTag('level', selected?.dataset.level || '');
+}
+
+document.getElementById('activity-branch-id')?.addEventListener('change', populateActivityContextOptions);
 const tags = { dept: [], level: [], org: [] };
 
 function addTag(key) {
@@ -971,10 +1129,12 @@ function addTag(key) {
     if (!val || tags[key].includes(val)) { input?.focus(); return; }
     tags[key].push(val); input.value = ''; renderTags(key); input.focus();
     if (key === 'level') showError('err-level', false);
+    if (key === 'dept') showError('err-department', false);
 }
 function removeTag(key, val) {
     tags[key] = tags[key].filter(t => t !== val); renderTags(key);
     if (key === 'level') { syncLevelPresetButtons(); showError('err-level', tags['level'].length === 0); }
+    if (key === 'dept') showError('err-department', tags['dept'].length === 0);
 }
 function renderTags(key) {
     const list   = document.getElementById(key + '-tags');
@@ -1044,8 +1204,9 @@ document.querySelectorAll('.form-control').forEach(el => {
 
 /* ── Bootstrap existing DB data on load ── */
 document.addEventListener('DOMContentLoaded', () => {
+    populateActivityContextOptions();
 
-    /* ── Mode of conduct ── */
+/* ── Mode of conduct ── */
     const modeChecked = document.querySelector('[name="mode_of_conduct"]:checked');
     if (modeChecked) handleMode(modeChecked.value);
 

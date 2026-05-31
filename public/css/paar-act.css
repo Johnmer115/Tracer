@@ -26,12 +26,12 @@
             color: #1d4ed8;
         }
         .document-download-btn {
-            color: #15803d;
-            background: #dcfce7;
+            color: #1d4ed8;
+            background: #dbeafe;
         }
         .document-download-btn:hover {
-            background: #bbf7d0;
-            color: #166534;
+            background: #bfdbfe;
+            color: #1e40af;
         }
         .document-preview-btn {
             display: none;
@@ -53,13 +53,70 @@
             margin-top: 16px;
         }
         .step-nav.end { justify-content: flex-end; }
+        .paar-confirm-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(15, 23, 42, .58);
+            backdrop-filter: blur(3px);
+        }
+        .paar-confirm-overlay.active {
+            display: flex;
+        }
+        .paar-confirm-modal {
+            width: min(420px, 100%);
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, .22);
+            overflow: hidden;
+        }
+        .paar-confirm-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #0f172a;
+            font-weight: 800;
+        }
+        .paar-confirm-head i {
+            width: 34px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            color: #1d4ed8;
+            background: #dbeafe;
+        }
+        .paar-confirm-body {
+            padding: 18px 20px;
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .paar-confirm-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 16px 20px 20px;
+        }
         @media (max-width: 640px) {
             .step-nav {
                 flex-direction: column;
                 align-items: stretch;
             }
             .step-nav .btn,
-            .document-check-btn {
+            .document-check-btn,
+            .paar-confirm-actions .btn {
                 justify-content: center;
+            }
+            .paar-confirm-actions {
+                flex-direction: column-reverse;
             }
         }
