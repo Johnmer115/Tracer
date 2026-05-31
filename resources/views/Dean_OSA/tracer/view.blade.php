@@ -49,6 +49,67 @@
         $allSignatories = $mainSignatories->merge($financeSignatories);
         $hasDisapproval = $allSignatories->contains(fn($sig) => ($activity->{$sig['field']} ?? 'pending') === 'disapproved');
 
+        $rescheduleApprovalFields = [
+            'approval_dean_sa' => 'reschedule_approval_dean_sa',
+            'approval_avp_sps' => 'reschedule_approval_avp_sps',
+            'approval_dir_basic_ed' => 'reschedule_approval_dir_basic_ed',
+            'approval_vp_acad' => 'reschedule_approval_vp_acad',
+            'approval_vp_hrd_legal' => 'reschedule_approval_vp_hrd_legal',
+            'approval_auditing' => 'reschedule_approval_auditing',
+            'approval_comptroller_initial' => 'reschedule_approval_comptroller_initial',
+            'approval_finance_initial' => 'reschedule_approval_finance_initial',
+            'approval_osa_finance' => 'reschedule_approval_osa_finance',
+            'approval_finance_final' => 'reschedule_approval_finance_final',
+            'approval_comptroller_final' => 'reschedule_approval_comptroller_final',
+        ];
+        $rescheduleRemarkFields = [
+            'approval_dean_sa' => 'reschedule_remarks_dean_sa',
+            'approval_avp_sps' => 'reschedule_remarks_avp_sps',
+            'approval_dir_basic_ed' => 'reschedule_remarks_dir_basic_ed',
+            'approval_vp_acad' => 'reschedule_remarks_vp_acad',
+            'approval_vp_hrd_legal' => 'reschedule_remarks_vp_hrd_legal',
+            'approval_auditing' => 'reschedule_remarks_auditing',
+            'approval_comptroller_initial' => 'reschedule_remarks_comptroller_initial',
+            'approval_finance_initial' => 'reschedule_remarks_finance_initial',
+            'approval_osa_finance' => 'reschedule_remarks_osa_finance',
+            'approval_finance_final' => 'reschedule_remarks_finance_final',
+            'approval_comptroller_final' => 'reschedule_remarks_comptroller_final',
+        ];
+        $rescheduleTimeFields = [
+            'approval_dean_sa' => 'reschedule_approved_at_dean_sa',
+            'approval_avp_sps' => 'reschedule_approved_at_avp_sps',
+            'approval_dir_basic_ed' => 'reschedule_approved_at_dir_basic_ed',
+            'approval_vp_acad' => 'reschedule_approved_at_vp_acad',
+            'approval_vp_hrd_legal' => 'reschedule_approved_at_vp_hrd_legal',
+            'approval_auditing' => 'reschedule_approved_at_auditing',
+            'approval_comptroller_initial' => 'reschedule_approved_at_comptroller_initial',
+            'approval_finance_initial' => 'reschedule_approved_at_finance_initial',
+            'approval_osa_finance' => 'reschedule_approved_at_osa_finance',
+            'approval_finance_final' => 'reschedule_approved_at_finance_final',
+            'approval_comptroller_final' => 'reschedule_approved_at_comptroller_final',
+        ];
+        $rescheduleApprovedByFields = [
+            'approval_dean_sa' => 'reschedule_approved_by_dean_sa',
+            'approval_avp_sps' => 'reschedule_approved_by_avp_sps',
+            'approval_dir_basic_ed' => 'reschedule_approved_by_dir_basic_ed',
+            'approval_vp_acad' => 'reschedule_approved_by_vp_acad',
+            'approval_vp_hrd_legal' => 'reschedule_approved_by_vp_hrd_legal',
+            'approval_auditing' => 'reschedule_approved_by_auditing',
+            'approval_comptroller_initial' => 'reschedule_approved_by_comptroller_initial',
+            'approval_finance_initial' => 'reschedule_approved_by_finance_initial',
+            'approval_osa_finance' => 'reschedule_approved_by_osa_finance',
+            'approval_finance_final' => 'reschedule_approved_by_finance_final',
+            'approval_comptroller_final' => 'reschedule_approved_by_comptroller_final',
+        ];
+        $rescheduleApproverIds = $allSignatories
+            ->map(fn($sig) => $activity->{$rescheduleApprovedByFields[$sig['field']]} ?? null)
+            ->filter()
+            ->unique()
+            ->values();
+        $rescheduleApproverNames = $rescheduleApproverIds->isEmpty()
+            ? collect()
+            : \App\Models\Account::whereIn('id', $rescheduleApproverIds)->pluck('username', 'id');
+
         $isReschedulingActive = filled($activity->reschedule_requested_at) && $activity->reschedule_status !== 'approved';
         $isReschedulingDone = filled($activity->reschedule_requested_at) && $activity->reschedule_status === 'approved';
 
@@ -416,12 +477,127 @@
                                         <div style="font-size:13px;font-weight:500;color:#1e293b;">{{ $activity->reschedule_requested_at?->format('M d, Y g:i A') ?? 'N/A' }}</div>
                                     </div>
                                 </div>
-                                @if(filled($activity->reschedule_remarks))
+                                @if(filled($activity->reschedule_reason))
                                     <div style="margin-top:12px;padding:8px 12px;background:#fff;border-left:3px solid var(--primary);border:1px solid var(--border);border-left-width:3px;border-radius:6px;font-size:12px;color:#374151;">
-                                        <strong>Remarks:</strong> {{ $activity->reschedule_remarks }}
+                                        <strong>Reason:</strong> {{ $activity->reschedule_reason }}
                                     </div>
                                 @endif
                             </div>
+
+                            <div style="font-weight:700;font-size:13px;margin:20px 0 12px;color:#374151;display:flex;align-items:center;gap:8px;">
+                                <i class="fas fa-stamp" style="color:var(--primary);"></i>
+                                Reschedule Approval Tracer
+                            </div>
+
+                            @unless($mainSignatories->isEmpty())
+                                <div class="approval-group" style="margin-bottom:24px;">
+                                    <div class="approval-group-title" style="margin-bottom:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding-left:4px;">
+                                        Reschedule Signatory Approvals
+                                    </div>
+                                    <div class="approval-track" style="display:flex;flex-direction:column;gap:0;position:relative;padding-left:28px;margin-bottom:8px;">
+                                        <div class="approval-line" style="position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:#e2e8f0;"></div>
+
+                                        @foreach($mainSignatories as $sig)
+                                            @php
+                                                $statusField = $rescheduleApprovalFields[$sig['field']];
+                                                $remarkField = $rescheduleRemarkFields[$sig['field']];
+                                                $timeField = $rescheduleTimeFields[$sig['field']];
+                                                $byField = $rescheduleApprovedByFields[$sig['field']];
+                                                $statusVal = $activity->{$statusField} ?? 'pending';
+                                                [$icon, $color, $bg, $border, $label] = $approvalIcon($statusVal);
+                                                $approvedAt = $activity->{$timeField} ?? null;
+                                                $approvedBy = $activity->{$byField} ? ($rescheduleApproverNames[$activity->{$byField}] ?? 'Account #' . $activity->{$byField}) : null;
+                                                $statusClass = match($statusVal) {
+                                                    'approved' => 'status-approved',
+                                                    'for signature' => 'status-for-signature',
+                                                    'disapproved' => 'status-disapproved',
+                                                    default => 'status-pending',
+                                                };
+                                            @endphp
+                                            <div class="approval-card {{ $statusClass }}">
+                                                <div class="approval-dot" style="position:absolute;left:-22px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:{{ $color }};border:2px solid #fff;box-shadow:0 0 0 2px {{ $border }};"></div>
+                                                <i class="{{ $icon }}" style="color:{{ $color }};font-size:16px;margin-top:2px;flex-shrink:0;"></i>
+                                                <div style="flex:1;">
+                                                    <div style="font-weight:600;font-size:13px;color:#1e293b;">{{ $sig['role'] }}</div>
+                                                    <div style="font-size:12px;color:{{ $color }};font-weight:500;margin-top:2px;">{{ $label }}</div>
+                                                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                                                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
+                                                            <i class="fas fa-user"></i>
+                                                            Approved by:
+                                                            <strong>{{ $approvedBy ?? 'Not recorded' }}</strong>
+                                                        </span>
+                                                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
+                                                            <i class="fas fa-clock"></i>
+                                                            Approved time:
+                                                            <strong>{{ $approvedAt ? $approvedAt->format('M d, Y g:i A') : 'Not recorded' }}</strong>
+                                                        </span>
+                                                    </div>
+                                                    @if($activity->{$remarkField})
+                                                        <div style="margin-top:6px;padding:6px 10px;background:rgba(255,255,255,.7);border-radius:6px;font-size:12px;color:#374151;border-left:3px solid {{ $color }};">
+                                                            <i class="fas fa-comment-dots" style="margin-right:4px;"></i>{{ $activity->{$remarkField} }}
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endunless
+
+                            @unless($financeSignatories->isEmpty())
+                                <div class="approval-group" style="margin-bottom:24px;">
+                                    <div class="approval-group-title" style="margin-bottom:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding-left:4px;">
+                                        Reschedule Finance Approvals
+                                    </div>
+                                    <div class="approval-track" style="display:flex;flex-direction:column;gap:0;position:relative;padding-left:28px;margin-bottom:8px;">
+                                        <div class="approval-line" style="position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:#e2e8f0;"></div>
+
+                                        @foreach($financeSignatories as $sig)
+                                            @php
+                                                $statusField = $rescheduleApprovalFields[$sig['field']];
+                                                $remarkField = $rescheduleRemarkFields[$sig['field']];
+                                                $timeField = $rescheduleTimeFields[$sig['field']];
+                                                $byField = $rescheduleApprovedByFields[$sig['field']];
+                                                $statusVal = $activity->{$statusField} ?? 'pending';
+                                                [$icon, $color, $bg, $border, $label] = $approvalIcon($statusVal);
+                                                $approvedAt = $activity->{$timeField} ?? null;
+                                                $approvedBy = $activity->{$byField} ? ($rescheduleApproverNames[$activity->{$byField}] ?? 'Account #' . $activity->{$byField}) : null;
+                                                $statusClass = match($statusVal) {
+                                                    'approved' => 'status-approved',
+                                                    'for signature' => 'status-for-signature',
+                                                    'disapproved' => 'status-disapproved',
+                                                    default => 'status-pending',
+                                                };
+                                            @endphp
+                                            <div class="approval-card {{ $statusClass }}">
+                                                <div class="approval-dot" style="position:absolute;left:-22px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:{{ $color }};border:2px solid #fff;box-shadow:0 0 0 2px {{ $border }};"></div>
+                                                <i class="{{ $icon }}" style="color:{{ $color }};font-size:16px;margin-top:2px;flex-shrink:0;"></i>
+                                                <div style="flex:1;">
+                                                    <div style="font-weight:600;font-size:13px;color:#1e293b;">{{ $sig['role'] }}</div>
+                                                    <div style="font-size:12px;color:{{ $color }};font-weight:500;margin-top:2px;">{{ $label }}</div>
+                                                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                                                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
+                                                            <i class="fas fa-user"></i>
+                                                            Approved by:
+                                                            <strong>{{ $approvedBy ?? 'Not recorded' }}</strong>
+                                                        </span>
+                                                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
+                                                            <i class="fas fa-clock"></i>
+                                                            Approved time:
+                                                            <strong>{{ $approvedAt ? $approvedAt->format('M d, Y g:i A') : 'Not recorded' }}</strong>
+                                                        </span>
+                                                    </div>
+                                                    @if($activity->{$remarkField})
+                                                        <div style="margin-top:6px;padding:6px 10px;background:rgba(255,255,255,.7);border-radius:6px;font-size:12px;color:#374151;border-left:3px solid {{ $color }};">
+                                                            <i class="fas fa-comment-dots" style="margin-right:4px;"></i>{{ $activity->{$remarkField} }}
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endunless
                         </div>
                     @endif
                 </div>

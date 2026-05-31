@@ -9,6 +9,7 @@ use App\Models\SarfDocument;
 use App\Models\Remark;
 use App\Models\SystemLog;
 use App\Support\SarfListFilters;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class ApprovalController extends Controller
@@ -78,6 +79,62 @@ class ApprovalController extends Controller
         'approval_osa_finance'           => 'approved_at_osa_finance',
         'approval_finance_final'         => 'approved_at_finance_final',
         'approval_comptroller_final'     => 'approved_at_comptroller_final',
+    ];
+
+    private const RESCHEDULE_APPROVAL_MAP = [
+        'approval_dean_sa'               => 'reschedule_approval_dean_sa',
+        'approval_avp_sps'               => 'reschedule_approval_avp_sps',
+        'approval_dir_basic_ed'          => 'reschedule_approval_dir_basic_ed',
+        'approval_vp_acad'               => 'reschedule_approval_vp_acad',
+        'approval_vp_hrd_legal'          => 'reschedule_approval_vp_hrd_legal',
+        'approval_auditing'              => 'reschedule_approval_auditing',
+        'approval_comptroller_initial'   => 'reschedule_approval_comptroller_initial',
+        'approval_finance_initial'       => 'reschedule_approval_finance_initial',
+        'approval_osa_finance'           => 'reschedule_approval_osa_finance',
+        'approval_finance_final'         => 'reschedule_approval_finance_final',
+        'approval_comptroller_final'     => 'reschedule_approval_comptroller_final',
+    ];
+
+    private const RESCHEDULE_REMARK_MAP = [
+        'approval_dean_sa'               => 'reschedule_remarks_dean_sa',
+        'approval_avp_sps'               => 'reschedule_remarks_avp_sps',
+        'approval_dir_basic_ed'          => 'reschedule_remarks_dir_basic_ed',
+        'approval_vp_acad'               => 'reschedule_remarks_vp_acad',
+        'approval_vp_hrd_legal'          => 'reschedule_remarks_vp_hrd_legal',
+        'approval_auditing'              => 'reschedule_remarks_auditing',
+        'approval_comptroller_initial'   => 'reschedule_remarks_comptroller_initial',
+        'approval_finance_initial'       => 'reschedule_remarks_finance_initial',
+        'approval_osa_finance'           => 'reschedule_remarks_osa_finance',
+        'approval_finance_final'         => 'reschedule_remarks_finance_final',
+        'approval_comptroller_final'     => 'reschedule_remarks_comptroller_final',
+    ];
+
+    private const RESCHEDULE_APPROVED_AT_MAP = [
+        'approval_dean_sa'               => 'reschedule_approved_at_dean_sa',
+        'approval_avp_sps'               => 'reschedule_approved_at_avp_sps',
+        'approval_dir_basic_ed'          => 'reschedule_approved_at_dir_basic_ed',
+        'approval_vp_acad'               => 'reschedule_approved_at_vp_acad',
+        'approval_vp_hrd_legal'          => 'reschedule_approved_at_vp_hrd_legal',
+        'approval_auditing'              => 'reschedule_approved_at_auditing',
+        'approval_comptroller_initial'   => 'reschedule_approved_at_comptroller_initial',
+        'approval_finance_initial'       => 'reschedule_approved_at_finance_initial',
+        'approval_osa_finance'           => 'reschedule_approved_at_osa_finance',
+        'approval_finance_final'         => 'reschedule_approved_at_finance_final',
+        'approval_comptroller_final'     => 'reschedule_approved_at_comptroller_final',
+    ];
+
+    private const RESCHEDULE_APPROVED_BY_MAP = [
+        'approval_dean_sa'               => 'reschedule_approved_by_dean_sa',
+        'approval_avp_sps'               => 'reschedule_approved_by_avp_sps',
+        'approval_dir_basic_ed'          => 'reschedule_approved_by_dir_basic_ed',
+        'approval_vp_acad'               => 'reschedule_approved_by_vp_acad',
+        'approval_vp_hrd_legal'          => 'reschedule_approved_by_vp_hrd_legal',
+        'approval_auditing'              => 'reschedule_approved_by_auditing',
+        'approval_comptroller_initial'   => 'reschedule_approved_by_comptroller_initial',
+        'approval_finance_initial'       => 'reschedule_approved_by_finance_initial',
+        'approval_osa_finance'           => 'reschedule_approved_by_osa_finance',
+        'approval_finance_final'         => 'reschedule_approved_by_finance_final',
+        'approval_comptroller_final'     => 'reschedule_approved_by_comptroller_final',
     ];
 
     public function index(Request $request)
@@ -207,7 +264,7 @@ class ApprovalController extends Controller
         $activity = Activity::findOrFail($id);
 
         // Block signatory approvals while a reschedule request is active.
-        if ($activity->status === 'for approval for rescheduling' || in_array($activity->reschedule_status, ['pending', 'for approval'], true)) {
+        if ($activity->status === 'for approval for rescheduling' || in_array($activity->reschedule_status, ['pending', 'for approval', 'for signature'], true)) {
             return back()->withErrors([
                 'approver' => 'Signatory approvals are paused while a reschedule request is active.',
             ]);
@@ -369,6 +426,21 @@ class ApprovalController extends Controller
         return $activity->waiver_consent === 'With';
     }
 
+    private function resetRescheduleApprovals(Activity $activity): array
+    {
+        $updates = [];
+
+        foreach (self::RESCHEDULE_APPROVAL_MAP as $approvalField => $rescheduleField) {
+            $isApplicable = in_array($approvalField, $this->applicableApprovalFields($activity), true);
+            $updates[$rescheduleField] = $isApplicable ? 'pending' : null;
+            $updates[self::RESCHEDULE_REMARK_MAP[$approvalField]] = null;
+            $updates[self::RESCHEDULE_APPROVED_AT_MAP[$approvalField]] = null;
+            $updates[self::RESCHEDULE_APPROVED_BY_MAP[$approvalField]] = null;
+        }
+
+        return $updates;
+    }
+
     public function storeDocument(Request $request, string $id)
     {
         $activity = Activity::findOrFail($id);
@@ -475,8 +547,11 @@ class ApprovalController extends Controller
             ->where('type', 'RESCHEDULE_PAPER')
             ->first();
 
-        if ($reschedulePaper) {
+        if ($reschedulePaper?->file_path) {
             Storage::disk('public')->delete($reschedulePaper->file_path);
+        }
+
+        if ($reschedulePaper) {
             $reschedulePaper->delete();
         }
 
@@ -499,6 +574,7 @@ class ApprovalController extends Controller
             'reschedule_requested_at' => now(),
             'reschedule_decided_at'   => null,
             'status'                  => 'for approval for rescheduling',
+            ...$this->resetRescheduleApprovals($activity),
         ]);
 
         SystemLog::record('Requested reschedule', 'Reschedule', [
@@ -534,19 +610,28 @@ class ApprovalController extends Controller
             }
 
             $request->validate([
+                'reschedule_paper_hardcopy' => 'nullable|boolean',
                 'reschedule_paper_file' => [
-                    $existingReschedulePaper ? 'nullable' : 'required',
+                    'nullable',
                     'file',
                     'mimes:pdf',
                     'max:10240',
                 ],
             ]);
 
+            $hardcopyAvailable = $request->boolean('reschedule_paper_hardcopy');
+
+            if (! $existingReschedulePaper && ! $request->hasFile('reschedule_paper_file') && ! $hardcopyAvailable) {
+                return back()
+                    ->withErrors(['reschedule_paper_hardcopy' => 'Upload a PDF or check that the reschedule paper hardcopy is available.'])
+                    ->withInput();
+            }
+
             if ($request->hasFile('reschedule_paper_file')) {
                 $file = $request->file('reschedule_paper_file');
                 $path = $file->store('sarf_documents', 'public');
 
-                if ($existingReschedulePaper) {
+                if ($existingReschedulePaper?->file_path) {
                     Storage::disk('public')->delete($existingReschedulePaper->file_path);
                 }
 
@@ -554,6 +639,13 @@ class ApprovalController extends Controller
                     ['activity_id' => $activity->id, 'type' => 'RESCHEDULE_PAPER'],
                     ['file_path' => $path, 'original_filename' => $file->getClientOriginalName()]
                 );
+            } elseif (! $existingReschedulePaper && $hardcopyAvailable) {
+                SarfDocument::create([
+                    'activity_id' => $activity->id,
+                    'type' => 'RESCHEDULE_PAPER',
+                    'file_path' => null,
+                    'original_filename' => null,
+                ]);
             }
 
             $activity->update(['status' => 'approved']);
@@ -576,31 +668,40 @@ class ApprovalController extends Controller
         }
 
         $request->validate([
+            'reschedule_approver' => 'required|in:' . implode(',', array_keys(self::RESCHEDULE_APPROVAL_MAP)),
             'reschedule_status' => 'required|in:pending,for signature,approved,disapproved',
             'reschedule_remarks' => 'nullable|string|max:1000',
         ]);
 
+        $approver = $request->input('reschedule_approver');
         $rescheduleStatus = $request->input('reschedule_status');
+        $applicableApprovalFields = $this->applicableApprovalFields($activity);
+
+        if (! in_array($approver, $applicableApprovalFields, true)) {
+            return back()->withErrors([
+                'reschedule_approver' => 'This approval is not required for this SARF.',
+            ]);
+        }
+
+        $statusField = self::RESCHEDULE_APPROVAL_MAP[$approver];
+        $remarkField = self::RESCHEDULE_REMARK_MAP[$approver];
+        $approvedAtField = self::RESCHEDULE_APPROVED_AT_MAP[$approver];
+        $approvedByField = self::RESCHEDULE_APPROVED_BY_MAP[$approver];
 
         $updates = [
-            'reschedule_status' => $rescheduleStatus,
-            'reschedule_remarks' => $request->input('reschedule_remarks'),
+            $statusField => $rescheduleStatus,
+            $remarkField => $request->input('reschedule_remarks'),
+            $approvedAtField => $rescheduleStatus === 'approved'
+                ? ($activity->{$approvedAtField} ?? now())
+                : null,
+            $approvedByField => $rescheduleStatus === 'approved'
+                ? ($activity->{$approvedByField} ?? Auth::id())
+                : null,
         ];
 
-        if (in_array($rescheduleStatus, ['approved', 'disapproved'], true)) {
-            $updates['reschedule_decided_at'] = now();
-        }
-
-        if ($rescheduleStatus === 'approved') {
-            $updates['date_of_activity'] = $activity->reschedule_date;
-            $updates['time_of_activity'] = $activity->reschedule_time;
-            $updates['mode_of_conduct'] = $activity->reschedule_mode ?: $activity->mode_of_conduct;
-            $updates['venue'] = $activity->reschedule_venue;
-            $updates['venue_type'] = $activity->reschedule_venue_type;
-            $updates['platform'] = $activity->reschedule_platform;
-        }
-
         if ($rescheduleStatus === 'disapproved') {
+            $updates['reschedule_status'] = 'disapproved';
+            $updates['reschedule_decided_at'] = now();
             $updates['status'] = 'for reschedule';
             $updates['modification_type'] = 'rescheduling';
             $updates['modification_remarks'] = 'Schedule was disapproved. Please revise the schedule and resubmit.';
@@ -613,7 +714,7 @@ class ApprovalController extends Controller
         }
 
         $activity->update($updates);
-
+        $activity = Activity::findOrFail($id);
 
         if ($rescheduleStatus === 'disapproved') {
             $disapprovalRemark = $request->input('reschedule_remarks') ?: 'No remarks provided.';
@@ -621,8 +722,11 @@ class ApprovalController extends Controller
                 ->where('type', 'RESCHEDULE_PAPER')
                 ->first();
 
-            if ($reschedulePaper) {
+            if ($reschedulePaper?->file_path) {
                 Storage::disk('public')->delete($reschedulePaper->file_path);
+            }
+
+            if ($reschedulePaper) {
                 $reschedulePaper->delete();
             }
 
@@ -631,11 +735,32 @@ class ApprovalController extends Controller
             ]);
         }
 
+        if ($rescheduleStatus !== 'disapproved') {
+            $allRescheduleApproved = collect($applicableApprovalFields)
+                ->every(fn($field) => $activity->{self::RESCHEDULE_APPROVAL_MAP[$field]} === 'approved');
+
+            if ($allRescheduleApproved) {
+                $activity->update([
+                    'reschedule_status' => 'approved',
+                    'reschedule_decided_at' => now(),
+                    'date_of_activity' => $activity->reschedule_date,
+                    'time_of_activity' => $activity->reschedule_time,
+                    'mode_of_conduct' => $activity->reschedule_mode ?: $activity->mode_of_conduct,
+                    'venue' => $activity->reschedule_venue,
+                    'venue_type' => $activity->reschedule_venue_type,
+                    'platform' => $activity->reschedule_platform,
+                ]);
+                $activity = Activity::findOrFail($id);
+            } else {
+                $activity->update(['reschedule_status' => 'for approval']);
+            }
+        }
+
         SystemLog::record('Updated reschedule approval', 'Reschedule', [
             'subject_type'  => Activity::class,
             'subject_id'    => $activity->id,
             'subject_label' => $activity->code,
-            'description'   => "Set reschedule request for {$activity->code} to {$rescheduleStatus}.",
+            'description'   => "Set {$approver} reschedule approval for {$activity->code} to {$rescheduleStatus}.",
         ]);
 
         if ($rescheduleStatus === 'disapproved') {
@@ -644,10 +769,28 @@ class ApprovalController extends Controller
                 ->with('success', 'Reschedule disapproved. Activity sent back for schedule re-editing.');
         }
 
+        $focus = $this->rescheduleApprovalFocusTarget($activity, $approver, $rescheduleStatus);
+
         return redirect()
-            ->route($this->routeName('approval.show'), ['id' => $activity->id, 'tab' => 4])
+            ->route($this->routeName('approval.show'), ['id' => $activity->id, 'tab' => 4, 'focus' => $focus])
             ->with('success', 'Reschedule approval updated successfully.');
     }
+
+    private function rescheduleApprovalFocusTarget(Activity $activity, string $approver, string $approvalStatus): string
+    {
+        if ($approvalStatus !== 'approved') {
+            return 'reschedule-approval-card-' . $approver;
+        }
+
+        foreach ($this->applicableApprovalFields($activity) as $field) {
+            if (($activity->{self::RESCHEDULE_APPROVAL_MAP[$field]} ?? 'pending') !== 'approved') {
+                return 'reschedule-approval-card-' . $field;
+            }
+        }
+
+        return 'reschedule-document-section';
+    }
+
     /**
      * Reject the reschedule — activity goes back to 'for reschedule' status
      * so the user can re-edit the schedule. The rescheduling process must
@@ -685,8 +828,11 @@ class ApprovalController extends Controller
             ->where('type', 'RESCHEDULE_PAPER')
             ->first();
 
-        if ($reschedulePaper) {
+        if ($reschedulePaper?->file_path) {
             Storage::disk('public')->delete($reschedulePaper->file_path);
+        }
+
+        if ($reschedulePaper) {
             $reschedulePaper->delete();
         }
 
@@ -748,18 +894,27 @@ class ApprovalController extends Controller
                 ->where('type', 'RESCHEDULE_PAPER')
                 ->first();
 
-            if ($reschedulePaper) {
+            if ($reschedulePaper?->file_path) {
                 Storage::disk('public')->delete($reschedulePaper->file_path);
+            }
+
+            if ($reschedulePaper) {
                 $reschedulePaper->delete();
             }
         }
 
-        $activity->update([
+        $updateData = [
             'modification_type'    => $type,
             'modification_remarks' => $remarks,
             'status'               => $newStatus,
             'reschedule_status'    => $type === 'rescheduling' ? null : $activity->reschedule_status,
-        ]);
+        ];
+
+        if ($type === 'rescheduling') {
+            $updateData['reschedule_reason'] = filled($remarks) ? $remarks : null;
+        }
+
+        $activity->update($updateData);
 
         $actionLabel = $type === 'rescheduling'
             ? 'Requested Rescheduling Modification'

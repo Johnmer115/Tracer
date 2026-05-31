@@ -301,10 +301,11 @@
                     @endunless
                     <div class="context-card context-card--green" style="margin-bottom:16px;">
                         <p class="context-card-title">
-                            <i class="fas fa-clock"></i> Schedule, Conduct & Extras
+                            <i class="fas fa-clock"></i> {{ $isRescheduling ? 'Reschedule Details' : 'Activity Extras' }}
                         </p>
                         <div class="form-grid">
 
+                            @if($isRescheduling)
                             <div class="form-group full">
                                 <label class="form-label">Mode of Conduct <span class="req">*</span></label>
                                 <div class="radio-group" id="mode-radio-group">
@@ -320,28 +321,28 @@
                             </div>
 
                             <div class="form-group full mode-venue" id="venue-block" style="display:none;">
-                                <label class="form-label">Venue <span class="req" id="venue-req" style="display:none;">*</span></label>
+                                <label class="form-label">Venue <span class="muted">(optional)</span></label>
                                 <input type="text" name="venue" class="form-control" id="venue-input"
                                     placeholder="Enter venue name"
                                     value="{{ old('venue', $isRescheduling ? ($activity->reschedule_venue ?: $activity->venue) : $activity->venue) }}">
                                 <div class="radio-group" style="margin-top:10px;">
                                     <label class="radio-option">
                                         <input type="radio" name="venue_type" value="On-Campus"
-                                            @checked(old('venue_type', $activity->venue_type ?? '') === 'On-Campus')> On-Campus
+                                            @checked(old('venue_type', $isRescheduling ? ($activity->reschedule_venue_type ?: $activity->venue_type) : $activity->venue_type) === 'On-Campus')> On-Campus
                                     </label>
                                     <label class="radio-option">
                                         <input type="radio" name="venue_type" value="Off-Campus"
-                                            @checked(old('venue_type', $activity->venue_type ?? '') === 'Off-Campus')> Off-Campus
+                                            @checked(old('venue_type', $isRescheduling ? ($activity->reschedule_venue_type ?: $activity->venue_type) : $activity->venue_type) === 'Off-Campus')> Off-Campus
                                     </label>
                                 </div>
-                                <span class="field-error" id="err-venue">Venue is required for Face to Face / Hybrid.</span>
+                                <span class="field-error" id="err-venue">Please enter a valid venue.</span>
                             </div>
 
                             <div class="form-group mode-platform" id="platform-block" style="display:none;">
-                                <label class="form-label">Platform <span class="req" id="platform-req" style="display:none;">*</span></label>
+                                <label class="form-label">Platform <span class="muted">(optional)</span></label>
                                 @php
                                     $platformOptions = ['Zoom', 'Google Meet', 'Microsoft Teams', 'Facebook Live', 'YouTube Live', 'Google Classroom', 'Moodle', 'Canvas', 'Other'];
-                                    $selectedPlatform = old('platform', $isRescheduling ? ($activity->reschedule_venue ?: $activity->platform) : $activity->platform);
+                                    $selectedPlatform = old('platform', $isRescheduling ? ($activity->reschedule_platform ?: $activity->platform) : $activity->platform);
                                 @endphp
                                 <select name="platform" class="form-control" id="platform-input">
                                     <option value="">— Select Platform —</option>
@@ -352,7 +353,7 @@
                                         <option value="{{ $selectedPlatform }}" selected>{{ $selectedPlatform }}</option>
                                     @endif
                                 </select>
-                                <span class="field-error" id="err-platform">Platform is required for Online / Hybrid.</span>
+                                <span class="field-error" id="err-platform">Please enter a valid platform.</span>
                             </div>
 
                             <div class="form-group">
@@ -396,6 +397,7 @@
                                     value="{{ old('time_end', $storedEndTime) }}">
                                 <span class="field-error" id="err-time_end">Please enter an end time after the start time.</span>
                             </div>
+                            @endif
 
                             @unless($isRescheduling)
                             <div class="form-group">
@@ -798,42 +800,28 @@ function validateStep(step, jumpOnFail = false) {
         if (!actLevelOk) valid = false;
         }
 
-        const dateAct   = document.querySelector('[name="date_of_activity"]');
-        const dateActOk = dateAct && dateAct.value.trim() !== '';
-        markInvalid(dateAct, !dateActOk); showError('err-date_of_activity', !dateActOk);
-        if (!dateActOk) valid = false;
+        if (IS_RESCHEDULING) {
+            const dateAct   = document.querySelector('[name="date_of_activity"]');
+            const dateActOk = dateAct && dateAct.value.trim() !== '';
+            markInvalid(dateAct, !dateActOk); showError('err-date_of_activity', !dateActOk);
+            if (!dateActOk) valid = false;
 
-        const timeStart = document.querySelector('[name="time_start"]');
-        const timeEnd = document.querySelector('[name="time_end"]');
-        const hasTimeStart = timeStart && timeStart.value.trim() !== '';
-        const hasTimeEnd = timeEnd && timeEnd.value.trim() !== '';
-        const timeRangeOk = hasTimeStart && hasTimeEnd && timeEnd.value > timeStart.value;
-        markInvalid(timeStart, !timeRangeOk && !hasTimeStart);
-        markInvalid(timeEnd, !timeRangeOk && (!hasTimeEnd || timeEnd.value <= timeStart.value));
-        showError('err-time_start', !hasTimeStart);
-        showError('err-time_end', !hasTimeEnd || (hasTimeStart && timeEnd.value <= timeStart.value));
-        if (!timeRangeOk) valid = false;
+            const timeStart = document.querySelector('[name="time_start"]');
+            const timeEnd = document.querySelector('[name="time_end"]');
+            const hasTimeStart = timeStart && timeStart.value.trim() !== '';
+            const hasTimeEnd = timeEnd && timeEnd.value.trim() !== '';
+            const timeRangeOk = hasTimeStart && hasTimeEnd && timeEnd.value > timeStart.value;
+            markInvalid(timeStart, !timeRangeOk && !hasTimeStart);
+            markInvalid(timeEnd, !timeRangeOk && (!hasTimeEnd || timeEnd.value <= timeStart.value));
+            showError('err-time_start', !hasTimeStart);
+            showError('err-time_end', !hasTimeEnd || (hasTimeStart && timeEnd.value <= timeStart.value));
+            if (!timeRangeOk) valid = false;
 
-        const modeChecked = document.querySelector('[name="mode_of_conduct"]:checked');
-        const modeOk      = !!modeChecked;
-        showError('err-mode_of_conduct', !modeOk);
-        if (!modeOk) valid = false;
-
-        if (modeChecked && (modeChecked.value === 'Face to Face' || modeChecked.value === 'Hybrid')) {
-            const venueIn = document.getElementById('venue-input');
-            const venueOk = venueIn && venueIn.value.trim() !== '';
-            markInvalid(venueIn, !venueOk); showError('err-venue', !venueOk);
-            if (!venueOk) valid = false;
-            const venueTypeOk = !!document.querySelector('[name="venue_type"]:checked');
-            if (!venueTypeOk) valid = false;
-        } else { showError('err-venue', false); }
-
-        if (modeChecked && (modeChecked.value === 'Online' || modeChecked.value === 'Hybrid')) {
-            const platIn = document.getElementById('platform-input');
-            const platOk = platIn && platIn.value.trim() !== '';
-            markInvalid(platIn, !platOk); showError('err-platform', !platOk);
-            if (!platOk) valid = false;
-        } else { showError('err-platform', false); }
+            const modeChecked = document.querySelector('[name="mode_of_conduct"]:checked');
+            const modeOk      = !!modeChecked;
+            showError('err-mode_of_conduct', !modeOk);
+            if (!modeOk) valid = false;
+        }
 
         if (!IS_RESCHEDULING) {
             const participantCount = document.querySelector('[name="participants_count"]');
@@ -936,8 +924,8 @@ function handleMode(val) {
     const showVenue    = (val === 'Face to Face' || val === 'Hybrid');
     const showPlatform = (val === 'Online'       || val === 'Hybrid');
 
-    venueBlock.style.display    = showVenue    ? 'flex' : 'none';
-    platformBlock.style.display = showPlatform ? 'flex' : 'none';
+    if (venueBlock) venueBlock.style.display = showVenue ? 'flex' : 'none';
+    if (platformBlock) platformBlock.style.display = showPlatform ? 'flex' : 'none';
     if (venueReq)    venueReq.style.display    = showVenue    ? 'inline' : 'none';
     if (platformReq) platformReq.style.display = showPlatform ? 'inline' : 'none';
 

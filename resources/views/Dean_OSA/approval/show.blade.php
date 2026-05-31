@@ -134,6 +134,36 @@
         ];
 
         $approvalFields = array_merge($applicableMainFields, $applicableFinanceFields);
+        $rescheduleApprovalFields = [
+            'approval_dean_sa' => 'reschedule_approval_dean_sa',
+            'approval_avp_sps' => 'reschedule_approval_avp_sps',
+            'approval_dir_basic_ed' => 'reschedule_approval_dir_basic_ed',
+            'approval_vp_acad' => 'reschedule_approval_vp_acad',
+            'approval_vp_hrd_legal' => 'reschedule_approval_vp_hrd_legal',
+            'approval_auditing' => 'reschedule_approval_auditing',
+            'approval_comptroller_initial' => 'reschedule_approval_comptroller_initial',
+            'approval_finance_initial' => 'reschedule_approval_finance_initial',
+            'approval_osa_finance' => 'reschedule_approval_osa_finance',
+            'approval_finance_final' => 'reschedule_approval_finance_final',
+            'approval_comptroller_final' => 'reschedule_approval_comptroller_final',
+        ];
+        $rescheduleRemarkFields = [
+            'approval_dean_sa' => 'reschedule_remarks_dean_sa',
+            'approval_avp_sps' => 'reschedule_remarks_avp_sps',
+            'approval_dir_basic_ed' => 'reschedule_remarks_dir_basic_ed',
+            'approval_vp_acad' => 'reschedule_remarks_vp_acad',
+            'approval_vp_hrd_legal' => 'reschedule_remarks_vp_hrd_legal',
+            'approval_auditing' => 'reschedule_remarks_auditing',
+            'approval_comptroller_initial' => 'reschedule_remarks_comptroller_initial',
+            'approval_finance_initial' => 'reschedule_remarks_finance_initial',
+            'approval_osa_finance' => 'reschedule_remarks_osa_finance',
+            'approval_finance_final' => 'reschedule_remarks_finance_final',
+            'approval_comptroller_final' => 'reschedule_remarks_comptroller_final',
+        ];
+        $rescheduleApprovedCount = collect($approvalFields)
+            ->filter(fn($field) => ($activity->{$rescheduleApprovalFields[$field]} ?? 'pending') === 'approved')
+            ->count();
+        $allRescheduleApprovalsApproved = count($approvalFields) > 0 && $rescheduleApprovedCount === count($approvalFields);
         $budgetFieldsByApproval = collect(array_merge($signatories, $financeSignatories))
             ->pluck('budget', 'field')
             ->all();
@@ -1149,7 +1179,7 @@
 
                             <div class="approved-remark-box">
                                 <label for="approved_remark" style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:8px;">
-                                    Remark for approved SARF
+                                    Remark for Approved SARF
                                 </label>
                                 <textarea id="approved_remark" name="approved_remark"
                                     placeholder="Add a remark for the approved SARF...">{{ $approvedDocRemark }}</textarea>
@@ -1253,8 +1283,8 @@
                                     <div>
                                         <strong>Reschedule approved.</strong>
                                         Approved {{ $activity->reschedule_decided_at?->format('M j, Y \a\t g:i A') ?? '---' }}.
-                                        @if(filled($activity->reschedule_remarks))
-                                            <div style="margin-top:4px;">Remarks: {{ $activity->reschedule_remarks }}</div>
+                                        @if(filled($activity->reschedule_reason))
+                                            <div style="margin-top:4px;">Reason: {{ $activity->reschedule_reason }}</div>
                                         @endif
                                     </div>
                                 </div>
@@ -1267,18 +1297,24 @@
                             </div>
                             @if($reschedulePaperDoc)
                                 <div style="padding:16px 16px 0; font-size:12.5px; color:#334155; display:flex; align-items:center; gap:8px;">
-                                    <i class="fas fa-file-pdf" style="color:#dc2626;"></i>
-                                    <span style="font-weight:600;">{{ $reschedulePaperDoc->original_filename }}</span>
+                                    <i class="fas {{ $reschedulePaperDoc->file_path ? 'fa-file-pdf' : 'fa-file-alt' }}" style="color:{{ $reschedulePaperDoc->file_path ? '#dc2626' : '#16a34a' }};"></i>
+                                    <span style="font-weight:600;">{{ $reschedulePaperDoc->original_filename ?? 'Hardcopy available' }}</span>
                                 </div>
                                 <div class="document-check-row" style="padding:16px;">
-                                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', $reschedulePaperDoc) }}"
-                                        target="_blank" class="document-check-btn">
-                                        <i class="fas fa-file-pdf"></i> View Reschedule Paper
-                                    </a>
-                                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', ['document' => $reschedulePaperDoc, 'download' => 1]) }}"
-                                        class="document-check-btn document-download-btn">
-                                        <i class="fas fa-download"></i> Download File
-                                    </a>
+                                    @if($reschedulePaperDoc->file_path)
+                                        <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', $reschedulePaperDoc) }}"
+                                            target="_blank" class="document-check-btn">
+                                            <i class="fas fa-file-pdf"></i> View Reschedule Paper
+                                        </a>
+                                        <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', ['document' => $reschedulePaperDoc, 'download' => 1]) }}"
+                                            class="document-check-btn document-download-btn">
+                                            <i class="fas fa-download"></i> Download File
+                                        </a>
+                                    @else
+                                        <span class="document-check-btn">
+                                            <i class="fas fa-file-alt"></i> Hardcopy available
+                                        </span>
+                                    @endif
                                 </div>
                             @else
                                 <div style="padding:16px; color:#94a3b8; font-size:13px;">No reschedule document uploaded.</div>
@@ -1418,7 +1454,7 @@
                                     @endif
                                 </div>
 
-                                @if(false)
+                                @if(false && $reschedDocUnlocked)
                                     {{-- Already approved — show read-only summary --}}
                                     <div class="signatory-card">
                                         <div class="signatory-header">
@@ -1434,67 +1470,146 @@
                                                 <div>
                                                     <strong>Reschedule approved.</strong>
                                                     Approved {{ $activity->reschedule_decided_at?->format('M j, Y \a\t g:i A') ?? '---' }}.
-                                                    @if(filled($activity->reschedule_remarks))
-                                                        <div style="margin-top:4px;">Remarks: {{ $activity->reschedule_remarks }}</div>
+                                                    @if(filled($activity->reschedule_reason))
+                                                        <div style="margin-top:4px;">Reason: {{ $activity->reschedule_reason }}</div>
                                                     @endif
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 @else
-                                <form action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.reschedule.approve', $activity->id) }}"
-                                    method="POST"
-                                    id="reschedApprovalForm">
-                                    @csrf
-                                    <input type="hidden" name="save_action" value="approval">
-
-                                    <div class="signatory-card">
-                                        <div class="signatory-header">
-                                            <div style="display:flex; align-items:center; gap:8px;">
-                                                <i class="fas fa-calendar-check" style="color:#d97706; font-size:12px;"></i>
-                                                <span style="font-weight:600; font-size:13.5px; color:#1e293b;">Reschedule Application Approval</span>
-                                            </div>
-                                            <span class="badge approval-status-badge {{ in_array($activity->reschedule_status, ['for approval', 'for signature'], true) ? 'b-for-signature' : ($activity->reschedule_status === 'approved' ? 'b-approved' : 'b-pending') }}">
-                                                @if($activity->reschedule_status === 'for signature')
-                                                    For Signature
-                                                @elseif($activity->reschedule_status === 'for approval')
-                                                    For Approval
-                                                @elseif($activity->reschedule_status === 'approved')
-                                                    Approved
-                                                @else
-                                                    Pending Review
-                                                @endif
+                                <div class="show-section">
+                                    <div class="show-section-header">
+                                        <i class="fas fa-stamp"></i> Signatory Approvals
+                                        @if(collect($applicableMainFields)->every(fn($field) => ($activity->{$rescheduleApprovalFields[$field]} ?? 'pending') === 'approved'))
+                                            <span class="mini-pill pill-green" style="margin-left:auto;">
+                                                <i class="fas fa-check"></i> All Approved
                                             </span>
-                                        </div>
-
-                                        <div class="signatory-body">
-                                            <div style="display:grid; grid-template-columns:minmax(170px,220px) minmax(0,1fr); gap:16px; align-items:start;">
-                                                <div>
-                                                    <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:6px;">Status</label>
-                                                    <select name="reschedule_status" class="filter-select" style="width:100%;">
-                                                        <option value="pending" @selected($activity->reschedule_status === 'pending')>Pending</option>
-                                                        <option value="for signature" @selected($activity->reschedule_status === 'for signature')>For Signature</option>
-                                                        <option value="approved" @selected($activity->reschedule_status === 'approved')>Approved</option>
-                                                        <option value="disapproved" @selected($activity->reschedule_status === 'disapproved')>Disapproved</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label style="display:block; font-size:12px; font-weight:600; color:#475569; margin-bottom:6px;">
-                                                        Approval Remarks <span style="color:#94a3b8; font-weight:400;">(optional)</span>
-                                                    </label>
-                                                    <textarea name="reschedule_remarks" class="form-control" rows="3"
-                                                        placeholder="Add remarks about this reschedule request..."
-                                                        style="resize:vertical; font-size:13px; border-radius:10px;">{{ $activity->reschedule_remarks }}</textarea>
-                                                </div>
-                                            </div>
-                                            <div style="display:flex; justify-content:flex-end; margin-top:14px;">
-                                                <button type="submit" class="btn btn-add" style="font-size:12.5px;">
-                                                    <i class="fas fa-save"></i> Save Approval
-                                                </button>
-                                            </div>
-                                        </div>
+                                        @endif
                                     </div>
-                                </form>
+                                    <div style="padding:16px 20px; display:flex; flex-direction:column; gap:12px;">
+                                    @foreach($signatories as $sig)
+                                        @continue(!in_array($sig['field'], $applicableMainFields, true))
+                                        @php
+                                            $reschedStatusField = $rescheduleApprovalFields[$sig['field']];
+                                            $reschedRemarkField = $rescheduleRemarkFields[$sig['field']];
+                                            $current = $activity->{$reschedStatusField} ?? 'pending';
+                                            $idx = array_search($sig['field'], $approvalFields, true);
+                                            $previousField = $idx > 0 ? $approvalFields[$idx - 1] : null;
+                                            $isLocked = $previousField && (($activity->{$rescheduleApprovalFields[$previousField]} ?? 'pending') !== 'approved');
+                                        @endphp
+                                        <div class="signatory-card" id="reschedule-approval-card-{{ $sig['field'] }}">
+                                            <div class="signatory-header">
+                                                <div style="display:flex; align-items:center; gap:8px;">
+                                                    <i class="fas fa-calendar-check" style="color:#d97706; font-size:12px;"></i>
+                                                    <span style="font-weight:600; font-size:13.5px; color:#1e293b;">{{ $sig['role'] }}</span>
+                                                </div>
+                                                <span class="badge approval-status-badge {{ $approvalBadgeClass($current) }}">
+                                                    {{ $current === 'for signature' ? 'For Signature' : ucfirst($current) }}
+                                                </span>
+                                            </div>
+                                            <div class="signatory-body">
+                                                @if($isLocked)
+                                                    <div class="notice-card notice-card--blue" style="margin:0;">
+                                                        <i class="fas fa-lock"></i>
+                                                        <div>Waiting for the previous reschedule approval.</div>
+                                                    </div>
+                                                @else
+                                                    <form action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.reschedule.approve', $activity->id) }}"
+                                                        method="POST"
+                                                        class="approval-row-form">
+                                                        @csrf
+                                                        <input type="hidden" name="save_action" value="approval">
+                                                        <input type="hidden" name="reschedule_approver" value="{{ $sig['field'] }}">
+                                                        <select name="reschedule_status" class="filter-select">
+                                                            <option value="pending" @selected($current === 'pending')>Pending</option>
+                                                            <option value="for signature" @selected($current === 'for signature')>For Signature</option>
+                                                            <option value="approved" @selected($current === 'approved')>Approved</option>
+                                                            <option value="disapproved" @selected($current === 'disapproved')>Disapproved</option>
+                                                        </select>
+                                                        <input type="text" name="reschedule_remarks" class="form-control approval-remark-input"
+                                                            placeholder="Remark (optional)"
+                                                            value="{{ $activity->{$reschedRemarkField} ?? '' }}">
+                                                        <button type="submit" class="btn btn-add" style="font-size:12px;">
+                                                            <i class="fas fa-save"></i> Save
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                    </div>
+                                </div>
+
+                                @if($requiresFinanceApproval)
+                                <div class="show-section" style="margin-top:16px; {{ !collect($applicableMainFields)->every(fn($field) => ($activity->{$rescheduleApprovalFields[$field]} ?? 'pending') === 'approved') ? 'opacity:0.6;' : '' }}">
+                                    <div class="show-section-header green">
+                                        <i class="fas fa-file-invoice-dollar"></i> Finance Approvals
+                                        @if(!collect($applicableMainFields)->every(fn($field) => ($activity->{$rescheduleApprovalFields[$field]} ?? 'pending') === 'approved'))
+                                            <span style="margin-left:auto; font-size:11px; color:#94a3b8; font-weight:600;">
+                                                <i class="fas fa-lock"></i> Unlocks after all signatories above approve
+                                            </span>
+                                        @elseif(collect($applicableFinanceFields)->every(fn($field) => ($activity->{$rescheduleApprovalFields[$field]} ?? 'pending') === 'approved'))
+                                            <span class="mini-pill pill-green" style="margin-left:auto;">
+                                                <i class="fas fa-check"></i> All Approved
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div style="padding:16px 20px; display:flex; flex-direction:column; gap:12px;">
+                                    @foreach($financeSignatories as $sig)
+                                        @continue(!in_array($sig['field'], $applicableFinanceFields, true))
+                                        @php
+                                            $reschedStatusField = $rescheduleApprovalFields[$sig['field']];
+                                            $reschedRemarkField = $rescheduleRemarkFields[$sig['field']];
+                                            $current = $activity->{$reschedStatusField} ?? 'pending';
+                                            $idx = array_search($sig['field'], $approvalFields, true);
+                                            $previousField = $idx > 0 ? $approvalFields[$idx - 1] : null;
+                                            $financeStageLocked = !collect($applicableMainFields)->every(fn($field) => ($activity->{$rescheduleApprovalFields[$field]} ?? 'pending') === 'approved');
+                                            $isLocked = $financeStageLocked || ($previousField && (($activity->{$rescheduleApprovalFields[$previousField]} ?? 'pending') !== 'approved'));
+                                        @endphp
+                                        <div class="signatory-card" id="reschedule-approval-card-{{ $sig['field'] }}">
+                                            <div class="signatory-header">
+                                                <div style="display:flex; align-items:center; gap:8px;">
+                                                    <i class="fas fa-calendar-check" style="color:#16a34a; font-size:12px;"></i>
+                                                    <span style="font-weight:600; font-size:13.5px; color:#1e293b;">{{ $sig['role'] }}</span>
+                                                </div>
+                                                <span class="badge approval-status-badge {{ $approvalBadgeClass($current) }}">
+                                                    {{ $current === 'for signature' ? 'For Signature' : ucfirst($current) }}
+                                                </span>
+                                            </div>
+                                            <div class="signatory-body">
+                                                @if($isLocked)
+                                                    <div class="notice-card notice-card--blue" style="margin:0;">
+                                                        <i class="fas fa-lock"></i>
+                                                        <div>{{ $financeStageLocked ? 'Unlocks after all signatories are approved.' : 'Waiting for the previous reschedule approval.' }}</div>
+                                                    </div>
+                                                @else
+                                                    <form action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.reschedule.approve', $activity->id) }}"
+                                                        method="POST"
+                                                        class="approval-row-form">
+                                                        @csrf
+                                                        <input type="hidden" name="save_action" value="approval">
+                                                        <input type="hidden" name="reschedule_approver" value="{{ $sig['field'] }}">
+                                                        <select name="reschedule_status" class="filter-select">
+                                                            <option value="pending" @selected($current === 'pending')>Pending</option>
+                                                            <option value="for signature" @selected($current === 'for signature')>For Signature</option>
+                                                            <option value="approved" @selected($current === 'approved')>Approved</option>
+                                                            <option value="disapproved" @selected($current === 'disapproved')>Disapproved</option>
+                                                        </select>
+                                                        <input type="text" name="reschedule_remarks" class="form-control approval-remark-input"
+                                                            placeholder="Remark (optional)"
+                                                            value="{{ $activity->{$reschedRemarkField} ?? '' }}">
+                                                        <button type="submit" class="btn btn-add" style="font-size:12px;">
+                                                            <i class="fas fa-save"></i> Save
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                    </div>
+                                </div>
+                                @endif
                                 @endif
                             </div>
 
@@ -1543,13 +1658,31 @@
                                                         <i class="fas {{ $rescheduleDocumentLocked ? 'fa-lock' : 'fa-cloud-upload-alt' }}"></i>
                                                         <span class="approved-dropzone-main">Upload reschedule paper</span>
                                                         <span class="approved-dropzone-sub">
-                                                            {{ $rescheduleDocumentLocked ? 'Locked until Step 1 is approved' : ($reschedulePaperDoc ? 'Replace the current PDF, up to 10MB' : 'PDF format, up to 10MB') }}
+                                                            {{ $rescheduleDocumentLocked ? 'Locked until Step 1 is approved' : ($reschedulePaperDoc ? 'Replace the current PDF, up to 10MB' : 'PDF upload is optional. Check hardcopy below when applicable.') }}
                                                         </span>
                                                         <span class="approved-file-chip">
                                                             <i class="fas fa-file-pdf"></i>
                                                             <span id="approved_fname_reschedule">
-                                                                {{ $reschedulePaperDoc?->original_filename ?? 'No file chosen' }}
+                                                                {{ $reschedulePaperDoc?->original_filename ?? ($reschedulePaperDoc ? 'Hardcopy available' : 'No file chosen') }}
                                                             </span>
+                                                        </span>
+                                                    </span>
+                                                </label>
+                                                <label for="reschedule_paper_hardcopy"
+                                                    style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; border:1px solid {{ $reschedulePaperDoc && !$reschedulePaperDoc->file_path ? '#86efac' : '#cbd5e1' }}; border-radius:10px; background:{{ $reschedulePaperDoc && !$reschedulePaperDoc->file_path ? '#f0fdf4' : '#f8fafc' }}; cursor:{{ $rescheduleDocumentLocked ? 'not-allowed' : 'pointer' }}; margin-top:12px;">
+                                                    <input type="checkbox"
+                                                        id="reschedule_paper_hardcopy"
+                                                        name="reschedule_paper_hardcopy"
+                                                        value="1"
+                                                        style="width:18px; height:18px; margin-top:2px; accent-color:#16a34a;"
+                                                        @checked(old('reschedule_paper_hardcopy', $reschedulePaperDoc && !$reschedulePaperDoc->file_path))
+                                                        @disabled($rescheduleDocumentLocked)>
+                                                    <span style="display:flex; flex-direction:column; gap:3px;">
+                                                        <span style="font-size:13px; font-weight:700; color:#0f172a;">
+                                                            Reschedule paper hardcopy is available
+                                                        </span>
+                                                        <span style="font-size:12px; color:#64748b; line-height:1.45;">
+                                                            Check this when the signed reschedule paper exists as a physical document. A PDF upload is still optional.
                                                         </span>
                                                     </span>
                                                 </label>
@@ -1562,6 +1695,9 @@
                                                 @error('reschedule_paper_file')
                                                     <div style="margin-top:8px; color:#b91c1c; font-size:12px;">{{ $message }}</div>
                                                 @enderror
+                                                @error('reschedule_paper_hardcopy')
+                                                    <div style="margin-top:8px; color:#b91c1c; font-size:12px;">{{ $message }}</div>
+                                                @enderror
                                                 <div style="display:flex; justify-content:flex-end; margin-top:14px;">
                                                     <button type="submit" class="btn btn-add" style="font-size:12.5px;" @disabled($rescheduleDocumentLocked)>
                                                         <i class="fas fa-save"></i> Save Document
@@ -1571,14 +1707,20 @@
 
                                         @if($reschedulePaperDoc)
                                             <div class="document-check-row" style="margin-top:14px;">
-                                                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', $reschedulePaperDoc) }}"
-                                                    target="_blank" class="document-check-btn">
-                                                    <i class="fas fa-file-pdf"></i> View Current Paper
-                                                </a>
-                                                <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', ['document' => $reschedulePaperDoc, 'download' => 1]) }}"
-                                                    class="document-check-btn document-download-btn">
-                                                    <i class="fas fa-download"></i> Download File
-                                                </a>
+                                                @if($reschedulePaperDoc->file_path)
+                                                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', $reschedulePaperDoc) }}"
+                                                        target="_blank" class="document-check-btn">
+                                                        <i class="fas fa-file-pdf"></i> View Current Paper
+                                                    </a>
+                                                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', ['document' => $reschedulePaperDoc, 'download' => 1]) }}"
+                                                        class="document-check-btn document-download-btn">
+                                                        <i class="fas fa-download"></i> Download File
+                                                    </a>
+                                                @else
+                                                    <span class="document-check-btn">
+                                                        <i class="fas fa-file-alt"></i> Hardcopy available
+                                                    </span>
+                                                @endif
                                             </div>
                                         @endif
                                     </div>

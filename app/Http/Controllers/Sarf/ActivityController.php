@@ -18,6 +18,61 @@ use Illuminate\Support\Facades\Storage;
 class ActivityController extends Controller
 {
     private const SARF_TYPES = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A10'];
+    private const RESCHEDULE_APPROVAL_COLUMNS = [
+        'reschedule_approval_dean_sa',
+        'reschedule_approval_avp_sps',
+        'reschedule_approval_dir_basic_ed',
+        'reschedule_approval_vp_acad',
+        'reschedule_approval_vp_hrd_legal',
+        'reschedule_approval_auditing',
+        'reschedule_approval_comptroller_initial',
+        'reschedule_approval_finance_initial',
+        'reschedule_approval_osa_finance',
+        'reschedule_approval_finance_final',
+        'reschedule_approval_comptroller_final',
+    ];
+
+    private const RESCHEDULE_REMARK_COLUMNS = [
+        'reschedule_remarks_dean_sa',
+        'reschedule_remarks_avp_sps',
+        'reschedule_remarks_dir_basic_ed',
+        'reschedule_remarks_vp_acad',
+        'reschedule_remarks_vp_hrd_legal',
+        'reschedule_remarks_auditing',
+        'reschedule_remarks_comptroller_initial',
+        'reschedule_remarks_finance_initial',
+        'reschedule_remarks_osa_finance',
+        'reschedule_remarks_finance_final',
+        'reschedule_remarks_comptroller_final',
+    ];
+
+    private const RESCHEDULE_APPROVED_AT_COLUMNS = [
+        'reschedule_approved_at_dean_sa',
+        'reschedule_approved_at_avp_sps',
+        'reschedule_approved_at_dir_basic_ed',
+        'reschedule_approved_at_vp_acad',
+        'reschedule_approved_at_vp_hrd_legal',
+        'reschedule_approved_at_auditing',
+        'reschedule_approved_at_comptroller_initial',
+        'reschedule_approved_at_finance_initial',
+        'reschedule_approved_at_osa_finance',
+        'reschedule_approved_at_finance_final',
+        'reschedule_approved_at_comptroller_final',
+    ];
+
+    private const RESCHEDULE_APPROVED_BY_COLUMNS = [
+        'reschedule_approved_by_dean_sa',
+        'reschedule_approved_by_avp_sps',
+        'reschedule_approved_by_dir_basic_ed',
+        'reschedule_approved_by_vp_acad',
+        'reschedule_approved_by_vp_hrd_legal',
+        'reschedule_approved_by_auditing',
+        'reschedule_approved_by_comptroller_initial',
+        'reschedule_approved_by_finance_initial',
+        'reschedule_approved_by_osa_finance',
+        'reschedule_approved_by_finance_final',
+        'reschedule_approved_by_comptroller_final',
+    ];
 
     public function index(Request $request)
     {
@@ -243,9 +298,10 @@ class ActivityController extends Controller
                 'date_of_activity'   => 'required|date',
                 'time_start'         => 'required|date_format:H:i',
                 'time_end'           => 'required|date_format:H:i|after:time_start',
-                'venue'              => 'required_if:mode_of_conduct,Face to Face,Hybrid|nullable|string|max:255',
-                'venue_type'         => 'required_if:mode_of_conduct,Face to Face,Hybrid|nullable|in:On-Campus,Off-Campus',
-                'platform'           => 'required_if:mode_of_conduct,Online,Hybrid|nullable|string|max:255',
+                'venue'              => 'nullable|string|max:255',
+                'venue_type'         => 'nullable|in:On-Campus,Off-Campus',
+                'platform'           => 'nullable|string|max:255',
+                'reschedule_reason'  => 'required|string|max:1000',
             ], [
                 'time_start.required' => 'Please enter the activity start time.',
                 'time_end.required'   => 'Please enter the activity end time.',
@@ -259,6 +315,12 @@ class ActivityController extends Controller
             $hasVenue      = in_array($modeOfConduct, ['Face to Face', 'Hybrid'], true);
             $hasPlatform   = in_array($modeOfConduct, ['Online', 'Hybrid'], true);
             $timeOfActivity = $this->formatActivityTimeRange($request);
+            $rescheduleReason = filled($request->input('reschedule_reason'))
+                ? $request->input('reschedule_reason')
+                : (filled($activity->reschedule_reason) && $activity->reschedule_reason !== 'Schedule modification requested.'
+                ? $activity->reschedule_reason
+                : (filled($activity->modification_remarks) ? $activity->modification_remarks : null));
+
             $activity->update([
                 'reschedule_status'       => 'pending',
                 'reschedule_original_date' => $activity->date_of_activity,
@@ -273,13 +335,14 @@ class ActivityController extends Controller
                 'reschedule_venue'        => $hasVenue ? $request->input('venue') : null,
                 'reschedule_venue_type'   => $hasVenue ? $request->input('venue_type') : null,
                 'reschedule_platform'     => $hasPlatform ? $request->input('platform') : null,
-                'reschedule_reason'       => $activity->modification_remarks ?? 'Schedule modification requested.',
+                'reschedule_reason'       => $rescheduleReason,
                 'reschedule_remarks'      => null,
                 'reschedule_requested_at' => now(),
                 'reschedule_decided_at'   => null,
                 'status'                  => 'for approval for rescheduling',
                 'modification_type'       => null,
                 'modification_remarks'    => null,
+                ...$this->resetRescheduleApprovalColumns(),
             ]);
 
             return redirect()->route($this->routeName('activity.index'))
@@ -301,13 +364,6 @@ class ActivityController extends Controller
             'type_of_activity'   => 'required|in:Extra-Curricular,Co-Curricular',
             'event_type'         => 'required|in:Internal,External',
             'activity_level'     => 'required|in:Organization,Local,Interbranch,Off-Campus',
-            'mode_of_conduct'    => 'required|in:Face to Face,Online,Hybrid',
-            'date_of_activity'   => 'required|date',
-            'time_start'         => 'required|date_format:H:i',
-            'time_end'           => 'required|date_format:H:i|after:time_start',
-            'venue'              => 'required_if:mode_of_conduct,Face to Face,Hybrid|nullable|string|max:255',
-            'venue_type'         => 'required_if:mode_of_conduct,Face to Face,Hybrid|nullable|in:On-Campus,Off-Campus',
-            'platform'           => 'required_if:mode_of_conduct,Online,Hybrid|nullable|string|max:255',
             'participants_profile' => 'required|string|max:255',
             'participants_count' => 'required|integer|min:1',
             'public_poster'      => 'required|in:With,Without',
@@ -334,11 +390,7 @@ class ActivityController extends Controller
             'time_end'   => 'end time',
         ]);
 
-        $modeOfConduct = $request->input('mode_of_conduct');
-        $hasVenue      = in_array($modeOfConduct, ['Face to Face', 'Hybrid'], true);
-        $hasPlatform   = in_array($modeOfConduct, ['Online', 'Hybrid'], true);
         $funds         = $request->input('funds');
-        $timeOfActivity = $this->formatActivityTimeRange($request);
         $departments = $this->cleanArrayInput($request->input('department', []));
         $organizations = $request->has('organizations')
             ? $this->cleanArrayInput($request->input('organizations', []))
@@ -376,17 +428,11 @@ class ActivityController extends Controller
             'participants_count'     => $request->input('participants_count'),
             'public_poster'          => $request->input('public_poster'),
             'waiver_consent'         => $request->input('waiver_consent'),
-            'mode_of_conduct'        => $modeOfConduct,
             'late_submission_reason' => $request->input('late_submission_reason'),
             // received_by / encoded_by intentionally not updated — keep original recorder
         ];
 
         $updateData = array_merge($updateData, [
-            'date_of_activity'       => $request->input('date_of_activity'),
-            'time_of_activity'       => $timeOfActivity,
-            'venue'                  => $hasVenue    ? $request->input('venue')      : null,
-            'venue_type'             => $hasVenue    ? $request->input('venue_type') : null,
-            'platform'               => $hasPlatform ? $request->input('platform')   : null,
             'funds'                  => $funds,
             'source'                 => $funds === 'With Budget'                       ? $request->input('source')              : null,
             'amount'                 => in_array($funds, ['With Budget', 'ATC'], true) ? $request->input('amount')              : null,
@@ -462,6 +508,21 @@ class ActivityController extends Controller
         }
 
         return date('g:i A', strtotime($start)) . ' - ' . date('g:i A', strtotime($end));
+    }
+
+    private function resetRescheduleApprovalColumns(): array
+    {
+        $updates = [];
+
+        foreach (self::RESCHEDULE_APPROVAL_COLUMNS as $column) {
+            $updates[$column] = 'pending';
+        }
+
+        foreach ([...self::RESCHEDULE_REMARK_COLUMNS, ...self::RESCHEDULE_APPROVED_AT_COLUMNS, ...self::RESCHEDULE_APPROVED_BY_COLUMNS] as $column) {
+            $updates[$column] = null;
+        }
+
+        return $updates;
     }
 
     private function syncSarfDocuments(Activity $activity, Request $request): void
