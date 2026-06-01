@@ -113,22 +113,23 @@
 
         $isReschedulingActive = filled($activity->reschedule_requested_at) && $activity->reschedule_status !== 'approved';
         $isReschedulingDone = filled($activity->reschedule_requested_at) && $activity->reschedule_status === 'approved';
+        $isForApprovalRescheduling = $activity->status === 'for approval for rescheduling';
 
         $pipeline = [
             [
                 'label' => 'For Approval',
                 'active' => $activity->status === 'for approval',
-                'done' => in_array($activity->status, ['for approval finance', 'approved', 'completed']),
+                'done' => in_array($activity->status, ['for approval finance', 'approved', 'completed', 'for approval for rescheduling']),
             ],
             [
                 'label' => 'Finance Review',
                 'active' => $activity->status === 'for approval finance',
-                'done' => in_array($activity->status, ['approved', 'completed']),
+                'done' => in_array($activity->status, ['approved', 'completed', 'for approval for rescheduling']),
             ],
             [
                 'label' => 'Approved',
                 'active' => $activity->status === 'approved' && !$isReschedulingActive && !$isReschedulingDone,
-                'done' => $activity->status === 'completed' || $isReschedulingActive || $isReschedulingDone,
+                'done' => $activity->status === 'completed' || $isForApprovalRescheduling || $isReschedulingActive || $isReschedulingDone,
             ],
         ];
 
