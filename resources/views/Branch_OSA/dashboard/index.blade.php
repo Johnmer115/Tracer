@@ -15,6 +15,8 @@
         return match($activity->status) {
             'pending' => ['label' => 'Pending', 'class' => 'b-pending', 'icon' => 'fa-clock'],
             'for approval', 'for approval finance' => ['label' => ucfirst($activity->status), 'class' => 'b-ongoing', 'icon' => 'fa-spinner'],
+            'for approval for rescheduling' => ['label' => 'Reschedule Approval', 'class' => 'b-ongoing', 'icon' => 'fa-calendar-check'],
+            'for reschedule', 'for rescheduling', 'reshedule' => ['label' => 'For Rescheduling', 'class' => 'b-revision', 'icon' => 'fa-calendar-alt'],
             'approved' => ['label' => 'Approved', 'class' => 'b-approved', 'icon' => 'fa-check-circle'],
             'completed' => ['label' => 'Completed', 'class' => 'b-completed', 'icon' => 'fa-check-double'],
             'for revision' => ['label' => 'For Revision', 'class' => 'b-revision', 'icon' => 'fa-redo'],
@@ -53,6 +55,12 @@
             <div class="dash-stat-value">{{ $counts['for_approval'] }}</div>
             <div class="dash-stat-footer"><i class="fas fa-circle" style="font-size:6px;"></i> in pipeline</div>
         </div>
+        <div class="dash-stat" data-color="amber">
+            <div class="dash-stat-icon"><i class="fas fa-calendar-alt"></i></div>
+            <div class="dash-stat-label">Rescheduling</div>
+            <div class="dash-stat-value">{{ $counts['rescheduling'] }}</div>
+            <div class="dash-stat-footer"><i class="fas fa-circle" style="font-size:6px;"></i> schedule changes</div>
+        </div>
         <div class="dash-stat" data-color="teal">
             <div class="dash-stat-icon"><i class="fas fa-check-circle"></i></div>
             <div class="dash-stat-label">Approved</div>
@@ -67,6 +75,12 @@
         </div>
     </div>
 
+    @include('partials.dashboard-message-board', [
+        'messageRoutePrefix' => 'branch_osa',
+        'canComposeMessages' => false,
+        'canManageMessages' => false,
+        'messageBranches' => collect(),
+    ])
 
 </section>
 @endsection

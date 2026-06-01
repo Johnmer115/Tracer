@@ -48,6 +48,7 @@
         $financeSignatories = $needsFinance ? collect($financeSignatories)->values() : collect();
         $allSignatories = $mainSignatories->merge($financeSignatories);
         $hasDisapproval = $allSignatories->contains(fn($sig) => ($activity->{$sig['field']} ?? 'pending') === 'disapproved');
+        $canViewApprovedBudget = auth()->user()?->usertype === 'Dean_OSA';
 
         $rescheduleApprovalFields = [
             'approval_dean_sa' => 'reschedule_approval_dean_sa',
@@ -316,7 +317,7 @@
                 </div>
             @endif
 
-            <div style="margin-bottom:28px;">
+            <div style="margin-bottom:12px;">
                 <div style="font-weight:700;font-size:14px;margin-bottom:16px;color:#374151;display:flex;align-items:center;gap:8px;">
                     <i class="fas fa-stamp" style="color:var(--primary);"></i> Approval Tracer
                 </div>
@@ -356,7 +357,7 @@
                                                 Approved time:
                                                 <strong>{{ $approvedAt ? $approvedAt->format('M d, Y g:i A') : 'Not recorded' }}</strong>
                                             </span>
-                                            @if($approvedBudget !== null)
+                                            @if($canViewApprovedBudget && $approvedBudget !== null)
                                                 <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#15803d;">
                                                     <i class="fas fa-wallet"></i>
                                                     Approved budget:
@@ -379,7 +380,6 @@
             </div>
 
             @if(!$financeSignatories->isEmpty() || filled($activity->reschedule_requested_at))
-                <div class="pdf-page-break html2pdf__page-break" aria-hidden="true"></div>
                 <div class="print-page print-second-page">
                     @unless($financeSignatories->isEmpty())
                         <div class="approval-group print-finance-group" style="margin-bottom:24px;">
@@ -417,7 +417,7 @@
                                                     Approved time:
                                                     <strong>{{ $approvedAt ? $approvedAt->format('M d, Y g:i A') : 'Not recorded' }}</strong>
                                                 </span>
-                                                @if($approvedBudget !== null)
+                                                @if($canViewApprovedBudget && $approvedBudget !== null)
                                                     <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#15803d;">
                                                         <i class="fas fa-wallet"></i>
                                                         Approved budget:
@@ -438,7 +438,7 @@
                     @endunless
 
                     @if(filled($activity->reschedule_requested_at))
-                        <div class="print-reschedule" style="margin-bottom:28px;">
+                        <div class="print-reschedule" style="margin-bottom:14px;">
                             <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:#374151;display:flex;align-items:center;gap:8px;">
                                 <i class="fas fa-calendar-alt" style="color:var(--primary);"></i>
                                 <span class="no-print">Reschedule Request</span>
@@ -522,11 +522,6 @@
                                                     <div style="font-size:12px;color:{{ $color }};font-weight:500;margin-top:2px;">{{ $label }}</div>
                                                     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
                                                         <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
-                                                            <i class="fas fa-user"></i>
-                                                            Approved by:
-                                                            <strong>{{ $approvedBy ?? 'Not recorded' }}</strong>
-                                                        </span>
-                                                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
                                                             <i class="fas fa-clock"></i>
                                                             Approved time:
                                                             <strong>{{ $approvedAt ? $approvedAt->format('M d, Y g:i A') : 'Not recorded' }}</strong>
@@ -576,11 +571,6 @@
                                                     <div style="font-weight:600;font-size:13px;color:#1e293b;">{{ $sig['role'] }}</div>
                                                     <div style="font-size:12px;color:{{ $color }};font-weight:500;margin-top:2px;">{{ $label }}</div>
                                                     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                                                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
-                                                            <i class="fas fa-user"></i>
-                                                            Approved by:
-                                                            <strong>{{ $approvedBy ?? 'Not recorded' }}</strong>
-                                                        </span>
                                                         <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
                                                             <i class="fas fa-clock"></i>
                                                             Approved time:
@@ -786,10 +776,10 @@
     }
 
     .tracer-pdf-export .print-second-page {
-        page-break-before: always !important;
-        break-before: page !important;
+        page-break-before: auto !important;
+        break-before: auto !important;
         padding-top: 0 !important;
-        margin-top: -20px !important;
+        margin-top: 0 !important;
     }
 
     .tracer-pdf-export .print-second-page .approval-group {
@@ -801,17 +791,27 @@
     }
 
     .tracer-pdf-export .print-details {
-        padding: 14px 0 16px !important;
+        padding: 8px 0 10px !important;
         background: #fff !important;
         border: 0 !important;
         border-bottom: 1.5px solid #d7dee8 !important;
         border-radius: 0 !important;
-        margin-bottom: 16px !important;
+        margin-bottom: 10px !important;
     }
 
     .tracer-pdf-export .print-details > div[style*="display:grid"] {
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-        gap: 12px 22px !important;
+        gap: 7px 18px !important;
+    }
+
+    .tracer-pdf-export .print-details div[style*="font-size:10px"] {
+        font-size: 8.5px !important;
+        margin-bottom: 2px !important;
+    }
+
+    .tracer-pdf-export .print-details div[style*="font-size:13px"] {
+        font-size: 10.5px !important;
+        line-height: 1.25 !important;
     }
 
     .tracer-pdf-export .pipeline-tracker {
@@ -865,8 +865,8 @@
     }
 
     .tracer-pdf-export .approval-group {
-        page-break-inside: avoid;
-        break-inside: avoid;
+        page-break-inside: auto;
+        break-inside: auto;
         margin-bottom: 16px !important;
     }
 
@@ -875,7 +875,7 @@
         max-width: 100% !important;
         padding-left: 0 !important;
         margin-bottom: 4px !important;
-        overflow: hidden !important;
+        overflow: visible !important;
     }
 
     .tracer-pdf-export .approval-line,
@@ -884,6 +884,11 @@
     }
 
     .tracer-pdf-export .approval-card {
+        display: block !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
+        -webkit-region-break-inside: avoid !important;
         align-items: flex-start !important;
         width: 100% !important;
         max-width: 100% !important;
@@ -893,7 +898,11 @@
         border-radius: 0 !important;
         margin-bottom: 2px !important;
         padding: 5px 0 !important;
-        overflow: hidden !important;
+        overflow: visible !important;
+    }
+
+    .tracer-pdf-export .approval-card > i {
+        display: none !important;
     }
 
     .tracer-pdf-export .print-second-page .approval-card {
@@ -912,6 +921,8 @@
 
     .tracer-pdf-export .print-reschedule {
         margin-bottom: 0 !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
     }
 
     .tracer-pdf-export .print-reschedule > div:first-child {
@@ -936,11 +947,20 @@
     }
 
     .tracer-pdf-export .pdf-page-break {
+        display: none !important;
+        height: 0 !important;
+        page-break-after: auto;
+        break-after: auto;
+        padding-top: 0 !important;
+    }
+
+    .tracer-pdf-export .auto-page-break {
         display: block !important;
         height: 0 !important;
-        page-break-after: always;
-        break-after: page;
-        padding-top: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        page-break-before: always !important;
+        break-before: page !important;
     }
 
     .tracer-pdf-export .no-pdf,
@@ -1034,8 +1054,8 @@
         border: none !important;
         border-bottom: 2px solid #e2e8f0 !important;
         border-radius: 0 !important;
-        padding: 10px 0 !important;
-        margin-bottom: 15px !important;
+        padding: 7px 0 9px !important;
+        margin-bottom: 10px !important;
         width: 100% !important;
         max-width: 100% !important;
         overflow: hidden !important;
@@ -1046,27 +1066,48 @@
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
         width: 100% !important;
         max-width: 100% !important;
+        gap: 7px 18px !important;
         overflow: hidden !important;
     }
 
-    /* Rescheduling section — allow page break before so it starts cleanly on a new page */
+    .print-details div[style*="font-size:10px"] {
+        font-size: 8.5px !important;
+        margin-bottom: 2px !important;
+    }
+
+    .print-details div[style*="font-size:13px"] {
+        font-size: 10.5px !important;
+        line-height: 1.25 !important;
+    }
+
+    /* Rescheduling section flows after approvals and can split if approvals continue. */
     .print-reschedule {
         page-break-before: auto;
-        page-break-inside: avoid;
+        page-break-inside: auto;
+        break-inside: auto;
         margin-bottom: 15px !important;
     }
 
     .print-second-page {
-        page-break-before: always !important;
-        break-before: page !important;
+        page-break-before: auto !important;
+        break-before: auto !important;
         padding-top: 0 !important;
     }
 
     .pdf-page-break {
+        display: none !important;
+        height: 0 !important;
+        page-break-after: auto !important;
+        break-after: auto !important;
+    }
+
+    .auto-page-break {
         display: block !important;
         height: 0 !important;
-        page-break-after: always !important;
-        break-after: page !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        page-break-before: always !important;
+        break-before: page !important;
     }
 
     .print-reschedule > div[style*="background:#f9fafb"] {
@@ -1113,7 +1154,7 @@
         max-width: 100% !important;
         padding-left: 0 !important;
         margin-bottom: 10px !important;
-        overflow: hidden !important;
+        overflow: visible !important;
     }
 
     /* Hide the timeline vertical line and circular dot to clean up space and avoid alignment issues */
@@ -1124,6 +1165,11 @@
 
     /* Clean signatory row cards */
     .approval-card {
+        display: block !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
+        -webkit-region-break-inside: avoid !important;
         width: 100% !important;
         max-width: 100% !important;
         background: none !important;
@@ -1133,7 +1179,11 @@
         padding: 6px 0 !important;
         margin-bottom: 4px !important;
         box-shadow: none !important;
-        overflow: hidden !important;
+        overflow: visible !important;
+    }
+
+    .approval-card > i {
+        display: none !important;
     }
 
     /* Font size reductions for printing */
@@ -1203,8 +1253,7 @@
     /* Prevent breaking inside specific sections */
     .view-section,
     .approved-upload-card,
-    .approval-group,
-    .print-reschedule {
+    .approval-group {
         page-break-inside: avoid;
     }
 </style>
@@ -1478,6 +1527,40 @@
                 ignoreElements: (el) => el.classList.contains('no-pdf') || el.classList.contains('no-print'),
             });
 
+            const insertApprovalRowBreaks = (clone) => {
+                clone.querySelectorAll('.auto-page-break').forEach(el => el.remove());
+
+                const pageHeightMm = 279.4;
+                const pageWidthMm = 215.9;
+                const marginTopMm = 24;
+                const marginRightMm = 0;
+                const marginBottomMm = 38;
+                const marginLeftMm = 20.32;
+                const contentWidthMm = pageWidthMm - marginLeftMm - marginRightMm;
+                const contentHeightMm = pageHeightMm - marginTopMm - marginBottomMm;
+                const pxPerMm = clone.getBoundingClientRect().width / contentWidthMm;
+                const usablePageHeight = (contentHeightMm * pxPerMm) - 22;
+
+                let pageStart = 0;
+                const breakableRows = Array.from(clone.querySelectorAll('.approval-card'));
+
+                breakableRows.forEach((row) => {
+                    const rowTop = row.offsetTop;
+                    const rowHeight = row.offsetHeight;
+
+                    if (rowHeight >= usablePageHeight) {
+                        return;
+                    }
+
+                    if ((rowTop - pageStart + rowHeight) > usablePageHeight) {
+                        const pageBreak = document.createElement('div');
+                        pageBreak.className = 'auto-page-break html2pdf__page-break';
+                        row.parentNode.insertBefore(pageBreak, row);
+                        pageStart = rowTop;
+                    }
+                });
+            };
+
             const generatePdf = async (onProgress) => {
                 if (cachedPdfBlob) {
                     return cachedPdfBlob;
@@ -1495,9 +1578,13 @@
                 if (onProgress) onProgress('Loading fonts...');
                 const fonts = await getFonts();
 
+                if (onProgress) onProgress('Checking page breaks...');
+                insertApprovalRowBreaks(clone);
+                await new Promise(resolve => setTimeout(resolve, 50));
+
                 if (onProgress) onProgress('Rendering PDF...');
                 const options = {
-                    margin: [22, 0, 17, 20.32],
+                    margin: [24, 0, 38, 20.32],
                     filename: button.dataset.filename || 'sarf-tracer.pdf',
                     image: { type: 'jpeg', quality: 0.92 },
                     html2canvas: {
@@ -1520,8 +1607,8 @@
                     },
                     pagebreak: {
                         mode: ['css', 'legacy'],
-                        before: ['.print-second-page', '.html2pdf__page-break'],
-                        avoid: ['.approval-card', '.approval-group-title', '.print-details', '.print-reschedule'],
+                        before: ['.auto-page-break'],
+                        avoid: ['.approval-card', '.approval-group-title', '.print-details'],
                     },
                 };
 

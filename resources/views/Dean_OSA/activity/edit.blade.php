@@ -397,6 +397,14 @@
                                     value="{{ old('time_end', $storedEndTime) }}">
                                 <span class="field-error" id="err-time_end">Please enter an end time after the start time.</span>
                             </div>
+
+                            <div class="form-group full">
+                                <label class="form-label">Reason for Rescheduling <span class="req">*</span></label>
+                                <textarea name="reschedule_reason" class="form-control" rows="3"
+                                    id="reschedule-reason-input"
+                                    placeholder="Explain why this activity needs to be rescheduled">{{ old('reschedule_reason', $activity->reschedule_reason ?: $activity->modification_remarks) }}</textarea>
+                                <span class="field-error" id="err-reschedule_reason">Please enter the reason for rescheduling.</span>
+                            </div>
                             @endif
 
                             @unless($isRescheduling)
@@ -821,6 +829,12 @@ function validateStep(step, jumpOnFail = false) {
             const modeOk      = !!modeChecked;
             showError('err-mode_of_conduct', !modeOk);
             if (!modeOk) valid = false;
+
+            const rescheduleReason = document.querySelector('[name="reschedule_reason"]');
+            const rescheduleReasonOk = rescheduleReason && rescheduleReason.value.trim() !== '';
+            markInvalid(rescheduleReason, !rescheduleReasonOk);
+            showError('err-reschedule_reason', !rescheduleReasonOk);
+            if (!rescheduleReasonOk) valid = false;
         }
 
         if (!IS_RESCHEDULING) {

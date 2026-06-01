@@ -216,7 +216,7 @@
                                             <i class="fas fa-pencil-alt"></i>
                                         </a>
                                     @endif
-                                    @if(in_array($activity->status, ['pending', 'for revision', 'for reschedule']))
+                                    @if(auth()->user()?->usertype !== 'Staff_OSA' && in_array($activity->status, ['pending', 'for revision', 'for reschedule']))
                                         <button type="button"
                                             class="abtn abtn-del"
                                             title="Delete Activity"

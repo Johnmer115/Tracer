@@ -35,7 +35,7 @@
         </li>
          <li>
             <a href="{{ route('dean_osa.tracer.index') }}" class="sb-item {{ request()->routeIs('dean_osa.tracer.*') ? 'active' : '' }}" title="Tracer">
-                <i class="fas fa-file-medical"></i><span>Tracer</span>
+                <i class="fas fa-route"></i><span>Tracer</span>
             </a>
         </li>
     </ul>

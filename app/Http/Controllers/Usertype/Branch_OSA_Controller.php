@@ -29,6 +29,12 @@ class Branch_OSA_Controller extends Controller
             'total'        => $activities->count(),
             'pending'      => $activities->where('status', 'pending')->count(),
             'for_approval' => $activities->whereIn('status', ['for approval', 'for approval finance'])->count(),
+            'rescheduling' => $activities->whereIn('status', [
+                'for reschedule',
+                'for rescheduling',
+                'reshedule',
+                'for approval for rescheduling',
+            ])->count(),
             'approved'     => $activities->where('status', 'approved')->count(),
             'completed'    => $activities->where('status', 'completed')->count(),
         ];
@@ -36,7 +42,11 @@ class Branch_OSA_Controller extends Controller
         $branchName = auth()->user()->branch->name ?? 'Your Branch';
 
         // Dashboard messages — shared across all user types
-        $messages = DashboardMessage::with('account')
+        $messages = DashboardMessage::with(['account', 'branch'])
+            ->where(function ($query) use ($branchId) {
+                $query->whereNull('branch_id')
+                    ->when($branchId, fn ($query) => $query->orWhere('branch_id', $branchId));
+            })
             ->orderByDesc('is_pinned')
             ->latest()
             ->take(50)

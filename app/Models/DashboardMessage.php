@@ -12,6 +12,7 @@ class DashboardMessage extends Model
         'type',
         'is_pinned',
         'account_id',
+        'branch_id',
     ];
 
     protected $casts = [
@@ -21,5 +22,10 @@ class DashboardMessage extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

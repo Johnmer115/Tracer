@@ -41,12 +41,22 @@ class SarfListFilters
             ->when($filters['pipeline_status'] !== '', function ($query) use ($filters, $allowedStatuses) {
                 $status = $filters['pipeline_status'];
 
-                if (! empty($allowedStatuses) && ! in_array($status, $allowedStatuses, true)) {
+                if ($status === 'for approval') {
+                    $query->whereIn('status', ['for approval', 'for approval finance']);
                     return;
                 }
 
-                if ($status === 'for approval') {
-                    $query->whereIn('status', ['for approval', 'for approval finance']);
+                if ($status === 'rescheduling') {
+                    $query->whereIn('status', [
+                        'for reschedule',
+                        'for rescheduling',
+                        'reshedule',
+                        'for approval for rescheduling',
+                    ]);
+                    return;
+                }
+
+                if (! empty($allowedStatuses) && ! in_array($status, $allowedStatuses, true)) {
                     return;
                 }
 

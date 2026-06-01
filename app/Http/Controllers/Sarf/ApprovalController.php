@@ -934,6 +934,12 @@ class ApprovalController extends Controller
 
     public function destroy(string $id)
     {
+        if (auth()->user()?->usertype === 'Staff_OSA') {
+            return redirect()
+                ->route($this->routeName('approval.index'))
+                ->withErrors(['delete' => 'Staff accounts are not allowed to delete approval records.']);
+        }
+
         $activity = Activity::with('sarfDocuments')->findOrFail($id);
         $code = $activity->code;
         $title = $activity->title;

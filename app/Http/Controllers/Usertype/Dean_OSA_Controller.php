@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Usertype;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
+use App\Models\Branch;
 use App\Models\DashboardMessage;
 use App\Support\SarfListFilters;
 
@@ -28,22 +29,30 @@ class Dean_OSA_Controller extends Controller
             'total' => $activities->count(),
             'pending' => $activities->where('status', 'pending')->count(),
             'for_approval' => $activities->whereIn('status', ['for approval', 'for approval finance'])->count(),
+            'rescheduling' => $activities->whereIn('status', [
+                'for reschedule',
+                'for rescheduling',
+                'reshedule',
+                'for approval for rescheduling',
+            ])->count(),
             'approved' => $activities->where('status', 'approved')->count(),
             'completed' => $activities->where('status', 'completed')->count(),
         ];
 
         // Dashboard messages — pinned first, then newest
-        $messages = DashboardMessage::with('account')
+        $messages = DashboardMessage::with(['account', 'branch'])
             ->orderByDesc('is_pinned')
             ->latest()
             ->take(50)
             ->get();
+        $messageBranches = Branch::orderBy('name')->get();
 
         return view('Dean_OSA.dashboard.index', [
             'activities' => $paginatedActivities,
             'counts' => $counts,
             'filters' => $filters,
             'messages' => $messages,
+            'messageBranches' => $messageBranches,
             ...SarfListFilters::viewData(),
         ]);
     }
@@ -60,12 +69,14 @@ class Dean_OSA_Controller extends Controller
         $request->validate([
             'message' => 'required|string|max:2000',
             'type'    => 'required|in:general,announcement,reminder',
+            'branch_id' => 'nullable|exists:branches,id',
         ]);
 
         DashboardMessage::create([
             'message'    => $request->input('message'),
             'type'       => $request->input('type'),
             'account_id' => auth()->id(),
+            'branch_id'  => $request->input('branch_id'),
         ]);
 
         return redirect()

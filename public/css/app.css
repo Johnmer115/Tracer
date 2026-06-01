@@ -1727,6 +1727,8 @@ body.sidebar-collapsed .sb-logout i {
     border-radius: 12px;
     overflow: hidden;
     background: var(--white);
+    display: flex;
+    flex-direction: column;
 }
 .msg-board-header {
     display: flex;
@@ -1749,8 +1751,10 @@ body.sidebar-collapsed .sb-logout i {
     font-size: 16px;
 }
 .msg-board-body {
-    max-height: 520px;
+    height: min(520px, 58vh);
+    min-height: 220px;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 16px;
     display: flex;
     flex-direction: column;
@@ -1760,6 +1764,13 @@ body.sidebar-collapsed .sb-logout i {
 .msg-board-body::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+    .msg-board-body {
+        height: min(420px, 56vh);
+        min-height: 180px;
+    }
 }
 
 /* ── Message Card ── */

@@ -402,13 +402,15 @@
                                             <i class="ti ti-adjustments-horizontal"></i>
                                         </button>
                                     @endif
-                                    <button type="button"
-                                        class="abtn abtn-del"
-                                        title="Delete Activity"
-                                        style="flex-shrink:0;"
-                                        onclick="openDeleteModal('{{ route(($routePrefix ?? 'dean_osa') . '.approval.destroy', $activity->id) }}', '{{ addslashes($activity->code) }}')">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
+                                    @if(auth()->user()?->usertype !== 'Staff_OSA')
+                                        <button type="button"
+                                            class="abtn abtn-del"
+                                            title="Delete Activity"
+                                            style="flex-shrink:0;"
+                                            onclick="openDeleteModal('{{ route(($routePrefix ?? 'dean_osa') . '.approval.destroy', $activity->id) }}', '{{ addslashes($activity->code) }}')">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
 

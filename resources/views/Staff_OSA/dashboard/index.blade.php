@@ -32,6 +32,8 @@
         return match($activity->status) {
             'pending' => ['label' => 'Pending', 'class' => 'b-pending', 'icon' => 'fa-clock'],
             'for approval', 'for approval finance' => ['label' => ucfirst($activity->status), 'class' => 'b-ongoing', 'icon' => 'fa-spinner'],
+            'for approval for rescheduling' => ['label' => 'Reschedule Approval', 'class' => 'b-ongoing', 'icon' => 'fa-calendar-check'],
+            'for reschedule', 'for rescheduling', 'reshedule' => ['label' => 'For Rescheduling', 'class' => 'b-revision', 'icon' => 'fa-calendar-alt'],
             'approved' => ['label' => 'Approved', 'class' => 'b-approved', 'icon' => 'fa-check-circle'],
             'completed' => ['label' => 'Completed', 'class' => 'b-completed', 'icon' => 'fa-check-double'],
             'for revision' => ['label' => 'For Revision', 'class' => 'b-revision', 'icon' => 'fa-redo'],
@@ -99,6 +101,12 @@
             <div class="dash-stat-value">{{ $counts['for_approval'] }}</div>
             <div class="dash-stat-footer"><i class="fas fa-circle"></i> in pipeline</div>
         </div>
+        <div class="dash-stat" data-color="amber">
+            <div class="dash-stat-icon"><i class="fas fa-calendar-alt"></i></div>
+            <div class="dash-stat-label">Rescheduling</div>
+            <div class="dash-stat-value">{{ $counts['rescheduling'] }}</div>
+            <div class="dash-stat-footer"><i class="fas fa-circle"></i> schedule changes</div>
+        </div>
         <div class="dash-stat" data-color="teal">
             <div class="dash-stat-icon"><i class="fas fa-check-circle"></i></div>
             <div class="dash-stat-label">Approved</div>
@@ -116,71 +124,14 @@
     {{-- ══════════════════════════════════════════════
          MESSAGE / REMARKS BOARD
     ══════════════════════════════════════════════ --}}
-    <div class="msg-board">
-        <div class="msg-board-header">
-            <div class="msg-board-title">
-                <i class="fas fa-comment-dots"></i> Remarks Board
-            </div>
-            <button type="button" class="btn btn-add" onclick="openComposeModal()">
-                <i class="fas fa-plus"></i> New Remark
-            </button>
-        </div>
+    @include('partials.dashboard-message-board', [
+        'messageRoutePrefix' => 'staff_osa',
+        'canComposeMessages' => true,
+        'canManageMessages' => false,
+        'messageBranches' => $messageBranches ?? $branches,
+    ])
 
-        <div class="msg-board-body">
-            {{-- Static placeholder cards for template --}}
-            @php
-                $sampleMessages = [
-                    ['type' => 'announcement', 'text' => 'This is a sample announcement message.', 'author' => 'Dean', 'time' => '2 hours ago', 'pinned' => true],
-                    ['type' => 'reminder',     'text' => 'This is a sample reminder message.',     'author' => 'Staff',  'time' => '5 hours ago', 'pinned' => false],
-                    ['type' => 'general',      'text' => 'This is a sample general remark.',       'author' => 'Branch',   'time' => '1 day ago',   'pinned' => false],
-                ];
-                $typeConfigs = [
-                    'announcement' => ['icon' => 'fa-bullhorn',    'color' => '#dc2626', 'bg' => '#fef2f2', 'border' => '#fca5a5', 'label' => 'Announcement'],
-                    'reminder'     => ['icon' => 'fa-bell',        'color' => '#d97706', 'bg' => '#fffbeb', 'border' => '#fcd34d', 'label' => 'Reminder'],
-                    'general'      => ['icon' => 'fa-comment-alt', 'color' => '#014ea8', 'bg' => '#f0f6ff', 'border' => '#93c5fd', 'label' => 'General'],
-                ];
-            @endphp
-
-            @foreach($sampleMessages as $msg)
-                @php $typeConfig = $typeConfigs[$msg['type']]; @endphp
-                <div class="msg-card {{ $msg['pinned'] ? 'msg-pinned' : '' }}">
-                    <div class="msg-accent" style="background:{{ $typeConfig['color'] }};"></div>
-                    <div class="msg-content">
-                        <div class="msg-meta">
-                            <span class="msg-type-badge" style="background:{{ $typeConfig['bg'] }}; color:{{ $typeConfig['color'] }}; border:1px solid {{ $typeConfig['border'] }};">
-                                <i class="fas {{ $typeConfig['icon'] }}" style="font-size:9px;"></i>
-                                {{ $typeConfig['label'] }}
-                            </span>
-                            @if($msg['pinned'])
-                                <span class="msg-pin-badge">
-                                    <i class="fas fa-thumbtack"></i> Pinned
-                                </span>
-                            @endif
-                            <span class="msg-time">
-                                <i class="fas fa-clock" style="font-size:9px;"></i>
-                                {{ $msg['time'] }}
-                            </span>
-                        </div>
-                        <div class="msg-text">{{ $msg['text'] }}</div>
-                        <div class="msg-footer">
-                            <div class="msg-author">
-                                <div class="msg-avatar">{{ strtoupper(substr($msg['author'], 0, 1)) }}</div>
-                                <span class="msg-author-name">{{ $msg['author'] }}</span>
-                            </div>
-                            <div class="msg-actions">
-                                <button type="button" class="msg-action-btn" title="Pin">
-                                    <i class="fas fa-thumbtack {{ $msg['pinned'] ? '' : '' }}" style="{{ $msg['pinned'] ? 'color:var(--primary);' : '' }}"></i>
-                                </button>
-                                <button type="button" class="msg-action-btn msg-action-del" title="Delete">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
+    @if(false)
 
     {{-- ══════════════════════════════════════════════
          COMPOSE MODAL
@@ -200,6 +151,8 @@
                 </button>
             </div>
 
+            <form action="{{ route('staff_osa.messages.store') }}" method="POST">
+                @csrf
             <div class="compose-body">
                 {{-- Type selector --}}
                 <div style="margin-bottom:16px;">
@@ -230,7 +183,7 @@
                 <div>
                     <label class="compose-label" for="composeMsg">Message</label>
                     <textarea name="message" id="composeMsg" class="form-control"
-                        rows="4" maxlength="2000"
+                        rows="4" maxlength="2000" required
                         placeholder="Write your remark here…"
                         style="resize:vertical; border-radius:10px; font-size:13px;"></textarea>
                     <div style="text-align:right; font-size:10.5px; color:#94a3b8; margin-top:4px;">
@@ -243,16 +196,19 @@
                 <button type="button" class="btn btn-filter" onclick="closeComposeModal()">
                     <i class="fas fa-times"></i> Cancel
                 </button>
-                <button type="button" class="btn btn-add">
+                <button type="submit" class="btn btn-add">
                     <i class="fas fa-paper-plane"></i> Post Remark
                 </button>
             </div>
+            </form>
         </div>
     </div>
 
     {{-- ══════════════════════════════════════════════
          FILTER DRAWER
     ══════════════════════════════════════════════ --}}
+    @endif
+
     <div id="dashboard-filter-backdrop" class="filter-backdrop" onclick="closeDashboardFilters()"></div>
     <aside id="dashboard-filter-drawer" class="filter-drawer" aria-hidden="true">
         <form method="GET" action="{{ route('staff_osa.index') }}" style="display:flex; flex-direction:column; height:100%;">
@@ -295,7 +251,7 @@
                     <label for="pipeline_status">Pipeline Status</label>
                     <select id="pipeline_status" name="pipeline_status" class="form-control searchable-select">
                         <option value="">All Pipeline Statuses</option>
-                        @foreach(['pending' => 'Pending', 'for approval' => 'For Approval', 'approved' => 'Approved', 'completed' => 'Completed'] as $value => $label)
+                        @foreach(['pending' => 'Pending', 'for approval' => 'For Approval', 'rescheduling' => 'Rescheduling', 'approved' => 'Approved', 'completed' => 'Completed'] as $value => $label)
                             <option value="{{ $value }}" @selected($filters['pipeline_status'] === $value)>{{ $label }}</option>
                         @endforeach
                     </select>

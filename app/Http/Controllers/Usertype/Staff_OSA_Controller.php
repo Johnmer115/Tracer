@@ -29,6 +29,12 @@ class Staff_OSA_Controller extends Controller
             ->when($filters['pipeline_status'] !== '', function ($query) use ($filters) {
                 match ($filters['pipeline_status']) {
                     'for approval' => $query->whereIn('status', ['for approval', 'for approval finance']),
+                    'rescheduling' => $query->whereIn('status', [
+                        'for reschedule',
+                        'for rescheduling',
+                        'reshedule',
+                        'for approval for rescheduling',
+                    ]),
                     default => $query->where('status', $filters['pipeline_status']),
                 };
             })
@@ -59,6 +65,12 @@ class Staff_OSA_Controller extends Controller
             'total'        => $activities->count(),
             'pending'      => $activities->where('status', 'pending')->count(),
             'for_approval' => $activities->whereIn('status', ['for approval', 'for approval finance'])->count(),
+            'rescheduling' => $activities->whereIn('status', [
+                'for reschedule',
+                'for rescheduling',
+                'reshedule',
+                'for approval for rescheduling',
+            ])->count(),
             'approved'     => $activities->where('status', 'approved')->count(),
             'completed'    => $activities->where('status', 'completed')->count(),
         ];
@@ -75,11 +87,12 @@ class Staff_OSA_Controller extends Controller
         $insideStatuses = collect($this->insideStatusOptions());
 
         // Dashboard messages — shared across all user types
-        $messages = DashboardMessage::with('account')
+        $messages = DashboardMessage::with(['account', 'branch'])
             ->orderByDesc('is_pinned')
             ->latest()
             ->take(50)
             ->get();
+        $messageBranches = Branch::orderBy('name')->get();
 
         return view('Staff_OSA.dashboard.index', [
             'activities'     => $paginatedActivities,
@@ -89,9 +102,30 @@ class Staff_OSA_Controller extends Controller
             'insideStatuses' => $insideStatuses,
             'filters'        => $filters,
             'messages'       => $messages,
+            'messageBranches' => $messageBranches,
         ]);
     }
     /* Private helpers (same as Dean) */
+
+    public function storeMessage(Request $request)
+    {
+        $request->validate([
+            'message' => 'required|string|max:2000',
+            'type'    => 'required|in:general,announcement,reminder',
+            'branch_id' => 'nullable|exists:branches,id',
+        ]);
+
+        DashboardMessage::create([
+            'message'    => $request->input('message'),
+            'type'       => $request->input('type'),
+            'account_id' => auth()->id(),
+            'branch_id'  => $request->input('branch_id'),
+        ]);
+
+        return redirect()
+            ->route('staff_osa.index')
+            ->with('success', 'Message posted successfully.');
+    }
 
     private function approvalLocation(Activity $activity): ?string
     {

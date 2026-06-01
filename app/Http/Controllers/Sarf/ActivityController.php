@@ -461,6 +461,12 @@ class ActivityController extends Controller
 
     public function destroy(string $id)
     {
+        if (auth()->user()?->usertype === 'Staff_OSA') {
+            return redirect()
+                ->route($this->routeName('activity.index'))
+                ->withErrors(['delete' => 'Staff accounts are not allowed to delete activities.']);
+        }
+
         Activity::destroy($id);
         return redirect()->route($this->routeName('activity.index'))
                          ->with('success', 'Activity deleted successfully.');

@@ -99,6 +99,7 @@ Route::middleware(['auth', 'Staff_OSA'])->prefix('staff_osa')
 
         // Dashboard
         Route::get('/', [Staff_OSA_Controller::class, 'index'])->name('index');
+        Route::post('messages', [Staff_OSA_Controller::class, 'storeMessage'])->name('messages.store');
 
         // Activity Management
         Route::resource('activity', ActivityController::class);

@@ -32,6 +32,8 @@
         return match($activity->status) {
             'pending' => ['label' => 'Pending', 'class' => 'b-pending', 'icon' => 'fa-clock'],
             'for approval', 'for approval finance' => ['label' => ucfirst($activity->status), 'class' => 'b-ongoing', 'icon' => 'fa-spinner'],
+            'for approval for rescheduling' => ['label' => 'Reschedule Approval', 'class' => 'b-ongoing', 'icon' => 'fa-calendar-check'],
+            'for reschedule', 'for rescheduling', 'reshedule' => ['label' => 'For Rescheduling', 'class' => 'b-revision', 'icon' => 'fa-calendar-alt'],
             'approved' => ['label' => 'Approved', 'class' => 'b-approved', 'icon' => 'fa-check-circle'],
             'completed' => ['label' => 'Completed', 'class' => 'b-completed', 'icon' => 'fa-check-double'],
             'for revision' => ['label' => 'For Revision', 'class' => 'b-revision', 'icon' => 'fa-redo'],
@@ -98,6 +100,12 @@
         <div class="dash-stat-value">{{ $counts['for_approval'] }}</div>
         <div class="dash-stat-footer"><i class="fas fa-circle"></i> in pipeline</div>
     </div>
+    <div class="dash-stat" data-color="amber">
+        <div class="dash-stat-icon"><i class="fas fa-calendar-alt"></i></div>
+        <div class="dash-stat-label">Rescheduling</div>
+        <div class="dash-stat-value">{{ $counts['rescheduling'] }}</div>
+        <div class="dash-stat-footer"><i class="fas fa-circle"></i> schedule changes</div>
+    </div>
     <div class="dash-stat" data-color="teal">
         <div class="dash-stat-icon"><i class="fas fa-check-circle"></i></div>
         <div class="dash-stat-label">Approved</div>
@@ -115,6 +123,14 @@
 {{-- ══════════════════════════════════════════════
      MESSAGE / REMARKS BOARD
 ══════════════════════════════════════════════ --}}
+@include('partials.dashboard-message-board', [
+    'messageRoutePrefix' => 'dean_osa',
+    'canComposeMessages' => true,
+    'canManageMessages' => true,
+    'messageBranches' => $messageBranches ?? $branches,
+])
+
+@if(false)
 <div class="msg-board">
     <div class="msg-board-header">
         <div class="msg-board-title">
@@ -265,6 +281,8 @@
 </div>
 
 
+@endif
+
 <div id="dashboard-filter-backdrop" class="filter-backdrop" onclick="closeDashboardFilters()"></div>
 <aside id="dashboard-filter-drawer" class="filter-drawer" aria-hidden="true">
     <form method="GET" action="{{ route('dean_osa.index') }}" style="display:flex; flex-direction:column; height:100%;">
@@ -307,7 +325,7 @@
                 <label for="pipeline_status">Pipeline Status</label>
                 <select id="pipeline_status" name="pipeline_status" class="form-control searchable-select">
                     <option value="">All Pipeline Statuses</option>
-                    @foreach(['pending' => 'Pending', 'for approval' => 'For Approval', 'approved' => 'Approved', 'completed' => 'Completed'] as $value => $label)
+                    @foreach(['pending' => 'Pending', 'for approval' => 'For Approval', 'rescheduling' => 'Rescheduling', 'approved' => 'Approved', 'completed' => 'Completed'] as $value => $label)
                         <option value="{{ $value }}" @selected($filters['pipeline_status'] === $value)>{{ $label }}</option>
                     @endforeach
                 </select>
