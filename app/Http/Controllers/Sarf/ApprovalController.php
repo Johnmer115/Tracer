@@ -671,6 +671,7 @@ class ApprovalController extends Controller
             'reschedule_approver' => 'required|in:' . implode(',', array_keys(self::RESCHEDULE_APPROVAL_MAP)),
             'reschedule_status' => 'required|in:pending,for signature,approved,disapproved',
             'reschedule_remarks' => 'nullable|string|max:1000',
+            'approved_budget' => 'nullable|numeric|min:0',
         ]);
 
         $approver = $request->input('reschedule_approver');
@@ -688,6 +689,10 @@ class ApprovalController extends Controller
         $approvedAtField = self::RESCHEDULE_APPROVED_AT_MAP[$approver];
         $approvedByField = self::RESCHEDULE_APPROVED_BY_MAP[$approver];
 
+        $approvedBudget = $rescheduleStatus === 'approved' && $request->filled('approved_budget')
+            ? $request->input('approved_budget')
+            : null;
+
         $updates = [
             $statusField => $rescheduleStatus,
             $remarkField => $request->input('reschedule_remarks'),
@@ -698,6 +703,11 @@ class ApprovalController extends Controller
                 ? ($activity->{$approvedByField} ?? Auth::id())
                 : null,
         ];
+
+        $budgetField = self::BUDGET_MAP[$approver] ?? null;
+        if ($budgetField) {
+            $updates[$budgetField] = $approvedBudget;
+        }
 
         if ($rescheduleStatus === 'disapproved') {
             $updates['reschedule_status'] = 'disapproved';

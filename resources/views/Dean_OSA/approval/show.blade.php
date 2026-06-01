@@ -186,6 +186,32 @@
 
             return $activity->amount;
         };
+
+        $rescheduleBudgetValue = function ($field) use ($activity, $approvalFields, $budgetFieldsByApproval, $rescheduleApprovalFields) {
+            $ownStatusField = $rescheduleApprovalFields[$field] ?? null;
+            $ownBudgetField = $budgetFieldsByApproval[$field] ?? null;
+            if ($ownStatusField && $ownBudgetField && $activity->{$ownStatusField} === 'approved' && $activity->{$ownBudgetField} !== null) {
+                return $activity->{$ownBudgetField};
+            }
+
+            $idx = array_search($field, $approvalFields, true);
+            if ($idx !== false) {
+                for ($i = $idx - 1; $i >= 0; $i--) {
+                    $previousField = $approvalFields[$i];
+                    $previousReschedStatus = $rescheduleApprovalFields[$previousField] ?? null;
+                    $previousBudgetField = $budgetFieldsByApproval[$previousField] ?? null;
+                    if ($previousReschedStatus && $previousBudgetField && $activity->{$previousReschedStatus} === 'approved' && $activity->{$previousBudgetField} !== null) {
+                        return $activity->{$previousBudgetField};
+                    }
+                }
+            }
+
+            if ($ownBudgetField && $activity->{$ownBudgetField} !== null) {
+                return $activity->{$ownBudgetField};
+            }
+
+            return $activity->amount;
+        };
         $approvedCount  = collect($approvalFields)->filter(fn($f) => $activity->{$f} === 'approved')->count();
         $totalApprovals = count($approvalFields);
         $progressPct    = $totalApprovals > 0 ? round(($approvedCount / $totalApprovals) * 100) : 0;
@@ -205,7 +231,7 @@
             $activeTab = 4;
         }
 
-        if ($showRescheduleStep && $activity->reschedule_status === 'approved' && $requestedTab === 0) {
+        if ($showRescheduleStep && $activity->reschedule_status === 'approved' && $reschedulePaperDoc && $requestedTab === 0) {
             $activeTab = 1;
         }
 
@@ -1518,6 +1544,23 @@
                                                     {{ $current === 'for signature' ? 'For Signature' : ucfirst($current) }}
                                                 </span>
                                             </div>
+                                            @if($activity->{$reschedRemarkField})
+                                                <div class="signatory-remark">
+                                                    <i class="fas fa-comment-dots" style="color:#d97706;"></i>
+                                                    {{ $activity->{$reschedRemarkField} }}
+                                                </div>
+                                            @endif
+                                            @if($current === 'approved' && $activity->{$sig['budget']} !== null)
+                                                <div class="approved-budget-box">
+                                                    <div class="approved-budget-label">
+                                                        <i class="fas fa-wallet"></i>
+                                                        Approved Budget
+                                                    </div>
+                                                    <div class="approved-budget-value">
+                                                        &#8369; {{ number_format($activity->{$sig['budget']}, 2) }}
+                                                    </div>
+                                                </div>
+                                            @endif
                                             <div class="signatory-body">
                                                 @if($isLocked)
                                                     <div class="notice-card notice-card--blue" style="margin:0;">
@@ -1540,6 +1583,16 @@
                                                         <input type="text" name="reschedule_remarks" class="form-control approval-remark-input"
                                                             placeholder="Remark (optional)"
                                                             value="{{ $activity->{$reschedRemarkField} ?? '' }}">
+                                                        @if(in_array($activity->funds, ['With Budget', 'ATC']) && $activity->amount !== null)
+                                                            <span class="approval-budget-title">
+                                                                <i class="fas fa-wallet"></i> Approved Budget
+                                                            </span>
+                                                            <input type="number" name="approved_budget"
+                                                                class="form-control approved-budget-input"
+                                                                step="0.01" min="0"
+                                                                placeholder="Approved budget"
+                                                                value="{{ $rescheduleBudgetValue($sig['field']) }}">
+                                                        @endif
                                                         <button type="submit" class="btn btn-add" style="font-size:12px;">
                                                             <i class="fas fa-save"></i> Save
                                                         </button>
@@ -1587,6 +1640,23 @@
                                                     {{ $current === 'for signature' ? 'For Signature' : ucfirst($current) }}
                                                 </span>
                                             </div>
+                                            @if($activity->{$reschedRemarkField})
+                                                <div class="signatory-remark">
+                                                    <i class="fas fa-comment-dots" style="color:#d97706;"></i>
+                                                    {{ $activity->{$reschedRemarkField} }}
+                                                </div>
+                                            @endif
+                                            @if($current === 'approved' && $activity->{$sig['budget']} !== null)
+                                                <div class="approved-budget-box">
+                                                    <div class="approved-budget-label">
+                                                        <i class="fas fa-wallet"></i>
+                                                        Approved Budget
+                                                    </div>
+                                                    <div class="approved-budget-value">
+                                                        &#8369; {{ number_format($activity->{$sig['budget']}, 2) }}
+                                                    </div>
+                                                </div>
+                                            @endif
                                             <div class="signatory-body">
                                                 @if($isLocked)
                                                     <div class="notice-card notice-card--blue" style="margin:0;">
@@ -1609,6 +1679,16 @@
                                                         <input type="text" name="reschedule_remarks" class="form-control approval-remark-input"
                                                             placeholder="Remark (optional)"
                                                             value="{{ $activity->{$reschedRemarkField} ?? '' }}">
+                                                        @if(in_array($activity->funds, ['With Budget', 'ATC']) && $activity->amount !== null)
+                                                            <span class="approval-budget-title">
+                                                                <i class="fas fa-wallet"></i> Approved Budget
+                                                            </span>
+                                                            <input type="number" name="approved_budget"
+                                                                class="form-control approved-budget-input"
+                                                                step="0.01" min="0"
+                                                                placeholder="Approved budget"
+                                                                value="{{ $rescheduleBudgetValue($sig['field']) }}">
+                                                        @endif
                                                         <button type="submit" class="btn btn-add" style="font-size:12px;">
                                                             <i class="fas fa-save"></i> Save
                                                         </button>
@@ -1620,6 +1700,91 @@
                                     </div>
                                 </div>
                                 @endif
+                                @endif
+
+                                {{-- ── Reschedule Approval Summary (read-only) ── --}}
+                                @if($reschedDocUnlocked)
+                                <div class="show-section" style="margin-top:20px;">
+                                    <div class="show-section-header amber">
+                                        <i class="fas fa-clipboard-check"></i> Reschedule Approval Summary
+                                    </div>
+                                    <div style="padding:0; overflow-x:auto;">
+                                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                                            <thead>
+                                                <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+                                                    <th style="padding:10px 16px; text-align:left; font-weight:700; color:#334155;">Role</th>
+                                                    <th style="padding:10px 16px; text-align:center; font-weight:700; color:#334155;">Status</th>
+                                                    <th style="padding:10px 16px; text-align:right; font-weight:700; color:#334155;">Approved Budget</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($signatories as $sig)
+                                                    @continue(!in_array($sig['field'], $applicableMainFields, true))
+                                                    <tr style="border-bottom:1px solid #f1f5f9;">
+                                                        <td style="padding:10px 16px; color:#1e293b; font-weight:500;">{{ $sig['role'] }}</td>
+                                                        <td style="padding:10px 16px; text-align:center;">
+                                                            <span class="badge approval-status-badge {{ $approvalBadgeClass($activity->{$rescheduleApprovalFields[$sig['field']]} ?? 'pending') }}">
+                                                                {{ ucfirst($activity->{$rescheduleApprovalFields[$sig['field']]} ?? 'pending') }}
+                                                            </span>
+                                                        </td>
+                                                        <td style="padding:10px 16px; text-align:right; color:#15803d; font-weight:600;">
+                                                            @if($activity->{$sig['budget']} !== null)
+                                                                &#8369; {{ number_format($activity->{$sig['budget']}, 2) }}
+                                                            @else
+                                                                <span style="color:#94a3b8;">—</span>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+
+                                                @if($requiresFinanceApproval)
+                                                    @foreach($financeSignatories as $sig)
+                                                        @continue(!in_array($sig['field'], $applicableFinanceFields, true))
+                                                        <tr style="border-bottom:1px solid #f1f5f9;">
+                                                            <td style="padding:10px 16px; color:#1e293b; font-weight:500;">{{ $sig['role'] }}</td>
+                                                            <td style="padding:10px 16px; text-align:center;">
+                                                                <span class="badge approval-status-badge {{ $approvalBadgeClass($activity->{$rescheduleApprovalFields[$sig['field']]} ?? 'pending') }}">
+                                                                    {{ ucfirst($activity->{$rescheduleApprovalFields[$sig['field']]} ?? 'pending') }}
+                                                                </span>
+                                                            </td>
+                                                            <td style="padding:10px 16px; text-align:right; color:#15803d; font-weight:600;">
+                                                                @if($activity->{$sig['budget']} !== null)
+                                                                    &#8369; {{ number_format($activity->{$sig['budget']}, 2) }}
+                                                                @else
+                                                                    <span style="color:#94a3b8;">—</span>
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                @endif
+
+                                                {{-- Final Approved Budget row --}}
+                                                @php
+                                                    if ($requiresFinanceApproval) {
+                                                        $finalBudget = $activity->budget_comptroller_final;
+                                                    } else {
+                                                        $lastMainField = collect($signatories)
+                                                            ->filter(fn($s) => in_array($s['field'], $applicableMainFields, true))
+                                                            ->last();
+                                                        $finalBudget = $lastMainField ? $activity->{$lastMainField['budget']} : null;
+                                                    }
+                                                @endphp
+                                                <tr style="background:#f0fdf4; border-top:2px solid #bbf7d0;">
+                                                    <td colspan="2" style="padding:12px 16px; font-weight:700; color:#15803d; font-size:13.5px;">
+                                                        <i class="fas fa-coins" style="margin-right:4px;"></i> Final Approved Budget
+                                                    </td>
+                                                    <td style="padding:12px 16px; text-align:right; font-weight:700; color:#15803d; font-size:14px;">
+                                                        @if($finalBudget !== null)
+                                                            &#8369; {{ number_format($finalBudget, 2) }}
+                                                        @else
+                                                            <span style="color:#94a3b8;">—</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                                 @endif
                             </div>
 
