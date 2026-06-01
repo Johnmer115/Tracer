@@ -40,13 +40,6 @@
                         placeholder="Search by organization name or code...">
                 </div>
                 <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
-                <select class="filter-select" name="level" onchange="this.form.submit()">
-                            <option value="">All Levels</option>
-                            @foreach($levels as $level)
-                                <option value="{{ $level }}" @selected(request('level') === $level)>{{ $level }}</option>
-                            @endforeach
-
-                </select>
                 <a href="{{ route('dean_osa.orgs.index') }}" class="btn btn-filter"><i class="fas fa-rotate-left"></i> Reset</a>
                 <a href="{{ route('dean_osa.orgs.create') }}" class="btn btn-add">
                     <i class="fas fa-plus"></i> Add Organization
@@ -63,7 +56,6 @@
                         <th>Organization Name</th>
                         <th>Branch</th>
                         <th>Department</th>
-                        <th>Level</th>
                         <th>Created</th>
                         <th style="text-align:center;">Actions</th>
                     </tr>
@@ -81,7 +73,6 @@
                             </td>
                             <td class="td-muted">{{ $organization->department->branch->name ?? 'N/A' }}</td>
                             <td class="td-muted">{{ $organization->department->name ?? 'N/A' }}</td>
-                            <td class="td-muted">{{ $organization->level ?? '-' }}</td>
                             <td class="td-muted">{{ $organization->created_at?->format('m/d/Y') ?? 'N/A' }}</td>
                             <td>
                                 <div class="action-cell">
@@ -123,9 +114,6 @@
                 <form method="GET" action="{{ route('dean_osa.orgs.index') }}" class="show-wrap">
                     @if(request('search'))
                         <input type="hidden" name="search" value="{{ request('search') }}">
-                    @endif
-                    @if(request('level'))
-                        <input type="hidden" name="level" value="{{ request('level') }}">
                     @endif
                     Show
                     <select name="per_page" onchange="this.form.submit()">

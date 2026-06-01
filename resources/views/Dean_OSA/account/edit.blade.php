@@ -72,6 +72,15 @@
                             >
                         </div>
 
+                        {{-- Status --}}
+                        <div class="form-group">
+                            <label class="form-label" for="status">Status</label>
+                            <select class="form-control searchable-select" id="status" name="status" required>
+                                <option value="active" @selected(old('status', $account->status) === 'active')>Active</option>
+                                <option value="inactive" @selected(old('status', $account->status) === 'inactive')>Inactive</option>
+                            </select>
+                        </div>
+
                         {{-- Password --}}
                         <div class="form-group">
                             <label class="form-label" for="password">Password</label>

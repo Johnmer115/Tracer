@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Management;
 use App\Models\Branch;
+use App\Models\SystemLog;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 
@@ -59,6 +60,13 @@ class BranchController extends Controller
         $branch->code = $request->input('code');
         $branch->save();
 
+        SystemLog::record('Created Branch', 'Branch', [
+            'subject_type' => Branch::class,
+            'subject_id' => $branch->id,
+            'subject_label' => $branch->code,
+            'description' => "Branch {$branch->name} ({$branch->code}) was created.",
+        ]);
+
         return redirect()->route('dean_osa.branch.index')->with('success', 'Branch created successfully.');
     }
 
@@ -101,6 +109,13 @@ class BranchController extends Controller
         $branch->code     = $request->code;
         $branch->save();
 
+        SystemLog::record('Updated Branch', 'Branch', [
+            'subject_type' => Branch::class,
+            'subject_id' => $branch->id,
+            'subject_label' => $branch->code,
+            'description' => "Branch {$branch->name} ({$branch->code}) was updated.",
+        ]);
+
         return redirect()->route('dean_osa.branch.index')->with('success', 'Branch updated successfully.');
     }
 
@@ -110,7 +125,17 @@ class BranchController extends Controller
     public function destroy(string $id)
     {
         //
-        Branch::destroy($id);
+        $branch = Branch::findOrFail($id);
+        $name = $branch->name;
+        $code = $branch->code;
+        $branch->delete();
+
+        SystemLog::record('Deleted Branch', 'Branch', [
+            'subject_type' => Branch::class,
+            'subject_id' => $id,
+            'subject_label' => $code,
+            'description' => "Branch {$name} ({$code}) was deleted.",
+        ]);
 
         return redirect()->route('dean_osa.branch.index')->with('success', 'Branch deleted successfully.');
     }

@@ -6,25 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Organization;
+use App\Models\SystemLog;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class OrganizationController extends Controller
 {
-    private const LEVELS = [
-        'Elementary',
-        'Junior High School',
-        'Senior High School',
-        'College/ETEEAP',
-        'Graduate School',
-        'All Levels',
-        'Basic Education',
-    ];
+    // Level constant removed
 
     public function index(Request $request)
     {
         $search = trim((string) $request->query('search', ''));
-        $level = trim((string) $request->query('level', ''));
         $perPage = (int) $request->query('per_page', 10);
 
         if (! in_array($perPage, [10, 25, 50], true)) {
@@ -41,23 +33,19 @@ class OrganizationController extends Controller
                         ->orWhereHas('department.branch', fn ($branch) => $branch->where('name', 'like', "%{$search}%"));
                 });
             })
-            ->when($level !== '', fn ($query) => $query->where('level', $level))
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
 
-        $levels = self::LEVELS;
-
-        return view('Dean_OSA.orgs.index', compact('organizations', 'levels'));
+        return view('Dean_OSA.orgs.index', compact('organizations'));
     }
 
     public function create()
     {
         $branches = Branch::orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
-        $levels = self::LEVELS;
 
-        return view('Dean_OSA.orgs.create', compact('branches', 'departments', 'levels'));
+        return view('Dean_OSA.orgs.create', compact('branches', 'departments'));
     }
 
     public function store(Request $request)
@@ -66,7 +54,6 @@ class OrganizationController extends Controller
             'branch_id' => 'required|exists:branches,id',
             'department_id' => 'required|exists:departments,id',
             'name' => 'required|string|max:255',
-            'level' => 'required|string|in:' . implode(',', self::LEVELS),
             'code' => 'nullable|string|max:255',
         ]);
 
@@ -75,7 +62,14 @@ class OrganizationController extends Controller
         $this->validateCodeIsUnique($validated['code']);
         unset($validated['branch_id']);
 
-        Organization::create($validated);
+        $organization = Organization::create($validated);
+
+        SystemLog::record('Created Organization', 'Organization', [
+            'subject_type' => Organization::class,
+            'subject_id' => $organization->id,
+            'subject_label' => $organization->code,
+            'description' => "Organization {$organization->name} ({$organization->code}) was created.",
+        ]);
 
         return redirect()->route('dean_osa.orgs.index')->with('success', 'Organization created successfully.');
     }
@@ -88,9 +82,8 @@ class OrganizationController extends Controller
     public function edit(string $id)
     {
         $organization = Organization::with('department.branch')->findOrFail($id);
-        $levels = self::LEVELS;
 
-        return view('Dean_OSA.orgs.edit', compact('organization', 'levels'));
+        return view('Dean_OSA.orgs.edit', compact('organization'));
     }
 
     public function update(Request $request, string $id)
@@ -99,7 +92,6 @@ class OrganizationController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'level' => 'required|string|in:' . implode(',', self::LEVELS),
             'code' => 'nullable|string|max:255',
         ]);
 
@@ -107,12 +99,29 @@ class OrganizationController extends Controller
         $this->validateCodeIsUnique($validated['code'], $organization->id);
         $organization->update($validated);
 
+        SystemLog::record('Updated Organization', 'Organization', [
+            'subject_type' => Organization::class,
+            'subject_id' => $organization->id,
+            'subject_label' => $organization->code,
+            'description' => "Organization {$organization->name} ({$organization->code}) was updated.",
+        ]);
+
         return redirect()->route('dean_osa.orgs.index')->with('success', 'Organization updated successfully.');
     }
 
     public function destroy(string $id)
     {
-        Organization::findOrFail($id)->delete();
+        $organization = Organization::findOrFail($id);
+        $name = $organization->name;
+        $code = $organization->code;
+        $organization->delete();
+
+        SystemLog::record('Deleted Organization', 'Organization', [
+            'subject_type' => Organization::class,
+            'subject_id' => $id,
+            'subject_label' => $code,
+            'description' => "Organization {$name} ({$code}) was deleted.",
+        ]);
 
         return redirect()->route('dean_osa.orgs.index')->with('success', 'Organization deleted successfully.');
     }

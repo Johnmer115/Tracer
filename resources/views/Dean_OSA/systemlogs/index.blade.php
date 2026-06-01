@@ -61,15 +61,11 @@
                 <tbody>
                     @forelse($logs as $log)
                         @php
-                            $moduleClass = match($log->module) {
-                                'Authentication' => 'pill-blue',
-                                'Approval' => 'pill-amber',
-                                'Documents' => 'pill-green',
-                                'PAAR' => 'pill-green',
-                                'Modification' => 'pill-blue',
-                                'Reschedule' => 'pill-amber',
-                                default => 'pill-slate',
-                            };
+                            $moduleName = $log->module ?? 'General';
+                            $hash = crc32($moduleName);
+                            $hue = abs($hash) % 360;
+                            $pillStyle = "background: hsl({$hue}, 85%, 93%); color: hsl({$hue}, 85%, 26%); border: 1px solid hsl({$hue}, 85%, 82%); padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; display: inline-block;";
+
                             $actionText = Str::lower($log->action);
                             $actionMeta = match(true) {
                                 Str::contains($actionText, 'delete') => [
@@ -84,13 +80,13 @@
                                     'border' => '#fbbf24',
                                     'icon' => 'fa-calendar-alt',
                                 ],
-                                Str::contains($actionText, ['revision', 'modification']) => [
+                                Str::contains($actionText, ['revision', 'modification', 'updated', 'edited', 'toggled']) => [
                                     'bg' => '#dbeafe',
                                     'color' => '#1d4ed8',
                                     'border' => '#93c5fd',
                                     'icon' => 'fa-edit',
                                 ],
-                                Str::contains($actionText, ['approved', 'uploaded', 'completed']) => [
+                                Str::contains($actionText, ['approved', 'uploaded', 'completed', 'created', 'added', 'marked', 'logged']) => [
                                     'bg' => '#dcfce7',
                                     'color' => '#15803d',
                                     'border' => '#86efac',
@@ -114,7 +110,7 @@
                                 <div class="td-sub">{{ $log->account->usertype ?? 'Automated' }}</div>
                             </td>
                             <td>
-                                <span class="mini-pill {{ $moduleClass }}">{{ $log->module ?? 'General' }}</span>
+                                <span class="mini-pill" style="{{ $pillStyle }}">{{ $moduleName }}</span>
                             </td>
                             <td>
                                 <span style="

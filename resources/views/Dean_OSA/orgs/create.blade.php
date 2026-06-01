@@ -46,16 +46,6 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Level</label>
-                    <select class="form-control searchable-select" id="level" name="level" required>
-                        <option value="">-- Select Level --</option>
-                        @foreach($levels as $level)
-                            <option value="{{ $level }}" @selected(old('level') === $level)>{{ $level }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="form-group">
                     <label class="form-label">Organization Name</label>
                     <input type="text" class="form-control" id="name" name="name"
                         value="{{ old('name') }}" placeholder="Enter organization name" required>

@@ -42,9 +42,14 @@
                         </div>
                         <select class="filter-select" name="usertype" onchange="this.form.submit()">
                             <option value="">All Types</option>
-                            <option value="dean_osa" @selected(request('usertype') === 'dean_osa')>Dean OSA</option>
-                            <option value="staff_osa" @selected(request('usertype') === 'staff_osa')>Staff OSA</option>
-                            <option value="branch_osa" @selected(request('usertype') === 'branch_osa')>Branch OSA</option>
+                            <option value="Dean_OSA" @selected(request('usertype') === 'Dean_OSA')>Dean OSA</option>
+                            <option value="Staff_OSA" @selected(request('usertype') === 'Staff_OSA')>Staff OSA</option>
+                            <option value="Branch_OSA" @selected(request('usertype') === 'Branch_OSA')>Branch OSA</option>
+                        </select>
+                        <select class="filter-select" name="status" onchange="this.form.submit()">
+                            <option value="">All Statuses</option>
+                            <option value="active" @selected(request('status') === 'active')>Active</option>
+                            <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
                         </select>
                         <input type="hidden" name="per_page" value="{{ request('per_page', 10) }}">
                         <a href="{{ route('dean_osa.account.index') }}" class="btn btn-filter"><i class="fas fa-rotate-left"></i> Reset</a>
@@ -61,6 +66,7 @@
                                 <th>Username</th>
                                 <th>Usertype</th>
                                 <th>Branch</th>
+                                <th>Status</th>
                                 <th>Created</th>
                                 <th style="text-align:center;">Actions</th>
                             </tr>
@@ -81,6 +87,11 @@
                                         </span>
                                     </td>
                                     <td class="td-muted">{{ $account->branch?->name ?? '-' }}</td>
+                                    <td>
+                                        <span class="badge {{ $account->status === 'active' ? 'badge-dean' : 'badge-staff' }}" style="{{ $account->status === 'inactive' ? 'background: #ef4444; color: #fff;' : '' }}">
+                                            {{ ucfirst($account->status) }}
+                                        </span>
+                                    </td>
                                     <td class="td-muted">{{ $account->created_at?->format('m/d/Y') ?? 'N/A' }}</td>
                                     <td>
                                         <div class="action-cell">
@@ -113,7 +124,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="td-muted">No accounts found.</td>
+                                    <td colspan="7" class="td-muted">No accounts found.</td>
                                 </tr>
                             @endforelse
                         </tbody>

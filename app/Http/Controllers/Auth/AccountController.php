@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\Branch;
+use App\Models\SystemLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -65,6 +66,13 @@ class AccountController extends Controller
             $branch->update(['account_id' => $account->id]);
         }
 
+        SystemLog::record('Created Account', 'Account', [
+            'subject_type' => Account::class,
+            'subject_id' => $account->id,
+            'subject_label' => $account->username,
+            'description' => "Account {$account->username} ({$account->usertype}) was created with status {$account->status}.",
+        ]);
+
         return redirect()->route('dean_osa.account.index')
                         ->with('success', 'Account created successfully.');
     }
@@ -96,6 +104,7 @@ class AccountController extends Controller
             'username' => 'required|max:255|unique:accounts,username,' . $id,
             'usertype' => 'required|in:Dean_OSA,Staff_OSA,Branch_OSA',
             'password' => 'nullable|min:6',
+            'status'   => 'required|in:active,inactive',
         ]);
 
         if ($request->input('usertype') === 'Branch_OSA') {
@@ -109,6 +118,7 @@ class AccountController extends Controller
         $account->username  = $request->input('username');
         $account->usertype  = $request->input('usertype');
         $account->branch_id = $request->input('branch_id');
+        $account->status    = $request->input('status');
 
         if (filled($request->input('password'))) {
             $account->password = bcrypt($request->input('password'));
@@ -122,6 +132,13 @@ class AccountController extends Controller
             $branch->update(['account_id' => $account->id]);
         }
 
+        SystemLog::record('Updated Account', 'Account', [
+            'subject_type' => Account::class,
+            'subject_id' => $account->id,
+            'subject_label' => $account->username,
+            'description' => "Account {$account->username} ({$account->usertype}) was updated. Status: {$account->status}.",
+        ]);
+
         return redirect()->route('dean_osa.account.index')->with('success', 'Account updated successfully.');
     }
 
@@ -130,7 +147,16 @@ class AccountController extends Controller
      */
     public function destroy(string $id)
     {
-        Account::destroy($id);
+        $account = Account::findOrFail($id);
+        $username = $account->username;
+        $account->delete();
+
+        SystemLog::record('Deleted Account', 'Account', [
+            'subject_type' => Account::class,
+            'subject_id' => $id,
+            'subject_label' => $username,
+            'description' => "Account {$username} was deleted.",
+        ]);
 
         return redirect()->route('dean_osa.account.index')->with('success', 'Account deleted successfully.');
     }

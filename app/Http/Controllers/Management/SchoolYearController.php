@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Management;
 
 use Illuminate\Http\Request;
 use App\Models\SchoolYear;
+use App\Models\SystemLog;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Schema;
 
@@ -49,7 +50,14 @@ class SchoolYearController extends Controller
             'code'       => 'required|string|unique:school_years,code',
         ]);
 
-        SchoolYear::create($this->schoolYearPayload($request) + ['is_current' => false]);
+        $schoolYear = SchoolYear::create($this->schoolYearPayload($request) + ['is_current' => false]);
+
+        SystemLog::record('Created School Year', 'School Year', [
+            'subject_type' => SchoolYear::class,
+            'subject_id' => $schoolYear->id,
+            'subject_label' => $schoolYear->code,
+            'description' => "School Year {$schoolYear->name} ({$schoolYear->code}) was created.",
+        ]);
 
         return redirect()->route('dean_osa.schoolyear.index')
                          ->with('success', 'School year created successfully.');
@@ -115,7 +123,18 @@ class SchoolYearController extends Controller
 
     public function destroy(string $id)
     {
-        SchoolYear::destroy($id);
+        $schoolYear = SchoolYear::findOrFail($id);
+        $name = $schoolYear->name;
+        $code = $schoolYear->code;
+        $schoolYear->delete();
+
+        SystemLog::record('Deleted School Year', 'School Year', [
+            'subject_type' => SchoolYear::class,
+            'subject_id' => $id,
+            'subject_label' => $code,
+            'description' => "School Year {$name} ({$code}) was deleted.",
+        ]);
+
         return redirect()->route('dean_osa.schoolyear.index')
                          ->with('success', 'School year deleted successfully.');
     }

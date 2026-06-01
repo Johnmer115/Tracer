@@ -50,11 +50,6 @@
                                 placeholder="Enter department name" required>
                         </div>
 
-                        <div class="form-group">
-                            <label class="form-label" for="description">Description</label>
-                            <textarea class="form-control" id="description" name="description"
-                                rows="3" placeholder="Enter department description">{{ old('description', $department->description) }}</textarea>
-                        </div>
                     </div>
 
                     <div class="form-actions">

@@ -43,16 +43,6 @@
                             placeholder="Enter organization name" required>
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label" for="level">Level</label>
-                        <select class="form-control" id="level" name="level" required>
-                            <option value="">-- Select Level --</option>
-                            @foreach($levels as $level)
-                                <option value="{{ $level }}" @selected(old('level', $organization->level) === $level)>{{ $level }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
                     <div class="form-actions">
                         <a class="btn btn-filter" href="{{ route('dean_osa.orgs.index') }}">Back</a>
                         <button type="submit" class="btn btn-add">Update Organization</button>

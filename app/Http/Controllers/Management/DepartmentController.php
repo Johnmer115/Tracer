@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Management;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Department;
+use App\Models\SystemLog;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -50,14 +51,20 @@ class DepartmentController extends Controller
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
             'code' => 'nullable|string|max:255',
         ]);
 
         $validated['code'] = $validated['code'] ?: $this->makeCode($validated['branch_id'], $validated['name']);
         $this->validateCodeIsUnique($validated['code']);
 
-        Department::create($validated);
+        $department = Department::create($validated);
+
+        SystemLog::record('Created Department', 'Department', [
+            'subject_type' => Department::class,
+            'subject_id' => $department->id,
+            'subject_label' => $department->code,
+            'description' => "Department {$department->name} ({$department->code}) was created.",
+        ]);
 
         return redirect()->route('dean_osa.department.index')->with('success', 'Department created successfully.');
     }
@@ -76,7 +83,6 @@ class DepartmentController extends Controller
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
             'code' => 'nullable|string|max:255',
         ]);
 
@@ -84,12 +90,29 @@ class DepartmentController extends Controller
         $this->validateCodeIsUnique($validated['code'], $department->id);
         $department->update($validated);
 
+        SystemLog::record('Updated Department', 'Department', [
+            'subject_type' => Department::class,
+            'subject_id' => $department->id,
+            'subject_label' => $department->code,
+            'description' => "Department {$department->name} ({$department->code}) was updated.",
+        ]);
+
         return redirect()->route('dean_osa.department.index')->with('success', 'Department updated successfully.');
     }
 
     public function destroy(string $id)
     {
-        Department::findOrFail($id)->delete();
+        $department = Department::findOrFail($id);
+        $name = $department->name;
+        $code = $department->code;
+        $department->delete();
+
+        SystemLog::record('Deleted Department', 'Department', [
+            'subject_type' => Department::class,
+            'subject_id' => $id,
+            'subject_label' => $code,
+            'description' => "Department {$name} ({$code}) was deleted.",
+        ]);
 
         return redirect()->route('dean_osa.department.index')->with('success', 'Department deleted successfully.');
     }

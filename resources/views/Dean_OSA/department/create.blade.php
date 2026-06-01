@@ -45,12 +45,6 @@
                                 value="{{ old('name') }}" placeholder="Enter department name" required>
                         </div>
 
-                        <div class="form-group">
-                            <label class="form-label" for="description">Description</label>
-                            <textarea class="form-control" id="description" name="description"
-                                rows="3" placeholder="Enter department description">{{ old('description') }}</textarea>
-                        </div>
-
                         <input type="hidden" name="code" id="code" value="{{ old('code') }}">
                     </div>
 

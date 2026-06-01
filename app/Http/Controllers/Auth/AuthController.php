@@ -39,6 +39,12 @@ class AuthController extends Controller
             ])->onlyInput('account');
         }
 
+        if ($account->status === 'inactive') {
+            return back()->withErrors([
+                'account' => 'This account is inactive.',
+            ])->onlyInput('account');
+        }
+
         Auth::login($account, $request->boolean('remember'));
         $request->session()->regenerate();
 
