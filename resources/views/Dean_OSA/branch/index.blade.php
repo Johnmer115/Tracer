@@ -3,6 +3,22 @@
 @section('title', 'Branch Management | SARF Tracking') 
 @section('page-title', 'Branch Management') 
 
+@push('styles')
+<style>
+    .del-overlay{display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.58);backdrop-filter:blur(3px)}
+    .del-overlay.active{display:flex}
+    .del-modal{width:min(460px,100%);background:#fff;border:1px solid #fecaca;border-radius:8px;box-shadow:0 24px 60px rgba(15,23,42,.24);overflow:hidden}
+    .del-head{display:flex;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid #fee2e2;color:#991b1b;font-weight:800}
+    .del-head i{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;color:#dc2626;background:#fee2e2}
+    .del-body{padding:18px 20px;color:#475569;font-size:14px;line-height:1.5}
+    .del-name{margin:12px 0;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#0f172a;font-weight:700}
+    .del-warning{display:flex;gap:10px;margin:14px 0;padding:12px;border:1px solid #fecaca;border-radius:8px;background:#fef2f2;color:#991b1b;font-size:13px}
+    .del-actions{display:flex;justify-content:flex-end;gap:10px;padding:16px 20px 20px}
+    .del-actions .btn-danger{background:#dc2626;color:#fff;border:1px solid #dc2626}
+    @media (max-width:640px){.del-actions{flex-direction:column-reverse}.del-actions .btn{justify-content:center}}
+</style>
+@endpush
+
 @section('content')
     <section class="panel" style="padding: 25px;">
             @if ($message = Session::get('success'))
@@ -62,16 +78,19 @@
                                             title="Edit Branch">
                                                 <i class="fas fa-pencil-alt"></i>
                                             </a>
-
+ 
                                             <!-- DELETE -->
                                             <form action="{{ route('dean_osa.branch.destroy', $branch->id) }}" 
                                                 method="POST" 
                                                 style="display:inline;"
-                                                onsubmit="return confirm('Are you sure you want to delete this branch? This action cannot be undone.');">
+                                                id="delete-form-{{ $branch->id }}">
                                                 @csrf
                                                 @method('DELETE')
 
-                                                <button type="submit" class="abtn abtn-del" title="Delete Branch">
+                                                <button type="button" class="abtn abtn-del" title="Delete Branch"
+                                                    data-delete-id="{{ $branch->id }}"
+                                                    data-delete-name="{{ $branch->name }}"
+                                                    onclick="openDeleteModal(this)">
                                                     <i class="fas fa-trash-alt"></i>
                                                 </button>
                                             </form>
@@ -130,4 +149,62 @@
         </div>
     </div>
     </section>
+
+<div class="del-overlay" id="deleteModal" aria-hidden="true" onclick="closeDeleteModal()">
+    <div class="del-modal" role="dialog" aria-modal="true" aria-labelledby="deleteTitle" onclick="event.stopPropagation()">
+        <div class="del-head">
+            <i class="fas fa-trash-alt"></i>
+            <span id="deleteTitle">Delete branch?</span>
+        </div>
+        <div class="del-body">
+            <p style="margin:0;">This action cannot be undone.</p>
+            <div class="del-name" id="deleteName">Branch Name</div>
+            <div class="del-warning">
+                <i class="fas fa-exclamation-triangle" style="margin-top:2px;"></i>
+                <span>Deleting this branch will permanently delete all departments, organizations, and activities registered under it.</span>
+            </div>
+        </div>
+        <div class="del-actions">
+            <button type="button" class="btn btn-filter" onclick="closeDeleteModal()">Cancel</button>
+            <button type="button" class="btn btn-danger" onclick="submitDelete()">
+                <i class="fas fa-trash-alt"></i> Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedDeleteId = null;
+
+    function openDeleteModal(button) {
+        selectedDeleteId = button.dataset.deleteId;
+
+        const modal = document.getElementById('deleteModal');
+        const name = document.getElementById('deleteName');
+
+        if (name) name.textContent = button.dataset.deleteName || 'Selected branch';
+        if (modal) {
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+    }
+
+    function closeDeleteModal() {
+        const modal = document.getElementById('deleteModal');
+        if (modal) {
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+        selectedDeleteId = null;
+    }
+
+    function submitDelete() {
+        if (!selectedDeleteId) return;
+        document.getElementById('delete-form-' + selectedDeleteId)?.submit();
+    }
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeDeleteModal();
+    });
+</script>
 @endsection

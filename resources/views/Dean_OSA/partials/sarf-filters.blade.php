@@ -10,11 +10,13 @@
         'department'   => request('department', ''),
         'pipeline_status' => request('pipeline_status', request('status', '')),
         'inside_status'   => request('inside_status', ''),
+        'school_year'     => request('school_year', ''),
     ];
 
     // Ensure organization / department keys always exist (backwards-compat)
     $filters['organization'] = $filters['organization'] ?? request('organization', '');
     $filters['department']   = $filters['department']   ?? request('department', '');
+    $filters['school_year']  = $filters['school_year']  ?? request('school_year', '');
 
     $selectedLevels = collect((array) ($filters['level'] ?? []))
         ->filter(fn($value) => filled($value))
@@ -49,9 +51,12 @@
         'cancelled'            => ['bg' => '#f8fafc', 'color' => '#94a3b8', 'border' => '#e2e8f0'],
     ];
 
-    $filterDisplayValue = function ($key, $value) use ($branches) {
+    $filterDisplayValue = function ($key, $value) use ($branches, $schoolYears) {
         if ($key === 'branch_id') {
             return optional($branches->firstWhere('id', (int) $value))->name ?? 'Unknown branch';
+        }
+        if ($key === 'school_year') {
+            return optional($schoolYears->firstWhere('code', $value))->name ?? $value;
         }
         if (is_array($value)) {
             return collect($value)->flatten()->filter(fn($item) => filled($item))->implode(', ');
@@ -79,6 +84,9 @@
     @endif
     @if(filled($filters['inside_status'] ?? ''))
         <input type="hidden" name="inside_status" value="{{ $filters['inside_status'] }}">
+    @endif
+    @if(filled($filters['school_year'] ?? ''))
+        <input type="hidden" name="school_year" value="{{ $filters['school_year'] }}">
     @endif
 
 @elseif($filterMode === 'button')
@@ -159,6 +167,19 @@
             </div>
 
             <div class="filter-drawer-body">
+
+                {{-- School Year --}}
+                <div class="filter-group">
+                    <label for="{{ $filterId }}_school_year">School Year</label>
+                    <select id="{{ $filterId }}_school_year" name="school_year" class="form-control searchable-select">
+                        <option value="">Current School Year</option>
+                        @foreach($schoolYears as $sy)
+                            <option value="{{ $sy->code }}" @selected(($filters['school_year'] ?? '') === $sy->code)>
+                                {{ $sy->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
                 {{-- Branch --}}
                 <div class="filter-group">

@@ -18,6 +18,7 @@ class SarfListFilters
             'department'      => $request->query('department', ''),
             'pipeline_status' => $request->query('pipeline_status', ''),
             'inside_status'   => $request->query('inside_status', ''),
+            'school_year'     => $request->query('school_year', ''),
         ];
 
         if (is_string($filters['level'])) {
@@ -34,7 +35,12 @@ class SarfListFilters
 
     public static function apply($query, array $filters, array $allowedStatuses = [])
     {
+        $schoolYearCode = $filters['school_year'] !== ''
+            ? $filters['school_year']
+            : (\App\Models\SchoolYear::current()?->code ?? '');
+
         return $query
+            ->when($schoolYearCode !== '', fn ($q) => $q->where('school_year_code', $schoolYearCode))
             ->when($filters['branch_id'] !== '', fn ($q) => $q->where('branch_id', $filters['branch_id']))
             ->when(filled($filters['organization'] ?? ''), fn ($q) => $q->whereJsonContains('organizations', $filters['organization']))
             ->when(filled($filters['department'] ?? ''),   fn ($q) => $q->whereJsonContains('department',    $filters['department']))
@@ -68,6 +74,7 @@ class SarfListFilters
     {
         return [
             'branches' => Branch::orderBy('name')->get(),
+            'schoolYears' => \App\Models\SchoolYear::orderBy('code', 'desc')->get(),
 
             'levels' => Activity::query()
                 ->pluck('level')

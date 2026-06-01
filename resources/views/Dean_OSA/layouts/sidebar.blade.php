@@ -44,17 +44,17 @@
     <ul class="sb-list">
         <li>
             <a href="{{ route('dean_osa.schoolyear.index') }}" class="sb-item {{ request()->routeIs('dean_osa.schoolyear.*') ? 'active' : '' }}" title="School Year">
-                <i class="fas fa-calendar"></i><span>School Year</span>
+                <i class="fas fa-graduation-cap"></i><span>School Year</span>
             </a>
         </li>
         <li>
             <a href="{{ route('dean_osa.account.index') }}" class="sb-item {{ request()->routeIs('dean_osa.account.*') ? 'active' : '' }}" title="Account">
-                <i class="fas fa-users"></i><span>Account</span>
+                <i class="fas fa-user-cog"></i><span>Account</span>
             </a>
         </li>
         <li>
             <a href="{{ route('dean_osa.branch.index') }}" class="sb-item {{ request()->routeIs('dean_osa.branch.*') ? 'active' : '' }}" title="Branch">
-                <i class="fas fa-users"></i><span>Branch</span>
+                <i class="fas fa-university"></i><span>Branch</span>
             </a>
         </li>
         <li>
@@ -64,7 +64,7 @@
         </li>
         <li>
             <a href="{{ route('dean_osa.orgs.index') }}" class="sb-item {{ request()->routeIs('dean_osa.orgs.*') ? 'active' : '' }}" title="Organization">
-                <i class="fas fa-user-friends"></i><span>Organization</span>
+                <i class="fas fa-users"></i><span>Organization</span>
             </a>
         </li>
     </ul>

@@ -729,8 +729,18 @@
                 </div>
 
                 {{-- Scroll sentinel --}}
-                <div style="display:flex; justify-content:flex-end; margin-top:20px;">
-                    @if($isApprovalUnlocked && !$isApprovalFrozen)
+                <div style="display:flex; justify-content:flex-end; margin-top:20px; gap:10px;">
+                    @if(in_array($activity->status, ['pending', 'ongoing'], true))
+                        <form action="{{ route(($routePrefix ?? 'dean_osa') . '.approval.status', $activity->id) }}" method="POST" style="display: inline-block;">
+                            @csrf
+                            <input type="hidden" name="status" value="for approval">
+                            <input type="hidden" name="current_tab" value="2">
+                            <input type="hidden" name="focus" value="approval-workflow">
+                            <button type="submit" class="btn btn-add">
+                                Advance for Approval <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </form>
+                    @elseif($isApprovalUnlocked && !$isApprovalFrozen)
                         <button type="button" onclick="showTab(2)" class="btn btn-add">
                             Approval <i class="fas fa-arrow-right"></i>
                         </button>

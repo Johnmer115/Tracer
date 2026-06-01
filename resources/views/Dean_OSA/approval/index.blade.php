@@ -254,7 +254,7 @@
                                     <div class="td-sub">{{ implode(', ', $departments) }}</div>
                                 @endif
                                 @if(count($orgs))
-                                    <div class="td-sub" style="color:#8b5cf6;">{{ implode(', ', $orgs) }}</div>
+                                    <div class="td-sub">{{ implode(', ', $orgs) }}</div>
                                 @endif
                             </td>
 

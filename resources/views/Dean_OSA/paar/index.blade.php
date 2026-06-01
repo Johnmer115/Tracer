@@ -60,7 +60,9 @@
                     <tr>
                         <th>Code</th>
                         <th>Activity</th>
-                        <th>Branch</th>
+                        <th>Branch / Level</th>
+                        <th>Activity Date</th>
+                        <th>Funds</th>
                         <th>Status</th>
                         <th>Submitted</th>
                         <th style="text-align:center;">Action</th>
@@ -113,7 +115,56 @@
                                     <div class="td-sub">{{ implode(', ', $departments) }}</div>
                                 @endif
                                 @if(count($orgs))
-                                    <div class="td-sub" style="color:#8b5cf6;">{{ implode(', ', $orgs) }}</div>
+                                    <div class="td-sub">{{ implode(', ', $orgs) }}</div>
+                                @endif
+                            </td>
+
+                            {{-- Activity Date + venue/platform --}}
+                            <td style="white-space:nowrap;">
+                                <div class="td-main">
+                                    {{ $activity->date_of_activity?->format('M j, Y') ?? '—' }}
+                                </div>
+                                @if($activity->time_of_activity)
+                                    <div class="td-sub">
+                                        <i class="fas fa-clock" style="font-size:10px;"></i>
+                                        {{ $activity->time_of_activity }}
+                                    </div>
+                                @endif
+                                @if($activity->venue)
+                                    <div class="td-sub">
+                                        <i class="fas fa-map-marker-alt" style="font-size:10px;"></i>
+                                        {{ Str::limit($activity->venue, 24) }}
+                                        @if($activity->venue_type)
+                                            ({{ $activity->venue_type }})
+                                        @endif
+                                    </div>
+                                @elseif($activity->platform)
+                                    <div class="td-sub">
+                                        <i class="fas fa-video" style="font-size:10px;"></i>
+                                        {{ $activity->platform }}
+                                    </div>
+                                @endif
+                            </td>
+
+                            {{-- Funds + source or amount --}}
+                            <td>
+                                @php
+                                    $fundsClass = match($activity->funds) {
+                                        'With Budget' => 'pill-green',
+                                        'ATC'         => 'pill-amber',
+                                        'No Fee'      => 'pill-slate',
+                                        default       => 'pill-slate',
+                                    };
+                                @endphp
+                                @if($activity->funds)
+                                    <span class="mini-pill {{ $fundsClass }}">{{ $activity->funds }}</span>
+                                @else
+                                    <span class="td-muted">—</span>
+                                @endif
+                                @if($activity->source)
+                                    <div class="td-sub">{{ $activity->source }}</div>
+                                @elseif($activity->amount)
+                                    <div class="td-sub">₱{{ number_format($activity->amount, 2) }}</div>
                                 @endif
                             </td>
 
@@ -151,7 +202,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="td-muted" style="text-align:center; padding:40px;">
+                            <td colspan="8" class="td-muted" style="text-align:center; padding:40px;">
                                 No completed activities ready for Post-Activity Report.
                             </td>
                         </tr>

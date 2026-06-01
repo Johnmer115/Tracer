@@ -81,10 +81,13 @@
                                     @if(!$sy->is_current)
                                         <form action="{{ route('dean_osa.schoolyear.set-current', $sy->id) }}"
                                             method="POST" style="display:inline;"
-                                            onsubmit="return confirm('Set {{ $sy->name }} as the current school year?');">
+                                            id="set-current-form-{{ $sy->id }}">
                                             @csrf
                                             @method('PATCH')
-                                            <button type="submit" class="abtn abtn-approve" title="Set as Current School Year">
+                                            <button type="button" class="abtn abtn-approve" title="Set as Current School Year"
+                                                data-id="{{ $sy->id }}"
+                                                data-name="{{ $sy->name }}"
+                                                onclick="openSetCurrentModal(this)">
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         </form>
@@ -238,7 +241,61 @@
     });
 
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') closeSchoolYearDeleteModal();
+        if (event.key === 'Escape') {
+            closeSchoolYearDeleteModal();
+            closeSetCurrentModal();
+        }
     });
+
+    let selectedSetCurrentId = null;
+
+    function openSetCurrentModal(button) {
+        selectedSetCurrentId = button.dataset.id;
+        const modal = document.getElementById('setCurrentModal');
+        const name = document.getElementById('setCurrentName');
+
+        if (name) name.textContent = button.dataset.name || 'Selected school year';
+        if (modal) {
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+    }
+
+    function closeSetCurrentModal() {
+        const modal = document.getElementById('setCurrentModal');
+        if (modal) {
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+        selectedSetCurrentId = null;
+    }
+
+    function submitSetCurrent() {
+        if (!selectedSetCurrentId) return;
+        document.getElementById('set-current-form-' + selectedSetCurrentId)?.submit();
+    }
 </script>
+
+<div class="sy-delete-overlay" id="setCurrentModal" aria-hidden="true" onclick="closeSetCurrentModal()">
+    <div class="sy-delete-modal" role="dialog" aria-modal="true" aria-labelledby="setCurrentTitle" onclick="event.stopPropagation()" style="border-color: #cbd5e1;">
+        <div class="sy-delete-head" style="border-bottom-color: #e2e8f0; color: #1e3a8a;">
+            <i class="fas fa-check-circle" style="color: #2563eb; background: #dbeafe;"></i>
+            <span id="setCurrentTitle">Activate School Year?</span>
+        </div>
+        <div class="sy-delete-body">
+            <p style="margin:0;">Are you sure you want to set this school year as the current one?</p>
+            <div class="sy-delete-name" id="setCurrentName" style="background: #f0f9ff; border-color: #bae6fd; color: #0369a1;">School Year</div>
+            <div class="sy-delete-warning" style="background: #f0fdf4; border-color: #bbf7d0; color: #15803d;">
+                <i class="fas fa-info-circle" style="color: #16a34a; margin-top:2px;"></i>
+                <span>This will set this school year as the default active school year globally.</span>
+            </div>
+        </div>
+        <div class="del-actions" style="display:flex; justify-content:flex-end; gap:10px; padding:16px 20px 20px;">
+            <button type="button" class="btn btn-filter" onclick="closeSetCurrentModal()">Cancel</button>
+            <button type="button" class="btn btn-add" onclick="submitSetCurrent()" style="background: #2563eb; border-color: #2563eb; color: #fff;">
+                <i class="fas fa-check"></i> Set Current
+            </button>
+        </div>
+    </div>
+</div>
 @endsection
