@@ -196,14 +196,24 @@ class PaarController extends Controller
             ]);
         }
 
+        $wasCompleted = $activity->status === 'completed';
         $activity->update(['status' => 'completed']);
 
-        SystemLog::record('Completed PAAR', 'PAAR', [
-            'subject_type' => Activity::class,
-            'subject_id' => $activity->id,
-            'subject_label' => $activity->code,
-            'description' => "{$activity->code} was marked as completed.",
-        ]);
+        if ($wasCompleted) {
+            SystemLog::record('Edited PAAR', 'PAAR', [
+                'subject_type' => Activity::class,
+                'subject_id' => $activity->id,
+                'subject_label' => $activity->code,
+                'description' => "PAAR accomplishment for {$activity->code} was edited.",
+            ]);
+        } else {
+            SystemLog::record('Completed PAAR', 'PAAR', [
+                'subject_type' => Activity::class,
+                'subject_id' => $activity->id,
+                'subject_label' => $activity->code,
+                'description' => "{$activity->code} was marked as completed.",
+            ]);
+        }
 
         return redirect()
             ->route($this->routeName('paar.index'))

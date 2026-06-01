@@ -12,6 +12,7 @@ use App\Models\Department;
 use App\Models\Organization;
 use App\Models\SarfDocument;
 use App\Models\SchoolYear;
+use App\Models\SystemLog;
 use App\Support\SarfListFilters;
 use Illuminate\Support\Facades\Storage;
 
@@ -246,6 +247,13 @@ class ActivityController extends Controller
 
         $this->syncSarfDocuments($activity, $request);
 
+        SystemLog::record('Created Activity', 'Activity', [
+            'subject_type' => Activity::class,
+            'subject_id' => $activity->id,
+            'subject_label' => $activity->code,
+            'description' => "Activity {$activity->title} ({$activity->code}) was created.",
+        ]);
+
         return redirect()->route($this->routeName('activity.index'))
                          ->with('success', 'Activity created successfully.');
     }
@@ -343,6 +351,13 @@ class ActivityController extends Controller
                 'modification_type'       => null,
                 'modification_remarks'    => null,
                 ...$this->resetRescheduleApprovalColumns(),
+            ]);
+
+            SystemLog::record('Rescheduled Activity', 'Activity', [
+                'subject_type' => Activity::class,
+                'subject_id' => $activity->id,
+                'subject_label' => $activity->code,
+                'description' => "Activity {$activity->title} ({$activity->code}) reschedule requested.",
             ]);
 
             return redirect()->route($this->routeName('activity.index'))
@@ -455,6 +470,13 @@ class ActivityController extends Controller
             ]);
         }
 
+        SystemLog::record('Updated Activity', 'Activity', [
+            'subject_type' => Activity::class,
+            'subject_id' => $activity->id,
+            'subject_label' => $activity->code,
+            'description' => "Activity {$activity->title} ({$activity->code}) was updated.",
+        ]);
+
         return redirect()->route($this->routeName('activity.index'))
                          ->with('success', 'Activity updated successfully.');
     }
@@ -467,7 +489,18 @@ class ActivityController extends Controller
                 ->withErrors(['delete' => 'Staff accounts are not allowed to delete activities.']);
         }
 
-        Activity::destroy($id);
+        $activity = Activity::findOrFail($id);
+        $title = $activity->title;
+        $code = $activity->code;
+        $activity->delete();
+
+        SystemLog::record('Deleted Activity', 'Activity', [
+            'subject_type' => Activity::class,
+            'subject_id' => $id,
+            'subject_label' => $code,
+            'description' => "Activity {$title} ({$code}) was deleted.",
+        ]);
+
         return redirect()->route($this->routeName('activity.index'))
                          ->with('success', 'Activity deleted successfully.');
     }

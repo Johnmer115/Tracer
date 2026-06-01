@@ -327,12 +327,6 @@ class ApprovalController extends Controller
             $activity->update([
                 'status' => count($applicableFinanceFields) > 0 ? 'for approval finance' : 'approved',
             ]);
-            SystemLog::record('Auto advanced status', 'Approval', [
-                'subject_type' => Activity::class,
-                'subject_id' => $activity->id,
-                'subject_label' => $activity->code,
-                'description' => "{$activity->code} advanced after main approvals were completed.",
-            ]);
             $activity = Activity::findOrFail($id); // Fresh instance
         }
 
