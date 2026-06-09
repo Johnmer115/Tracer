@@ -78,5 +78,9 @@
             </a>
         </li>
     </ul>
+
+    <div class="sb-footer">
+        <p class="sb-footer-copy">©Johnmer Tanqui-on & Alex Somera. @2026 AU SARF Tracer</p>
+    </div>
 </nav>
 </aside>

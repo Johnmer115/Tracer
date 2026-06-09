@@ -38,7 +38,7 @@ body { display: flex; }
 .sb-logo-name { font-size: 13px; font-weight: 700; color: #fff; line-height: 1.25; }
 .sb-logo-name span { display: block; font-size: 10px; font-weight: 400; color: rgba(255,255,255,.45); margin-top: 1px; }
 
-.sb-nav { flex: 1; padding: 4px 0 12px; }
+.sb-nav { flex: 1; display: flex; flex-direction: column; padding: 4px 0 12px; }
 .sb-section { padding: 13px 18px 4px; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,.38); }
 /* Bootstrap reset for sidebar */
 .sidebar ul, .sidebar ol { padding-left: 0; margin-bottom: 0; }
@@ -52,6 +52,20 @@ body { display: flex; }
 .sb-item i { width: 15px; font-size: 12px; text-align: center; flex-shrink: 0; }
 .sb-item:hover { background: var(--accent-soft); border-left-color: var(--white); color: #fff; padding-left: 22px; }
 .sb-item.active { background: var(--accent); border-left-color: var(--white); color: #fff; font-weight: 600; padding-left: 18px; }
+.sb-footer {
+    margin: auto 16px 0;
+    padding: 14px 0 2px;
+    border-top: 1px solid rgba(255,255,255,.16);
+    color: rgba(255,255,255,.62);
+    text-align: center;
+    line-height: 1.45;
+}
+.sb-footer p {
+    margin: 0;
+}
+.sb-footer-copy {
+    font-size: 10.5px;
+}
 
 
 /* ---- MAIN ---- */
@@ -426,6 +440,7 @@ body.sidebar-collapsed .sb-logo { justify-content: center; padding: 16px 12px; }
 body.sidebar-collapsed .sb-logo-name,
 body.sidebar-collapsed .sb-section,
 body.sidebar-collapsed .sb-item span,
+body.sidebar-collapsed .sb-footer,
 body.sidebar-collapsed .sb-user > div,
 body.sidebar-collapsed .sb-logout span {
     display: none;
@@ -471,6 +486,7 @@ body.sidebar-collapsed .sb-logout i {
     body.sidebar-collapsed .sb-logo-name,
     body.sidebar-collapsed .sb-section,
     body.sidebar-collapsed .sb-item span,
+    body.sidebar-collapsed .sb-footer,
     body.sidebar-collapsed .sb-user > div {
         display: block;
     }
@@ -648,12 +664,12 @@ body.sidebar-collapsed .sb-logout i {
 .pill-amber { background: #fef9c3; color: #92400e; }
 
 .branch-level-col {
-    width: 250px;
+    width: 200px;
     
 }
 .branch-level-col .td-main,
 .branch-level-col .td-sub {
-    max-width: 250px;
+    max-width: 200px;
     white-space: normal;
     overflow: hidden;
     overflow-wrap: anywhere;
