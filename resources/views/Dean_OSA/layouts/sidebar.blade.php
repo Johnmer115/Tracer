@@ -80,7 +80,8 @@
     </ul>
 
     <div class="sb-footer">
-        <p class="sb-footer-copy">©Johnmer Tanqui-on & Alex Somera. @2026 AU SARF Tracer</p>
+        <p class="sb-footer-year">@2026 AU SARF Tracer</p>
+        <p class="sb-footer-copy">Copyright &copy; Johnmer Tanqui-on &amp; Alex Somera</p>
     </div>
 </nav>
 </aside>

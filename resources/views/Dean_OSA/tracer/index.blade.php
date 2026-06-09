@@ -74,7 +74,7 @@
 
             if ($status === 'for approval for rescheduling') {
                 return [
-                    'label'  => 'Request Modification: Rescheduling',
+                    'label'  => 'Rescheduling',
                     'bg'     => '#fef3c7',
                     'color'  => '#92400e',
                     'border' => '#fbbf24',

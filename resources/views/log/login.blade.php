@@ -35,6 +35,7 @@
                     value="{{ old('account') }}"
                     required
                     autofocus
+                    autocomplete="username"
                     placeholder="Enter your username or email"
                 >
                 @error('account')
@@ -50,6 +51,7 @@
                         id="password"
                         name="password"
                         required
+                        autocomplete="current-password"
                         placeholder="Enter your password"
                     >
                     <button type="button" class="password-toggle" id="toggle-password" aria-label="Show password">

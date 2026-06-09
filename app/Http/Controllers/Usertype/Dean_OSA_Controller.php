@@ -90,6 +90,14 @@ class Dean_OSA_Controller extends Controller
     public function deleteMessage(string $id)
     {
         $message = DashboardMessage::findOrFail($id);
+
+        // Only the message author can delete their own message
+        if ($message->account_id !== auth()->id()) {
+            return redirect()
+                ->route('dean_osa.index')
+                ->withErrors(['message' => 'Unauthorized: You can only delete your own messages.']);
+        }
+
         $message->delete();
 
         return redirect()
@@ -103,6 +111,14 @@ class Dean_OSA_Controller extends Controller
     public function togglePinMessage(string $id)
     {
         $message = DashboardMessage::findOrFail($id);
+
+        // Only the message author can pin/unpin their own message
+        if ($message->account_id !== auth()->id()) {
+            return redirect()
+                ->route('dean_osa.index')
+                ->withErrors(['message' => 'Unauthorized: You can only pin your own messages.']);
+        }
+
         $message->update(['is_pinned' => !$message->is_pinned]);
 
         return redirect()
