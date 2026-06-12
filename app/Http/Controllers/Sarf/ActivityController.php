@@ -441,8 +441,14 @@ class ActivityController extends Controller
                     $resetData[$field] = 'pending';
                 }
             }
-            // Return to 'for approval' stage so approvals can continue without re-advancing
-            $resetData['status'] = 'for approval';
+
+            // Revision from PAAR (modification_type='revision') → already fully approved, return to 'approved'
+            // Signatory disapproval (no modification_type) → return to 'for approval' to continue pipeline
+            if ($activity->status === 'for revision' && $activity->modification_type === 'revision') {
+                $resetData['status'] = 'approved';
+            } else {
+                $resetData['status'] = 'for approval';
+            }
         }
 
         $updateData = [

@@ -276,18 +276,18 @@ tbody tr:hover { background: #fafafa; }
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
 }
 
-/* Modification action — amber/warning */
+/* Modification action — purple/violet */
 .abtn-mod {
-    color: #b45309;
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-    border-color: #fcd34d;
+    color: #7c3aed;
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    border-color: #c4b5fd;
 }
 
 .abtn-mod:hover {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    border-color: #f59e0b;
-    color: #92400e;
-    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.18);
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+    border-color: #8b5cf6;
+    color: #6d28d9;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18);
 }
 
 /* Additional action types */

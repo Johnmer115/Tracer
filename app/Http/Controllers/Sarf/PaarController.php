@@ -228,6 +228,89 @@ class PaarController extends Controller
         //
     }
 
+    /**
+     * Send an activity back to the Activities module for modification.
+     * Sets modification_type = revision | rescheduling so the edit page
+     * knows what kind of changes to expect.
+     *
+     * Revision      → status = 'for revision', returns to Activities
+     * Rescheduling  → status = 'for reschedule', returns to Activities then Approvals
+     *
+     * Rescheduling is only available for 'approved' activities.
+     * Revision is available for both 'approved' and 'completed' activities.
+     */
+    public function requestModification(Request $request, string $id)
+    {
+        $activity = Activity::findOrFail($id);
+
+        $request->validate([
+            'modification_type'    => 'required|in:revision,rescheduling',
+            'modification_remarks' => 'nullable|string|max:1000',
+        ]);
+
+        $type    = $request->input('modification_type');
+        $remarks = $request->input('modification_remarks');
+
+        $canRequestRevision     = in_array($activity->status, ['approved', 'completed'], true);
+        $canRequestRescheduling = $activity->status === 'approved';
+
+        if ($type === 'revision' && ! $canRequestRevision) {
+            return back()->withErrors([
+                'modification_type' => 'Revision requests are only available for approved or completed activities.',
+            ]);
+        }
+
+        if ($type === 'rescheduling' && ! $canRequestRescheduling) {
+            return back()->withErrors([
+                'modification_type' => 'Rescheduling requests are only available for approved activities.',
+            ]);
+        }
+
+        $newStatus = $type === 'rescheduling' ? 'for reschedule' : 'for revision';
+
+        if ($type === 'rescheduling') {
+            $reschedulePaper = SarfDocument::where('activity_id', $activity->id)
+                ->where('type', 'RESCHEDULE_PAPER')
+                ->first();
+
+            if ($reschedulePaper?->file_path) {
+                Storage::disk('public')->delete($reschedulePaper->file_path);
+            }
+
+            if ($reschedulePaper) {
+                $reschedulePaper->delete();
+            }
+        }
+
+        $updateData = [
+            'modification_type'    => $type,
+            'modification_remarks' => $remarks,
+            'status'               => $newStatus,
+            'reschedule_status'    => $type === 'rescheduling' ? null : $activity->reschedule_status,
+        ];
+
+        if ($type === 'rescheduling') {
+            $updateData['reschedule_reason'] = filled($remarks) ? $remarks : null;
+        }
+
+        $activity->update($updateData);
+
+        $actionLabel = $type === 'rescheduling'
+            ? 'Requested Rescheduling Modification'
+            : 'Requested Revision Modification';
+
+        SystemLog::record($actionLabel, 'Modification', [
+            'subject_type'  => Activity::class,
+            'subject_id'    => $activity->id,
+            'subject_label' => $activity->code,
+            'description'   => "{$activity->code} was sent back for " . ($type === 'rescheduling' ? 'schedule changes' : 'content revision') . ". " . ($remarks ? "Remarks: {$remarks}" : 'No remarks provided.'),
+        ]);
+
+        return redirect()
+            ->route($this->routeName('paar.index'))
+            ->with('success', "Activity {$activity->code} sent for " . ucfirst($type) . '. It will now appear in the Activities module for editing.');
+    }
+
     private function accomplishmentDocumentTypes(?Activity $activity = null): array
     {
         $documents = [

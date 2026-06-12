@@ -79,6 +79,7 @@ Route::middleware(['auth', 'Dean_OSA'])->prefix('dean_osa')
         Route::get('paar/{id}/edit', [PaarController::class, 'edit'])->name('paar.edit');
         Route::get('paar/{id}/act', [PaarController::class, 'act'])->name('paar.act');
         Route::match(['post', 'patch'], 'paar/{id}', [PaarController::class, 'update'])->name('paar.update');
+        Route::post('paar/{id}/modification', [PaarController::class, 'requestModification'])->name('paar.modification');
 
         // Tracer
         Route::get('tracer', [TracerController::class, 'index'])->name('tracer.index');
@@ -128,6 +129,7 @@ Route::middleware(['auth', 'Staff_OSA'])->prefix('staff_osa')
         Route::get('paar/{id}/edit', [PaarController::class, 'edit'])->name('paar.edit');
         Route::get('paar/{id}/act', [PaarController::class, 'act'])->name('paar.act');
         Route::match(['post', 'patch'], 'paar/{id}', [PaarController::class, 'update'])->name('paar.update');
+        Route::post('paar/{id}/modification', [PaarController::class, 'requestModification'])->name('paar.modification');
 
         // Tracer
         Route::get('tracer', [TracerController::class, 'index'])->name('tracer.index');

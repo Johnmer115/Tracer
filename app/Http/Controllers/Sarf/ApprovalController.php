@@ -152,7 +152,7 @@ class ApprovalController extends Controller
             $filters['pipeline_status'] = $status;
         }
 
-        $approvalStatuses = ['pending', 'ongoing', 'for approval', 'for approval finance', 'approved', 'for approval for rescheduling'];
+        $approvalStatuses = ['pending', 'ongoing', 'for approval', 'for approval finance', 'for approval for rescheduling'];
 
         $query = Activity::with(['branch'])
             ->whereIn('status', $approvalStatuses)

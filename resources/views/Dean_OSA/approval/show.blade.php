@@ -1714,12 +1714,15 @@
                                         <i class="fas fa-clipboard-check"></i> Reschedule Approval Summary
                                     </div>
                                     <div style="padding:0; overflow-x:auto;">
+                                        @php $hasBudgetInfo = in_array($activity->funds, ['With Budget', 'ATC'], true); @endphp
                                         <table style="width:100%; border-collapse:collapse; font-size:13px;">
                                             <thead>
                                                 <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
                                                     <th style="padding:10px 16px; text-align:left; font-weight:700; color:#334155;">Role</th>
                                                     <th style="padding:10px 16px; text-align:center; font-weight:700; color:#334155;">Status</th>
-                                                    <th style="padding:10px 16px; text-align:right; font-weight:700; color:#334155;">Approved Budget</th>
+                                                    @if($hasBudgetInfo)
+                                                        <th style="padding:10px 16px; text-align:right; font-weight:700; color:#334155;">Approved Budget</th>
+                                                    @endif
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1732,13 +1735,15 @@
                                                                 {{ ucfirst($activity->{$rescheduleApprovalFields[$sig['field']]} ?? 'pending') }}
                                                             </span>
                                                         </td>
-                                                        <td style="padding:10px 16px; text-align:right; color:#15803d; font-weight:600;">
-                                                            @if($activity->{$sig['budget']} !== null)
-                                                                &#8369; {{ number_format($activity->{$sig['budget']}, 2) }}
-                                                            @else
-                                                                <span style="color:#94a3b8;">—</span>
-                                                            @endif
-                                                        </td>
+                                                        @if($hasBudgetInfo)
+                                                            <td style="padding:10px 16px; text-align:right; color:#15803d; font-weight:600;">
+                                                                @if($activity->{$sig['budget']} !== null)
+                                                                    &#8369; {{ number_format($activity->{$sig['budget']}, 2) }}
+                                                                @else
+                                                                    <span style="color:#94a3b8;">—</span>
+                                                                @endif
+                                                            </td>
+                                                        @endif
                                                     </tr>
                                                 @endforeach
 
@@ -1752,40 +1757,44 @@
                                                                     {{ ucfirst($activity->{$rescheduleApprovalFields[$sig['field']]} ?? 'pending') }}
                                                                 </span>
                                                             </td>
-                                                            <td style="padding:10px 16px; text-align:right; color:#15803d; font-weight:600;">
-                                                                @if($activity->{$sig['budget']} !== null)
-                                                                    &#8369; {{ number_format($activity->{$sig['budget']}, 2) }}
-                                                                @else
-                                                                    <span style="color:#94a3b8;">—</span>
-                                                                @endif
-                                                            </td>
+                                                            @if($hasBudgetInfo)
+                                                                <td style="padding:10px 16px; text-align:right; color:#15803d; font-weight:600;">
+                                                                    @if($activity->{$sig['budget']} !== null)
+                                                                        &#8369; {{ number_format($activity->{$sig['budget']}, 2) }}
+                                                                    @else
+                                                                        <span style="color:#94a3b8;">—</span>
+                                                                    @endif
+                                                                </td>
+                                                            @endif
                                                         </tr>
                                                     @endforeach
                                                 @endif
 
-                                                {{-- Final Approved Budget row --}}
-                                                @php
-                                                    if ($requiresFinanceApproval) {
-                                                        $finalBudget = $activity->budget_comptroller_final;
-                                                    } else {
-                                                        $lastMainField = collect($signatories)
-                                                            ->filter(fn($s) => in_array($s['field'], $applicableMainFields, true))
-                                                            ->last();
-                                                        $finalBudget = $lastMainField ? $activity->{$lastMainField['budget']} : null;
-                                                    }
-                                                @endphp
-                                                <tr style="background:#f0fdf4; border-top:2px solid #bbf7d0;">
-                                                    <td colspan="2" style="padding:12px 16px; font-weight:700; color:#15803d; font-size:13.5px;">
-                                                        <i class="fas fa-coins" style="margin-right:4px;"></i> Final Approved Budget
-                                                    </td>
-                                                    <td style="padding:12px 16px; text-align:right; font-weight:700; color:#15803d; font-size:14px;">
-                                                        @if($finalBudget !== null)
-                                                            &#8369; {{ number_format($finalBudget, 2) }}
-                                                        @else
-                                                            <span style="color:#94a3b8;">—</span>
-                                                        @endif
-                                                    </td>
-                                                </tr>
+                                                @if($hasBudgetInfo)
+                                                    {{-- Final Approved Budget row --}}
+                                                    @php
+                                                        if ($requiresFinanceApproval) {
+                                                            $finalBudget = $activity->budget_comptroller_final;
+                                                        } else {
+                                                            $lastMainField = collect($signatories)
+                                                                ->filter(fn($s) => in_array($s['field'], $applicableMainFields, true))
+                                                                ->last();
+                                                            $finalBudget = $lastMainField ? $activity->{$lastMainField['budget']} : null;
+                                                        }
+                                                    @endphp
+                                                    <tr style="background:#f0fdf4; border-top:2px solid #bbf7d0;">
+                                                        <td colspan="2" style="padding:12px 16px; font-weight:700; color:#15803d; font-size:13.5px;">
+                                                            <i class="fas fa-coins" style="margin-right:4px;"></i> Final Approved Budget
+                                                        </td>
+                                                        <td style="padding:12px 16px; text-align:right; font-weight:700; color:#15803d; font-size:14px;">
+                                                            @if($finalBudget !== null)
+                                                                &#8369; {{ number_format($finalBudget, 2) }}
+                                                            @else
+                                                                <span style="color:#94a3b8;">—</span>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endif
                                             </tbody>
                                         </table>
                                     </div>
