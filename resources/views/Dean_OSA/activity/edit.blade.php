@@ -1094,16 +1094,9 @@ function handleFunds(val) {
 }
 
 /* ── Late Submission ── */
-function subtractWorkingDays(date, days) {
+function subtractCalendarDays(date, days) {
     const result = new Date(date);
-    let remaining = days;
-
-    while (remaining > 0) {
-        result.setDate(result.getDate() - 1);
-        const day = result.getDay();
-        if (day !== 0 && day !== 6) remaining--;
-    }
-
+    result.setDate(result.getDate() - days);
     return result;
 }
 
@@ -1116,7 +1109,7 @@ function checkLateSubmission() {
     const activityDate = new Date(dateVal);
     const today        = new Date(); today.setHours(0,0,0,0);
     const limitDays    = (funds === 'No Fee') ? 15 : 30;
-    const deadline     = subtractWorkingDays(activityDate, limitDays);
+    const deadline     = subtractCalendarDays(activityDate, limitDays);
     const isLate       = today > deadline;
 
     if (isLate) {
@@ -1125,7 +1118,7 @@ function checkLateSubmission() {
         document.getElementById('late-warning-desc').textContent  =
             `For a "${funds}" activity on ${activityDate.toLocaleDateString('en-PH', fmt)}, ` +
             `the SARF should have been submitted by ${deadline.toLocaleDateString('en-PH', fmt)} ` +
-            `(${limitDays} working days prior). Please provide a reason below.`;
+            `(${limitDays} days prior). Please provide a reason below.`;
         lateBlock.style.display = 'flex';
     } else { if (lateBlock) lateBlock.style.display = 'none'; }
 }
