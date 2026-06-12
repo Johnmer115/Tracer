@@ -551,7 +551,7 @@ class ApprovalController extends Controller
 
         $activity->update([
             'reschedule_status'       => 'pending',
-            'reschedule_original_date' => $activity->date_of_activity,
+            'reschedule_original_date' => $activity->primaryActivityDate(),
             'reschedule_original_time' => $activity->time_of_activity,
             'reschedule_original_mode' => $activity->mode_of_conduct,
             'reschedule_original_venue' => $activity->venue,
@@ -747,7 +747,7 @@ class ApprovalController extends Controller
                 $activity->update([
                     'reschedule_status' => 'approved',
                     'reschedule_decided_at' => now(),
-                    'date_of_activity' => $activity->reschedule_date,
+                    'date_of_activity' => $activity->reschedule_date ? json_encode([$activity->reschedule_date->format('Y-m-d')]) : null,
                     'time_of_activity' => $activity->reschedule_time,
                     'mode_of_conduct' => $activity->reschedule_mode ?: $activity->mode_of_conduct,
                     'venue' => $activity->reschedule_venue,

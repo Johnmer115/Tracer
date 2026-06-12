@@ -33,6 +33,11 @@
                 <i class="fas fa-file-medical"></i><span>Post-Activity Report</span>
             </a>
         </li>
+        <li>
+            <a href="{{ route('staff_osa.tracer.index') }}" class="sb-item {{ request()->routeIs('staff_osa.tracer.*') ? 'active' : '' }}" title="Tracer">
+                <i class="fas fa-route"></i><span>Tracer</span>
+            </a>
+        </li>
     </ul>
 </nav>
 </aside>

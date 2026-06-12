@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class Activity extends Model
@@ -167,7 +168,6 @@ class Activity extends Model
     ];
 
     protected $casts = [
-        'date_of_activity' => 'date',
         'department'       => 'array',
         'organizations'    => 'array',
         'objectives'       => 'array',
@@ -218,5 +218,92 @@ class Activity extends Model
     public function sarfDocuments()
     {
         return $this->hasMany(SarfDocument::class);
+    }
+
+    public function activityDateValues(): array
+    {
+        $value = $this->attributes['date_of_activity'] ?? null;
+
+        if (! filled($value)) {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        if (is_array($decoded)) {
+            return collect($decoded)
+                ->filter(fn ($date) => filled($date))
+                ->values()
+                ->all();
+        }
+
+        return collect(preg_split('/\s*(?:;|,|\R)\s*/', (string) $value))
+            ->filter(fn ($date) => filled($date))
+            ->values()
+            ->all();
+    }
+
+    public function primaryActivityDate(): ?Carbon
+    {
+        $date = $this->activityDateValues()[0] ?? null;
+
+        return filled($date) ? Carbon::parse($date) : null;
+    }
+
+    public function activityDateDisplay(string $format = 'M j, Y', string $separator = ', '): ?string
+    {
+        $dates = collect($this->activityDateValues())
+            ->map(fn ($date) => Carbon::parse($date)->format($format))
+            ->all();
+
+        return $dates === [] ? null : implode($separator, $dates);
+    }
+
+    public function getDateOfActivityAttribute($value): ?ActivityDateValue
+    {
+        return filled($value) ? new ActivityDateValue($value) : null;
+    }
+}
+
+class ActivityDateValue
+{
+    public function __construct(private string $value)
+    {
+    }
+
+    public function values(): array
+    {
+        $decoded = json_decode($this->value, true);
+
+        if (is_array($decoded)) {
+            return collect($decoded)
+                ->filter(fn ($date) => filled($date))
+                ->values()
+                ->all();
+        }
+
+        return collect(preg_split('/\s*(?:;|,|\R)\s*/', $this->value))
+            ->filter(fn ($date) => filled($date))
+            ->values()
+            ->all();
+    }
+
+    public function first(): ?Carbon
+    {
+        $date = $this->values()[0] ?? null;
+
+        return filled($date) ? Carbon::parse($date) : null;
+    }
+
+    public function format(string $format): string
+    {
+        return collect($this->values())
+            ->map(fn ($date) => Carbon::parse($date)->format($format))
+            ->implode(', ');
+    }
+
+    public function __toString(): string
+    {
+        return $this->values()[0] ?? '';
     }
 }

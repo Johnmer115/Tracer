@@ -217,6 +217,11 @@
         $progressPct    = $totalApprovals > 0 ? round(($approvedCount / $totalApprovals) * 100) : 0;
 
         $docs = $activity->sarfDocuments->keyBy('type');
+        $customLabels = $docs
+            ->keys()
+            ->filter(fn ($type) => str_starts_with($type, 'OTHER:'))
+            ->mapWithKeys(fn ($type) => [$type => substr($type, 6)]);
+        $attachmentLabels = collect($sarfLabels)->merge($customLabels);
         $approvedSarfDoc = $docs->get('APPROVED_SARF');
         $reschedulePaperDoc = $docs->get('RESCHEDULE_PAPER');
         $approvedDocRemark = old('approved_remark')
@@ -709,7 +714,7 @@
                     <div class="show-section-header">
                         <i class="fas fa-paperclip"></i> Attachment Files
                         <span style="margin-left:auto; font-size:12px; font-weight:400; color:#64748b;">
-                            {{ $docs->count() }} of {{ count($sarfLabels) }} types attached
+                            {{ $docs->count() }} of {{ $attachmentLabels->count() }} types attached
                         </span>
                     </div>
                     @if($docs->isEmpty())
@@ -717,11 +722,11 @@
                             <i class="fas fa-folder-open"></i> No attachments uploaded yet.
                         </div>
                     @else
-                        @foreach($sarfLabels as $type => $label)
+                        @foreach($attachmentLabels as $type => $label)
                             @if($docs->has($type))
                                 <div class="attachment-view-row">
                                     <div class="attachment-view-left">
-                                        <span class="sarf-badge">{{ $type }}</span>
+                                        <span class="sarf-badge">{{ str_starts_with($type, 'OTHER:') ? 'OTH' : $type }}</span>
                                         <div>
                                             <div class="td-main">{{ $label }}</div>
                                             <div class="td-sub">

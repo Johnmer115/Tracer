@@ -89,10 +89,10 @@
 
                             {{-- Date + time + venue/platform --}}
                             <td style="white-space:nowrap;">
-                                @if($activity->date_of_activity)
+                                @if($activity->activityDateDisplay())
                                     <div class="td-main">
                                         <i class="fas fa-calendar-alt" style="color:#94a3b8; font-size:11px;"></i>
-                                        {{ $activity->date_of_activity->format('M j, Y') }}
+                                        {{ $activity->activityDateDisplay('M j, Y') }}
                                     </div>
                                 @else
                                     <div class="td-main">—</div>

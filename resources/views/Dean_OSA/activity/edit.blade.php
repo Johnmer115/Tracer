@@ -360,7 +360,7 @@
                                 <label class="form-label">Date of Activity <span class="req">*</span></label>
                                 <input type="date" name="date_of_activity" class="form-control" required
                                     id="date_of_activity" data-label="Date of Activity"
-                                    value="{{ old('date_of_activity', $isRescheduling && $activity->reschedule_date ? $activity->reschedule_date->format('Y-m-d') : $activity->date_of_activity?->format('Y-m-d')) }}"
+                                    value="{{ old('date_of_activity', $isRescheduling && $activity->reschedule_date ? $activity->reschedule_date->format('Y-m-d') : $activity->primaryActivityDate()?->format('Y-m-d')) }}"
                                     onchange="checkLateSubmission()">
                                 <span class="field-error" id="err-date_of_activity">Date of activity is required.</span>
                             </div>
@@ -606,6 +606,13 @@
                             'A10' => 'Requested Materials',
                         ];
                         $existingDocs = $activity->sarfDocuments->keyBy('type');
+                        $customDocs = $activity->sarfDocuments
+                            ->filter(fn ($doc) => str_starts_with($doc->type, 'OTHER:'))
+                            ->values();
+                        $oldCustomNames = collect(old('custom_document_names', []))
+                            ->filter(fn ($name) => filled($name))
+                            ->values();
+                        $hasCustomDocuments = $customDocs->isNotEmpty() || old('other_documents_enabled') || $oldCustomNames->isNotEmpty();
                         @endphp
 
                         <div id="attachment-list">
@@ -658,6 +665,102 @@
                                     </div>
                                 </div>
                             @endforeach
+
+                            <div class="attachment-row">
+                                <label class="attachment-check">
+                                    <input type="checkbox" name="other_documents_enabled" value="1"
+                                        id="check_OTHER"
+                                        onchange="toggleOtherDocuments(this.checked)"
+                                        @checked($hasCustomDocuments)>
+                                    <span class="sarf-badge">OTH</span>
+                                    <span class="sarf-label">Others</span>
+                                </label>
+                                <div class="custom-documents-wrap" id="other-documents-block"
+                                    style="display:{{ $hasCustomDocuments ? 'block' : 'none' }};">
+                                    <div id="existing-custom-documents-list">
+                                        @foreach($customDocs as $customIndex => $doc)
+                                            @php
+                                                $customName = substr($doc->type, 6);
+                                                $oldExistingTypes = old('existing_custom_types');
+                                                $isCustomChecked = is_array($oldExistingTypes)
+                                                    ? in_array($doc->type, $oldExistingTypes, true)
+                                                    : true;
+                                            @endphp
+                                            <div class="custom-document-row">
+                                                <label class="attachment-check" style="min-width:0;">
+                                                    <input type="checkbox" name="existing_custom_types[{{ $customIndex }}]" value="{{ $doc->type }}"
+                                                        @checked($isCustomChecked)>
+                                                    <span class="sarf-badge">OTH</span>
+                                                    <span class="sarf-label">{{ $customName }}</span>
+                                                </label>
+                                                <div class="file-upload-wrap custom-file-upload-wrap">
+                                                    <input type="file" name="existing_custom_files[{{ $customIndex }}]" id="existing_custom_file_{{ $customIndex }}" accept=".pdf"
+                                                        onchange="updateCustomFileName(this)">
+                                                    <label for="existing_custom_file_{{ $customIndex }}" class="file-label">
+                                                        <i class="fas fa-upload"></i> Replace PDF
+                                                    </label>
+                                                    <span class="file-name-display">No file chosen</span>
+                                                </div>
+                                                @if($doc->file_path)
+                                                    <a href="{{ route(($routePrefix ?? 'dean_osa') . '.sarf-documents.show', $doc) }}"
+                                                        target="_blank"
+                                                        class="existing-doc-link"
+                                                        title="View existing file">
+                                                        <i class="fas fa-file-pdf"></i>
+                                                        <span>Existing file</span>
+                                                    </a>
+                                                @else
+                                                    <span class="existing-doc-link" title="Hardcopy available">
+                                                        <i class="fas fa-file-alt"></i>
+                                                        <span>Hardcopy available</span>
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    <div id="custom-documents-list">
+                                        @foreach($oldCustomNames as $customName)
+                                            <div class="custom-document-row">
+                                                <input type="text" name="custom_document_names[]" class="form-control"
+                                                    placeholder="Document name (e.g. Letter, Endorsement)"
+                                                    value="{{ $customName }}">
+                                                <div class="file-upload-wrap custom-file-upload-wrap">
+                                                    <input type="file" name="custom_document_files[]" id="custom_file_old_{{ $loop->index }}" accept=".pdf"
+                                                        onchange="updateCustomFileName(this)">
+                                                    <label for="custom_file_old_{{ $loop->index }}" class="file-label">
+                                                        <i class="fas fa-upload"></i> Choose PDF
+                                                    </label>
+                                                    <span class="file-name-display">No file chosen</span>
+                                                </div>
+                                                <button type="button" class="btn btn-filter btn-sm" onclick="removeCustomDocumentRow(this)" title="Remove document">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        @endforeach
+                                        @if($customDocs->isEmpty() && $oldCustomNames->isEmpty() && $hasCustomDocuments)
+                                            <div class="custom-document-row">
+                                                <input type="text" name="custom_document_names[]" class="form-control"
+                                                    placeholder="Document name (e.g. Letter, Endorsement)">
+                                                <div class="file-upload-wrap custom-file-upload-wrap">
+                                                    <input type="file" name="custom_document_files[]" id="custom_file_new_0" accept=".pdf"
+                                                        onchange="updateCustomFileName(this)">
+                                                    <label for="custom_file_new_0" class="file-label">
+                                                        <i class="fas fa-upload"></i> Choose PDF
+                                                    </label>
+                                                    <span class="file-name-display">No file chosen</span>
+                                                </div>
+                                                <button type="button" class="btn btn-filter btn-sm" onclick="removeCustomDocumentRow(this)" title="Remove document">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <button type="button" class="btn btn-filter btn-sm" onclick="addCustomDocumentRow()">
+                                        <i class="fas fa-plus"></i> Add Custom Document
+                                    </button>
+                                    <span class="field-error" id="err-custom_documents">Please enter at least one custom document name or keep an existing custom document checked.</span>
+                                </div>
+                            </div>
                         </div>
 
                         <span id="err-attachments"
@@ -907,6 +1010,7 @@ function validateStep(step, jumpOnFail = false) {
 
     if (step === 3) {
         showError('err-attachments', false);
+        if (!validateCustomDocuments()) valid = false;
     }
 
     if (!valid) {
@@ -1046,6 +1150,81 @@ function updateFileName(type, input) {
     const errEl = document.getElementById('err-file_' + type);
     if (errEl) errEl.style.display = (input.files.length > 0 || existingDocTypes.includes(type)) ? 'none' : 'inline';
 }
+
+function customDocumentRowTemplate(name = '') {
+    const rowId = `custom_file_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    return `
+        <div class="custom-document-row">
+            <input type="text" name="custom_document_names[]" class="form-control"
+                placeholder="Document name (e.g. Letter, Endorsement)" value="${escapeHtml(name)}">
+            <div class="file-upload-wrap custom-file-upload-wrap">
+                <input type="file" name="custom_document_files[]" id="${rowId}" accept=".pdf"
+                    onchange="updateCustomFileName(this)">
+                <label for="${rowId}" class="file-label">
+                    <i class="fas fa-upload"></i> Choose PDF
+                </label>
+                <span class="file-name-display">No file chosen</span>
+            </div>
+            <button type="button" class="btn btn-filter btn-sm" onclick="removeCustomDocumentRow(this)" title="Remove document">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+}
+
+function updateCustomFileName(input) {
+    const display = input.closest('.file-upload-wrap')?.querySelector('.file-name-display');
+    if (display) display.textContent = input.files.length ? input.files[0].name : 'No file chosen';
+}
+
+function toggleOtherDocuments(show) {
+    const block = document.getElementById('other-documents-block');
+    if (!block) return;
+    block.style.display = show ? 'block' : 'none';
+    showError('err-custom_documents', false);
+    if (show && document.querySelectorAll('#custom-documents-list .custom-document-row').length === 0
+        && document.querySelectorAll('[name^="existing_custom_types"]:checked').length === 0) {
+        addCustomDocumentRow();
+    }
+}
+
+function addCustomDocumentRow(name = '') {
+    const list = document.getElementById('custom-documents-list');
+    if (!list) return;
+    list.insertAdjacentHTML('beforeend', customDocumentRowTemplate(name));
+}
+
+function removeCustomDocumentRow(button) {
+    button.closest('.custom-document-row')?.remove();
+}
+
+function validateCustomDocuments() {
+    const enabled = document.getElementById('check_OTHER')?.checked;
+    if (!enabled) {
+        showError('err-custom_documents', false);
+        return true;
+    }
+
+    const hasExisting = document.querySelectorAll('[name^="existing_custom_types"]:checked').length > 0;
+    const hasNewName = Array.from(document.querySelectorAll('[name="custom_document_names[]"]'))
+        .some(input => input.value.trim() !== '');
+    const valid = hasExisting || hasNewName;
+
+    showError('err-custom_documents', !valid);
+
+    return valid;
+}
+
+document.getElementById('custom-documents-list')?.addEventListener('input', event => {
+    if (!event.target.matches('input')) return;
+    showError('err-custom_documents', false);
+});
+
+document.getElementById('existing-custom-documents-list')?.addEventListener('change', event => {
+    if (!event.target.matches('input')) return;
+    showError('err-custom_documents', false);
+});
 
 /* ── Tag inputs ── */
 @php

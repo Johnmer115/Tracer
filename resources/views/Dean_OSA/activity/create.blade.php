@@ -325,30 +325,44 @@
                                 <span class="field-error" id="err-platform">Platform is required for Online / Hybrid.</span>
                             </div>
 
-                            <div class="form-group">
-                                <label class="form-label">Date of Activity <span class="req">*</span></label>
-                                <input type="date" name="date_of_activity" class="form-control" required
-                                    id="date_of_activity"
-                                    data-label="Date of Activity"
-                                    value="{{ old('date_of_activity') }}"
-                                    onchange="checkLateSubmission()">
-                                <span class="field-error" id="err-date_of_activity">Date of activity is required.</span>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label">Start Time <span class="req">*</span></label>
-                                <input type="time" name="time_start" class="form-control"
-                                    id="time-start-input"
-                                    value="{{ old('time_start') }}">
-                                <span class="field-error" id="err-time_start">Please enter a start time.</span>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label">End Time <span class="req">*</span></label>
-                                <input type="time" name="time_end" class="form-control"
-                                    id="time-end-input"
-                                    value="{{ old('time_end') }}">
-                                <span class="field-error" id="err-time_end">Please enter an end time after the start time.</span>
+                            @php
+                                $oldScheduleDates = old('schedule_dates', old('date_of_activity') ? [old('date_of_activity')] : ['']);
+                                $oldScheduleStarts = old('schedule_time_starts', old('time_start') ? [old('time_start')] : ['']);
+                                $oldScheduleEnds = old('schedule_time_ends', old('time_end') ? [old('time_end')] : ['']);
+                            @endphp
+                            <div class="form-group full">
+                                <label class="form-label">Schedule(s) <span class="req">*</span></label>
+                                <p class="field-hint">Add every date and time slot for this event.</p>
+                                <div class="schedule-list" id="schedule-list">
+                                    @foreach($oldScheduleDates as $index => $scheduleDate)
+                                        <div class="schedule-row">
+                                            <div>
+                                                <label class="form-label">Date</label>
+                                                <input type="date" name="schedule_dates[]" class="form-control schedule-date"
+                                                    data-label="Schedule Date"
+                                                    value="{{ $scheduleDate }}"
+                                                    onchange="checkLateSubmission()">
+                                            </div>
+                                            <div>
+                                                <label class="form-label">Start Time</label>
+                                                <input type="time" name="schedule_time_starts[]" class="form-control schedule-start"
+                                                    value="{{ $oldScheduleStarts[$index] ?? '' }}">
+                                            </div>
+                                            <div>
+                                                <label class="form-label">End Time</label>
+                                                <input type="time" name="schedule_time_ends[]" class="form-control schedule-end"
+                                                    value="{{ $oldScheduleEnds[$index] ?? '' }}">
+                                            </div>
+                                            <button type="button" class="btn btn-filter btn-sm schedule-remove" onclick="removeScheduleRow(this)" title="Remove schedule">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <button type="button" class="btn btn-filter btn-sm schedule-add" onclick="addScheduleRow()">
+                                    <i class="fas fa-plus"></i> Add Schedule
+                                </button>
+                                <span class="field-error" id="err-schedule">Please complete each schedule with an end time after the start time.</span>
                             </div>
 
                             <div class="form-group">
@@ -580,6 +594,66 @@
                                 </div>
                             </div>
                         @endforeach
+
+                        @php
+                            $oldCustomNames = collect(old('custom_document_names', []))
+                                ->filter(fn ($name) => filled($name))
+                                ->values();
+                            $hasOldCustomDocuments = old('other_documents_enabled') || $oldCustomNames->isNotEmpty();
+                        @endphp
+                        <div class="attachment-row">
+                            <label class="attachment-check">
+                                <input type="checkbox" name="other_documents_enabled" value="1"
+                                    id="check_OTHER"
+                                    onchange="toggleOtherDocuments(this.checked)"
+                                    @checked($hasOldCustomDocuments)>
+                                <span class="sarf-badge">OTH</span>
+                                <span class="sarf-label">Others</span>
+                            </label>
+                            <div class="custom-documents-wrap" id="other-documents-block"
+                                style="display:{{ $hasOldCustomDocuments ? 'block' : 'none' }};">
+                                <div id="custom-documents-list">
+                                    @forelse($oldCustomNames as $customName)
+                                        <div class="custom-document-row">
+                                            <input type="text" name="custom_document_names[]" class="form-control"
+                                                placeholder="Document name (e.g. Letter, Endorsement)"
+                                                value="{{ $customName }}">
+                                            <div class="file-upload-wrap custom-file-upload-wrap">
+                                                <input type="file" name="custom_document_files[]" id="custom_file_old_{{ $loop->index }}" accept=".pdf"
+                                                    onchange="updateCustomFileName(this)">
+                                                <label for="custom_file_old_{{ $loop->index }}" class="file-label">
+                                                    <i class="fas fa-upload"></i> Choose PDF
+                                                </label>
+                                                <span class="file-name-display">No file chosen</span>
+                                            </div>
+                                            <button type="button" class="btn btn-filter btn-sm" onclick="removeCustomDocumentRow(this)" title="Remove document">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    @empty
+                                        <div class="custom-document-row">
+                                            <input type="text" name="custom_document_names[]" class="form-control"
+                                                placeholder="Document name (e.g. Letter, Endorsement)">
+                                            <div class="file-upload-wrap custom-file-upload-wrap">
+                                                <input type="file" name="custom_document_files[]" id="custom_file_new_0" accept=".pdf"
+                                                    onchange="updateCustomFileName(this)">
+                                                <label for="custom_file_new_0" class="file-label">
+                                                    <i class="fas fa-upload"></i> Choose PDF
+                                                </label>
+                                                <span class="file-name-display">No file chosen</span>
+                                            </div>
+                                            <button type="button" class="btn btn-filter btn-sm" onclick="removeCustomDocumentRow(this)" title="Remove document">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    @endforelse
+                                </div>
+                                <button type="button" class="btn btn-filter btn-sm" onclick="addCustomDocumentRow()">
+                                    <i class="fas fa-plus"></i> Add Custom Document
+                                </button>
+                                <span class="field-error" id="err-custom_documents">Please enter at least one custom document name.</span>
+                            </div>
+                        </div>
                     </div>
                     <span class="field-error" id="err-attachments" style="display:none; color:#dc2626; font-size:13px; margin-top:8px; display:none;">
                         Please check at least one attachment type.
@@ -638,6 +712,90 @@ function focusFirstInvalidInStep(step) {
     if (typeof target.focus === 'function') {
         target.focus({ preventScroll: true });
     }
+}
+
+function scheduleRowTemplate(date = '', start = '', end = '') {
+    return `
+        <div class="schedule-row">
+            <div>
+                <label class="form-label">Date</label>
+                <input type="date" name="schedule_dates[]" class="form-control schedule-date"
+                    data-label="Schedule Date" value="${escapeHtml(date)}" onchange="checkLateSubmission()">
+            </div>
+            <div>
+                <label class="form-label">Start Time</label>
+                <input type="time" name="schedule_time_starts[]" class="form-control schedule-start" value="${escapeHtml(start)}">
+            </div>
+            <div>
+                <label class="form-label">End Time</label>
+                <input type="time" name="schedule_time_ends[]" class="form-control schedule-end" value="${escapeHtml(end)}">
+            </div>
+            <button type="button" class="btn btn-filter btn-sm schedule-remove" onclick="removeScheduleRow(this)" title="Remove schedule">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+}
+
+function updateScheduleRemoveButtons() {
+    const rows = document.querySelectorAll('#schedule-list .schedule-row');
+    rows.forEach((row, index) => {
+        const removeButton = row.querySelector('.schedule-remove');
+        if (removeButton) removeButton.style.visibility = rows.length === 1 && index === 0 ? 'hidden' : 'visible';
+    });
+}
+
+function addScheduleRow(date = '', start = '', end = '') {
+    const list = document.getElementById('schedule-list');
+    if (!list) return;
+    list.insertAdjacentHTML('beforeend', scheduleRowTemplate(date, start, end));
+    updateScheduleRemoveButtons();
+    saveActivityDraft();
+}
+
+function removeScheduleRow(button) {
+    const rows = document.querySelectorAll('#schedule-list .schedule-row');
+    if (rows.length <= 1) return;
+    button.closest('.schedule-row')?.remove();
+    updateScheduleRemoveButtons();
+    checkLateSubmission();
+    saveActivityDraft();
+}
+
+function getScheduleRows() {
+    return Array.from(document.querySelectorAll('#schedule-list .schedule-row'));
+}
+
+function collectSchedules() {
+    return getScheduleRows().map(row => ({
+        date: row.querySelector('.schedule-date')?.value ?? '',
+        start: row.querySelector('.schedule-start')?.value ?? '',
+        end: row.querySelector('.schedule-end')?.value ?? '',
+    }));
+}
+
+function validateSchedules() {
+    let schedulesOk = true;
+
+    getScheduleRows().forEach(row => {
+        const date = row.querySelector('.schedule-date');
+        const start = row.querySelector('.schedule-start');
+        const end = row.querySelector('.schedule-end');
+        const dateOk = date && date.value.trim() !== '';
+        const startOk = start && start.value.trim() !== '';
+        const endOk = end && end.value.trim() !== '';
+        const rangeOk = startOk && endOk && end.value > start.value;
+
+        markInvalid(date, !dateOk);
+        markInvalid(start, !startOk);
+        markInvalid(end, !endOk || (startOk && end.value <= start.value));
+
+        if (!dateOk || !rangeOk) schedulesOk = false;
+    });
+
+    showError('err-schedule', !schedulesOk);
+
+    return schedulesOk;
 }
 
 /* ── Step navigation ─────────────────────────────────── */
@@ -739,23 +897,7 @@ function validateStep(step, jumpOnFail = false) {
         showError('err-activity_level', !actLevelOk);
         if (!actLevelOk) valid = false;
 
-        /* Date of Activity */
-        const dateAct   = document.querySelector('[name="date_of_activity"]');
-        const dateActOk = dateAct && dateAct.value.trim() !== '';
-        markInvalid(dateAct, !dateActOk);
-        showError('err-date_of_activity', !dateActOk);
-        if (!dateActOk) valid = false;
-
-        const timeStart = document.querySelector('[name="time_start"]');
-        const timeEnd = document.querySelector('[name="time_end"]');
-        const hasTimeStart = timeStart && timeStart.value.trim() !== '';
-        const hasTimeEnd = timeEnd && timeEnd.value.trim() !== '';
-        const timeRangeOk = hasTimeStart && hasTimeEnd && timeEnd.value > timeStart.value;
-        markInvalid(timeStart, !timeRangeOk && !hasTimeStart);
-        markInvalid(timeEnd, !timeRangeOk && (!hasTimeEnd || timeEnd.value <= timeStart.value));
-        showError('err-time_start', !hasTimeStart);
-        showError('err-time_end', !hasTimeEnd || (hasTimeStart && timeEnd.value <= timeStart.value));
-        if (!timeRangeOk) valid = false;
+        if (!validateSchedules()) valid = false;
 
         /* Mode of Conduct */
         const modeChecked = document.querySelector('[name="mode_of_conduct"]:checked');
@@ -868,6 +1010,7 @@ function validateStep(step, jumpOnFail = false) {
 
     if (step === 3) {
         showError('err-attachments', false);
+        if (!validateCustomDocuments()) valid = false;
     }
 
     if (!valid) {
@@ -974,7 +1117,7 @@ function subtractWorkingDays(date, days) {
 }
 
 function checkLateSubmission() {
-    const dateVal   = document.getElementById('date_of_activity')?.value;
+    const dateVal   = document.querySelector('.schedule-date')?.value;
     const funds     = currentFunds ||
                       (document.querySelector('[name="funds"]:checked')?.value ?? '');
     const lateBlock = document.getElementById('late-block');
@@ -1023,6 +1166,77 @@ function updateFileName(type, input) {
     if (fname) fname.textContent = input.files.length ? input.files[0].name : 'No file chosen';
     const errEl = document.getElementById('err-file_' + type);
     if (errEl) errEl.style.display = (input.files.length > 0) ? 'none' : 'inline';
+}
+
+function customDocumentRowTemplate(name = '') {
+    const rowId = `custom_file_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    return `
+        <div class="custom-document-row">
+            <input type="text" name="custom_document_names[]" class="form-control"
+                placeholder="Document name (e.g. Letter, Endorsement)" value="${escapeHtml(name)}">
+            <div class="file-upload-wrap custom-file-upload-wrap">
+                <input type="file" name="custom_document_files[]" id="${rowId}" accept=".pdf"
+                    onchange="updateCustomFileName(this)">
+                <label for="${rowId}" class="file-label">
+                    <i class="fas fa-upload"></i> Choose PDF
+                </label>
+                <span class="file-name-display">No file chosen</span>
+            </div>
+            <button type="button" class="btn btn-filter btn-sm" onclick="removeCustomDocumentRow(this)" title="Remove document">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+}
+
+function updateCustomFileName(input) {
+    const display = input.closest('.file-upload-wrap')?.querySelector('.file-name-display');
+    if (display) display.textContent = input.files.length ? input.files[0].name : 'No file chosen';
+}
+
+function toggleOtherDocuments(show) {
+    const block = document.getElementById('other-documents-block');
+    if (!block) return;
+    block.style.display = show ? 'block' : 'none';
+    showError('err-custom_documents', false);
+    if (show && document.querySelectorAll('#custom-documents-list .custom-document-row').length === 0) {
+        addCustomDocumentRow();
+    }
+    saveActivityDraft();
+}
+
+function addCustomDocumentRow(name = '') {
+    const list = document.getElementById('custom-documents-list');
+    if (!list) return;
+    list.insertAdjacentHTML('beforeend', customDocumentRowTemplate(name));
+    saveActivityDraft();
+}
+
+function removeCustomDocumentRow(button) {
+    const rows = document.querySelectorAll('#custom-documents-list .custom-document-row');
+    if (rows.length <= 1) {
+        const input = rows[0]?.querySelector('[name="custom_document_names[]"]');
+        if (input) input.value = '';
+        return;
+    }
+    button.closest('.custom-document-row')?.remove();
+    saveActivityDraft();
+}
+
+function validateCustomDocuments() {
+    const enabled = document.getElementById('check_OTHER')?.checked;
+    if (!enabled) {
+        showError('err-custom_documents', false);
+        return true;
+    }
+
+    const hasName = Array.from(document.querySelectorAll('[name="custom_document_names[]"]'))
+        .some(input => input.value.trim() !== '');
+
+    showError('err-custom_documents', !hasName);
+
+    return hasName;
 }
 
 @php
@@ -1234,6 +1448,27 @@ document.querySelectorAll('#sarf-form input, #sarf-form select, #sarf-form texta
     el.addEventListener('input', saveActivityDraft);
 });
 
+document.getElementById('schedule-list')?.addEventListener('input', event => {
+    if (!event.target.matches('input')) return;
+    markInvalid(event.target, false);
+    showError('err-schedule', false);
+    saveActivityDraft();
+});
+
+document.getElementById('schedule-list')?.addEventListener('change', event => {
+    if (!event.target.matches('input')) return;
+    markInvalid(event.target, false);
+    showError('err-schedule', false);
+    checkLateSubmission();
+    saveActivityDraft();
+});
+
+document.getElementById('custom-documents-list')?.addEventListener('input', event => {
+    if (!event.target.matches('input')) return;
+    showError('err-custom_documents', false);
+    saveActivityDraft();
+});
+
 const ACTIVITY_DRAFT_KEY = 'sarf_activity_create_draft';
 let restoringActivityDraft = false;
 
@@ -1251,12 +1486,14 @@ function saveActivityDraft() {
             org: [...tags.org],
             level: [...tags.level],
         },
+        schedules: collectSchedules(),
         objectives: [...objectives],
     };
 
     form.querySelectorAll('input, select, textarea').forEach(field => {
         if (!field.name || field.type === 'file' || field.name === '_token') return;
         if (field.closest('#dept-hidden, #org-hidden, #level-hidden, #obj-hidden')) return;
+        if (field.closest('#schedule-list')) return;
 
         if (field.type === 'checkbox') {
             if (!draft.checked[field.name]) draft.checked[field.name] = [];
@@ -1295,6 +1532,7 @@ function restoreActivityDraft() {
     form.querySelectorAll('input, select, textarea').forEach(field => {
         if (!field.name || field.type === 'file' || field.name === '_token') return;
         if (field.closest('#dept-hidden, #org-hidden, #level-hidden, #obj-hidden')) return;
+        if (field.closest('#schedule-list')) return;
 
         if (field.type === 'checkbox') {
             field.checked = (draft.checked?.[field.name] ?? []).includes(field.value);
@@ -1316,11 +1554,21 @@ function restoreActivityDraft() {
     tags.level = Array.isArray(draft.tags?.level) ? draft.tags.level : [];
     objectives.splice(0, objectives.length, ...(Array.isArray(draft.objectives) ? draft.objectives : []));
 
+    if (Array.isArray(draft.schedules) && draft.schedules.length > 0) {
+        const scheduleList = document.getElementById('schedule-list');
+        if (scheduleList) {
+            scheduleList.innerHTML = '';
+            draft.schedules.forEach(schedule => addScheduleRow(schedule.date, schedule.start, schedule.end));
+            updateScheduleRemoveButtons();
+        }
+    }
+
     renderTags('dept');
     renderTags('org');
     renderTags('level');
     syncLevelPresetButtons();
     renderObjectives();
+    updateScheduleRemoveButtons();
 
     restoringActivityDraft = false;
 
@@ -1356,6 +1604,7 @@ document.addEventListener('DOMContentLoaded', () => {
     @endif
 
     populateActivityContextOptions();
+    updateScheduleRemoveButtons();
 
     /* Mode of conduct */
     const modeChecked = document.querySelector('[name="mode_of_conduct"]:checked');

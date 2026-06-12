@@ -158,9 +158,12 @@ class ActivityController extends Controller
             'event_type'         => 'required|in:Internal,External',
             'activity_level'     => 'required|in:Organization,Local,Interbranch,Off-Campus',
             'mode_of_conduct'    => 'required|in:Face to Face,Online,Hybrid',
-            'date_of_activity'   => 'required|date',
-            'time_start'         => 'required|date_format:H:i',
-            'time_end'           => 'required|date_format:H:i|after:time_start',
+            'schedule_dates'     => 'required|array|min:1',
+            'schedule_dates.*'   => 'required|date',
+            'schedule_time_starts' => 'required|array|min:1',
+            'schedule_time_starts.*' => 'required|date_format:H:i',
+            'schedule_time_ends' => 'required|array|min:1',
+            'schedule_time_ends.*' => 'required|date_format:H:i',
             'venue'              => 'required_if:mode_of_conduct,Face to Face,Hybrid|nullable|string|max:255',
             'venue_type'         => 'required_if:mode_of_conduct,Face to Face,Hybrid|nullable|in:On-Campus,Off-Campus',
             'platform'           => 'required_if:mode_of_conduct,Online,Hybrid|nullable|string|max:255',
@@ -176,14 +179,22 @@ class ActivityController extends Controller
             'procurement'        => 'required_if:funds,With Budget,ATC|nullable|in:With,Without',
             'types'              => 'nullable|array',
             'types.*'            => 'in:A0,A1,A2,A3,A4,A5,A6,A7,A8,A10',
+            'custom_document_names' => 'nullable|array',
+            'custom_document_names.*' => 'nullable|string|max:120',
         ], [
             'time_start.required' => 'Please enter the activity start time.',
             'time_end.required'   => 'Please enter the activity end time.',
             'time_end.after'           => 'The activity end time must be after the start time.',
+            'schedule_dates.required' => 'Please add at least one activity schedule.',
+            'schedule_dates.*.required' => 'Each schedule must have a date.',
+            'schedule_time_starts.*.required' => 'Each schedule must have a start time.',
+            'schedule_time_ends.*.required' => 'Each schedule must have an end time.',
         ], [
             'time_start' => 'start time',
             'time_end'   => 'end time',
         ]);
+
+        $this->validateScheduleTimeRanges($request);
 
         $activeSchoolYear = SchoolYear::current();
 
@@ -197,11 +208,13 @@ class ActivityController extends Controller
         $hasVenue      = in_array($modeOfConduct, ['Face to Face', 'Hybrid'], true);
         $hasPlatform   = in_array($modeOfConduct, ['Online', 'Hybrid'], true);
         $funds         = $request->input('funds');
-        $timeOfActivity = $this->formatActivityTimeRange($request);
+        $activitySchedules = $this->activitySchedulesFromRequest($request);
+        $dateOfActivity = $this->formatActivityDatesForStorage($activitySchedules);
+        $timeOfActivity = $this->formatActivityTimeRange($request, $activitySchedules);
         $departments = $this->cleanArrayInput($request->input('department', []));
         $organizations = $this->cleanArrayInput($request->input('organizations', []));
 
-        $activity = DB::transaction(function () use ($request, $activeSchoolYear, $modeOfConduct, $hasVenue, $hasPlatform, $funds, $timeOfActivity, $departments, $organizations) {
+        $activity = DB::transaction(function () use ($request, $activeSchoolYear, $modeOfConduct, $hasVenue, $hasPlatform, $funds, $dateOfActivity, $timeOfActivity, $departments, $organizations) {
             $lockedSchoolYear = SchoolYear::whereKey($activeSchoolYear->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -224,7 +237,7 @@ class ActivityController extends Controller
                 'activity_level'         => $request->input('activity_level'),
                 'participants_profile'   => $request->input('participants_profile'),
                 'participants_count'     => $request->input('participants_count'),
-                'date_of_activity'       => $request->input('date_of_activity'),
+                'date_of_activity'       => $dateOfActivity,
                 'time_of_activity'       => $timeOfActivity,
                 'public_poster'          => $request->input('public_poster'),
                 'waiver_consent'         => $request->input('waiver_consent'),
@@ -331,7 +344,7 @@ class ActivityController extends Controller
 
             $activity->update([
                 'reschedule_status'       => 'pending',
-                'reschedule_original_date' => $activity->date_of_activity,
+                'reschedule_original_date' => $activity->primaryActivityDate(),
                 'reschedule_original_time' => $activity->time_of_activity,
                 'reschedule_original_mode' => $activity->mode_of_conduct,
                 'reschedule_original_venue' => $activity->venue,
@@ -385,6 +398,10 @@ class ActivityController extends Controller
             'waiver_consent'     => 'required|in:With,Without',
             'types'              => 'nullable|array',
             'types.*'            => 'in:A0,A1,A2,A3,A4,A5,A6,A7,A8,A10',
+            'existing_custom_types' => 'nullable|array',
+            'existing_custom_types.*' => 'string|max:255',
+            'custom_document_names' => 'nullable|array',
+            'custom_document_names.*' => 'nullable|string|max:120',
         ];
 
         $rules = array_merge($rules, [
@@ -537,8 +554,70 @@ class ActivityController extends Controller
         }, $values), fn ($value) => filled($value))));
     }
 
-    private function formatActivityTimeRange(Request $request): ?string
+    private function activitySchedulesFromRequest(Request $request): array
     {
+        $dates = $request->input('schedule_dates', []);
+        $starts = $request->input('schedule_time_starts', []);
+        $ends = $request->input('schedule_time_ends', []);
+        $schedules = [];
+
+        foreach ($dates as $index => $date) {
+            $start = $starts[$index] ?? null;
+            $end = $ends[$index] ?? null;
+
+            if (! filled($date) && ! filled($start) && ! filled($end)) {
+                continue;
+            }
+
+            $schedules[] = [
+                'date' => $date,
+                'start' => $start,
+                'end' => $end,
+            ];
+        }
+
+        return $schedules;
+    }
+
+    private function validateScheduleTimeRanges(Request $request): void
+    {
+        foreach ($this->activitySchedulesFromRequest($request) as $index => $schedule) {
+            if (($schedule['start'] ?? null) && ($schedule['end'] ?? null) && $schedule['end'] <= $schedule['start']) {
+                $request->validate([
+                    "schedule_time_ends.{$index}" => 'after:schedule_time_starts.' . $index,
+                ], [
+                    "schedule_time_ends.{$index}.after" => 'Each schedule end time must be after its start time.',
+                ]);
+            }
+        }
+    }
+
+    private function formatActivityDatesForStorage(array $schedules): ?string
+    {
+        $dates = collect($schedules)
+            ->pluck('date')
+            ->filter(fn ($date) => filled($date))
+            ->values()
+            ->all();
+
+        return $dates === [] ? null : json_encode($dates);
+    }
+
+    private function formatActivityTimeRange(Request $request, ?array $schedules = null): ?string
+    {
+        $schedules ??= $this->activitySchedulesFromRequest($request);
+
+        if ($schedules !== []) {
+            return collect($schedules)
+                ->map(function ($schedule) {
+                    $start = date('g:i A', strtotime($schedule['start']));
+                    $end = date('g:i A', strtotime($schedule['end']));
+
+                    return "{$start} - {$end}";
+                })
+                ->implode('; ');
+        }
+
         $start = $request->input('time_start');
         $end = $request->input('time_end');
 
@@ -571,13 +650,43 @@ class ActivityController extends Controller
             ->unique()
             ->values();
 
+        $existingCustomTypes = $request->boolean('other_documents_enabled')
+            ? collect($request->input('existing_custom_types', []))
+            ->filter(fn ($type) => $this->isCustomDocumentType($type))
+            ->unique()
+            : collect();
+
+        $newCustomDocuments = $request->boolean('other_documents_enabled')
+            ? collect($request->input('custom_document_names', []))
+            ->map(fn ($name, $index) => [
+                'index' => $index,
+                'name' => trim((string) $name),
+            ])
+            ->filter(fn ($document) => filled($document['name']))
+            ->map(fn ($document) => [
+                ...$document,
+                'type' => $this->customDocumentType($document['name']),
+            ])
+            ->unique('type')
+            ->values()
+            : collect();
+
+        $selectedDocumentTypes = $selectedTypes
+            ->merge($existingCustomTypes->values())
+            ->merge($newCustomDocuments->pluck('type'))
+            ->unique()
+            ->values();
+
         $existingDocuments = SarfDocument::where('activity_id', $activity->id)
-            ->whereIn('type', self::SARF_TYPES)
+            ->where(function ($query) {
+                $query->whereIn('type', self::SARF_TYPES)
+                    ->orWhere('type', 'like', 'OTHER:%');
+            })
             ->get()
             ->keyBy('type');
 
         foreach ($existingDocuments as $type => $document) {
-            if ($selectedTypes->contains($type)) {
+            if ($selectedDocumentTypes->contains($type)) {
                 continue;
             }
 
@@ -589,29 +698,55 @@ class ActivityController extends Controller
         }
 
         foreach ($selectedTypes as $type) {
-            $fileKey = 'file_' . $type;
+            $this->syncSingleSarfDocument($activity, $type, $request->file('file_' . $type), $existingDocuments->get($type));
+        }
 
-            if ($request->hasFile($fileKey)) {
-                $file = $request->file($fileKey);
-                $path = $file->store('sarf_documents', 'public');
-                $existingDocument = $existingDocuments->get($type);
+        foreach ($existingCustomTypes as $index => $type) {
+            $this->syncSingleSarfDocument($activity, $type, $request->file("existing_custom_files.{$index}"), $existingDocuments->get($type));
+        }
 
-                if ($existingDocument?->file_path) {
-                    Storage::disk('public')->delete($existingDocument->file_path);
-                }
-
-                SarfDocument::updateOrCreate(
-                    ['activity_id' => $activity->id, 'type' => $type],
-                    ['file_path' => $path, 'original_filename' => $file->getClientOriginalName()]
-                );
-
-                continue;
-            }
-
-            SarfDocument::firstOrCreate(
-                ['activity_id' => $activity->id, 'type' => $type],
-                ['file_path' => null, 'original_filename' => null]
+        foreach ($newCustomDocuments as $document) {
+            $this->syncSingleSarfDocument(
+                $activity,
+                $document['type'],
+                $request->file("custom_document_files.{$document['index']}"),
+                $existingDocuments->get($document['type'])
             );
         }
+    }
+
+    private function syncSingleSarfDocument(Activity $activity, string $type, $file, ?SarfDocument $existingDocument): void
+    {
+        if ($file) {
+            $path = $file->store('sarf_documents', 'public');
+
+            if ($existingDocument?->file_path) {
+                Storage::disk('public')->delete($existingDocument->file_path);
+            }
+
+            SarfDocument::updateOrCreate(
+                ['activity_id' => $activity->id, 'type' => $type],
+                ['file_path' => $path, 'original_filename' => $file->getClientOriginalName()]
+            );
+
+            return;
+        }
+
+        SarfDocument::firstOrCreate(
+            ['activity_id' => $activity->id, 'type' => $type],
+            ['file_path' => null, 'original_filename' => null]
+        );
+    }
+
+    private function customDocumentType(string $name): string
+    {
+        $cleanName = preg_replace('/\s+/', ' ', trim($name));
+
+        return 'OTHER:' . substr($cleanName, 0, 240);
+    }
+
+    private function isCustomDocumentType(?string $type): bool
+    {
+        return is_string($type) && str_starts_with($type, 'OTHER:') && filled(substr($type, 6));
     }
 }

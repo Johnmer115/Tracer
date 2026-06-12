@@ -69,7 +69,7 @@ class PaarController extends Controller
     {
         $activity = Activity::with(['branch', 'sarfDocuments'])->findOrFail($id);
         $documents = $activity->sarfDocuments->keyBy('type');
-        $accomplishmentDocuments = $this->accomplishmentDocumentTypes();
+        $accomplishmentDocuments = $this->accomplishmentDocumentTypes($activity);
 
         return view('Dean_OSA.paar.view', compact('activity', 'documents', 'accomplishmentDocuments'));
     }
@@ -81,7 +81,7 @@ class PaarController extends Controller
     {
         $activity = Activity::with(['branch', 'sarfDocuments'])->findOrFail($id);
         $documents = $activity->sarfDocuments->keyBy('type');
-        $accomplishmentDocuments = $this->accomplishmentDocumentTypes();
+        $accomplishmentDocuments = $this->accomplishmentDocumentTypes($activity);
 
         return view('Dean_OSA.paar.edit', compact('activity', 'documents', 'accomplishmentDocuments'));
     }
@@ -97,7 +97,7 @@ class PaarController extends Controller
         }
 
         $documents = $activity->sarfDocuments->keyBy('type');
-        $accomplishmentDocuments = $this->accomplishmentDocumentTypes();
+        $accomplishmentDocuments = $this->accomplishmentDocumentTypes($activity);
 
         if ($this->hasAccomplishmentInput($documents, $accomplishmentDocuments)) {
             return redirect()->route($this->routeName('paar.edit'), $activity->id);
@@ -112,7 +112,7 @@ class PaarController extends Controller
     public function update(Request $request, string $id)
     {
         $activity = Activity::findOrFail($id);
-        $documentTypes = $this->accomplishmentDocumentTypes();
+        $documentTypes = $this->accomplishmentDocumentTypes($activity);
 
         if ($activity->status !== 'approved' && $activity->status !== 'completed') {
             return redirect()
@@ -228,18 +228,18 @@ class PaarController extends Controller
         //
     }
 
-    private function accomplishmentDocumentTypes(): array
+    private function accomplishmentDocumentTypes(?Activity $activity = null): array
     {
-        return [
+        $documents = [
             'PAAR_LIQUIDATION' => [
                 'field' => 'liquidation_file',
                 'code' => 'i',
-                'label' => 'Liquadation',
+                'label' => 'Liquidation',
             ],
             'PAAR_NARRATIVE_REPORT' => [
                 'field' => 'narrative_report_file',
                 'code' => 'ii',
-                'label' => 'Narative Report',
+                'label' => 'Narrative Report',
             ],
             'PAAR_PHOTO_DOCUMENTS' => [
                 'field' => 'photo_documents_file',
@@ -252,6 +252,22 @@ class PaarController extends Controller
                 'label' => 'Summary Report of Accomplishment',
             ],
         ];
+
+        if ($activity && ! $this->activityHasBudget($activity)) {
+            unset($documents['PAAR_LIQUIDATION']);
+            $romanCodes = ['i', 'ii', 'iii'];
+
+            foreach (array_values(array_keys($documents)) as $index => $type) {
+                $documents[$type]['code'] = $romanCodes[$index] ?? (string) ($index + 1);
+            }
+        }
+
+        return $documents;
+    }
+
+    private function activityHasBudget(Activity $activity): bool
+    {
+        return in_array($activity->funds, ['With Budget', 'ATC'], true);
     }
 
     private function hasAccomplishmentInput($documents, array $accomplishmentDocuments): bool

@@ -31,7 +31,7 @@
                     <i class="fas fa-hashtag"></i> {{ $activity->code }}
                     &nbsp;|&nbsp;
                     <i class="fas fa-calendar"></i>
-                    {{ filled($activity->date_of_activity) ? \Carbon\Carbon::parse($activity->date_of_activity)->format('M d, Y') : 'N/A' }}
+                    {{ $activity->activityDateDisplay('M d, Y') ?? 'N/A' }}
                 </span>
                 <a href="{{ route(($routePrefix ?? 'dean_osa') . '.paar.index') }}" class="btn btn-filter">
                     <i class="fas fa-arrow-left"></i> Back
@@ -48,9 +48,7 @@
                 $hasVenue = in_array($activity->mode_of_conduct, ['Face to Face', 'Hybrid'], true);
                 $hasPlatform = in_array($activity->mode_of_conduct, ['Online', 'Hybrid'], true);
                 $hasBudgetInfo = in_array($activity->funds, ['With Budget', 'ATC'], true);
-                $activityDate = filled($activity->date_of_activity)
-                    ? \Carbon\Carbon::parse($activity->date_of_activity)->format('M d, Y')
-                    : null;
+                $activityDate = $activity->activityDateDisplay('M d, Y');
                 $detailRows = array_filter([
                     ['Branch', $activity->branch->name ?? null],
                     ['School Year', $activity->school_year_code],

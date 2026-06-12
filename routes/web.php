@@ -129,6 +129,10 @@ Route::middleware(['auth', 'Staff_OSA'])->prefix('staff_osa')
         Route::get('paar/{id}/act', [PaarController::class, 'act'])->name('paar.act');
         Route::match(['post', 'patch'], 'paar/{id}', [PaarController::class, 'update'])->name('paar.update');
 
+        // Tracer
+        Route::get('tracer', [TracerController::class, 'index'])->name('tracer.index');
+        Route::get('tracer/{id}', [TracerController::class, 'show'])->name('tracer.show');
+
     });
 
 

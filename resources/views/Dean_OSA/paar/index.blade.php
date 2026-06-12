@@ -5,12 +5,9 @@
 
 @section('content')
 @php
-    $paarDocumentTypes = [
-        'PAAR_LIQUIDATION',
-        'PAAR_NARRATIVE_REPORT',
-        'PAAR_PHOTO_DOCUMENTS',
-        'PAAR_SUMMARY_REPORT',
-    ];
+    $paarDocumentTypes = fn ($activity) => in_array($activity->funds, ['With Budget', 'ATC'], true)
+        ? ['PAAR_LIQUIDATION', 'PAAR_NARRATIVE_REPORT', 'PAAR_PHOTO_DOCUMENTS', 'PAAR_SUMMARY_REPORT']
+        : ['PAAR_NARRATIVE_REPORT', 'PAAR_PHOTO_DOCUMENTS', 'PAAR_SUMMARY_REPORT'];
 @endphp
 
 <section class="panel" style="padding: 25px;">
@@ -72,7 +69,7 @@
                     @forelse($activities as $activity)
                         @php
                             $hasPaarInput = $activity->sarfDocuments
-                                ->whereIn('type', $paarDocumentTypes)
+                                ->whereIn('type', $paarDocumentTypes($activity))
                                 ->isNotEmpty();
                         @endphp
                         <tr>
