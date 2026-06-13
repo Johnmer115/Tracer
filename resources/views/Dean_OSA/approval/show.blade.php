@@ -686,7 +686,7 @@
                         </div>
 
                         <div class="show-field">
-                            <div class="show-label">Encoded By</div>
+                            <div class="show-label">Encoded by:</div>
                             <div class="show-value">
                                 <i class="fas fa-user" style="color:#3b82f6; font-size:12px;"></i>
                                 {{ $activity->encodedBy->username ?? '-' }}

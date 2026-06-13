@@ -309,7 +309,7 @@ class ApprovalController extends Controller
         $activity->update($updates);
         $activity = Activity::findOrFail($id); // Fresh instance from DB
 
-        SystemLog::record('Updated approval', 'Approval', [
+        SystemLog::record('Updated Approval', 'Approval', [
             'subject_type' => Activity::class,
             'subject_id' => $activity->id,
             'subject_label' => $activity->code,
@@ -336,12 +336,6 @@ class ApprovalController extends Controller
 
         if (count($applicableFinanceFields) > 0 && $allFinanceApproved && $activity->status === 'for approval finance') {
             $activity->update(['status' => 'approved']);
-            SystemLog::record('Auto approved activity', 'Approval', [
-                'subject_type' => Activity::class,
-                'subject_id' => $activity->id,
-                'subject_label' => $activity->code,
-                'description' => "{$activity->code} became approved after finance approvals were completed.",
-            ]);
             $activity = Activity::findOrFail($id); // Fresh instance
         }
 

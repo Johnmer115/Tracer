@@ -70,17 +70,103 @@
                 ], fn ($row) => $row && filled($row[1]));
             @endphp
 
-            <div class="print-details" style="padding:16px;background:#f9fafb;border:1px solid var(--border);border-radius:10px;margin-bottom:20px;">
-                <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:#374151;">
-                    <i class="fas fa-info-circle"></i> Activity Details
+            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025); margin-bottom:24px; overflow:hidden;">
+                <div style="padding:16px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; font-weight:700; font-size:14px; color:#1e293b; display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-info-circle" style="color:var(--primary);"></i> Activity Details
                 </div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;">
-                    @foreach($detailRows as [$label, $value])
+                <div style="padding:20px;">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px; margin-bottom:20px;">
+                        @php
+                            $screenDetailRows = array_filter([
+                                ['Branch', $activity->branch->name ?? null],
+                                ['School Year', $activity->school_year_code],
+                                ['Type', $activity->type_of_activity],
+                                ['Mode of Conduct', $activity->mode_of_conduct],
+                                $hasVenue ? ['Venue', trim(($activity->venue ?? '') . ($activity->venue_type ? " ({$activity->venue_type})" : ''))] : null,
+                                $hasPlatform ? ['Platform', $activity->platform] : null,
+                                ['Funds', $activity->funds],
+                                $hasBudgetInfo && $activity->amount !== null ? ['Requested Budget', 'PHP ' . number_format($activity->amount, 2)] : null,
+                                $activity->funds === 'With Budget' ? ['Source', $activity->source] : null,
+                                $hasBudgetInfo ? ['Canteen', $activity->canteen] : null,
+                                $hasBudgetInfo ? ['Procurement', $activity->procurement] : null,
+                                ['Submitted', $activity->created_at?->format('M d, Y g:i A')],
+                            ], fn ($row) => $row && filled($row[1]));
+                        @endphp
+                        @foreach($screenDetailRows as [$label, $val])
+                            <div>
+                                <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:4px;">{{ $label }}</div>
+                                <div style="font-size:13px; font-weight:600; color:#1e293b;">{{ $val }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div style="border-top:1px dashed #e2e8f0; padding-top:16px; display:flex; flex-direction:column; gap:16px;">
+                        <!-- Date(s) -->
                         <div>
-                            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:3px;">{{ $label }}</div>
-                            <div style="font-size:13px;font-weight:500;color:#1e293b;">{{ $value }}</div>
+                            <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:6px;">Date(s) of Activity</div>
+                            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                @foreach($activity->activityDateValues() as $dVal)
+                                    <span style="display:inline-flex; align-items:center; gap:6px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;">
+                                        <i class="far fa-calendar-alt" style="font-size:11px;"></i> {{ \Carbon\Carbon::parse($dVal)->format('M d, Y') }}
+                                    </span>
+                                @endforeach
+                            </div>
                         </div>
-                    @endforeach
+
+                        <!-- Time(s) -->
+                        <div>
+                            <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:6px;">Time(s) of Activity</div>
+                            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                @foreach($activity->activityTimeValues() as $tVal)
+                                    <span style="display:inline-flex; align-items:center; gap:6px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;">
+                                        <i class="far fa-clock" style="font-size:11px;"></i> {{ $tVal }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- Level(s) -->
+                        @if(count($levels))
+                            <div>
+                                <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:6px;">Target Level(s)</div>
+                                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                    @foreach($levels as $lvl)
+                                        <span style="display:inline-flex; align-items:center; gap:6px; background:#f5f3ff; color:#5b21b6; border:1px solid #ddd6fe; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;">
+                                            <i class="fas fa-graduation-cap" style="font-size:11px;"></i> {{ $lvl }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Department(s) -->
+                        @if(count($depts))
+                            <div>
+                                <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:6px;">Target Department(s)</div>
+                                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                    @foreach($depts as $dept)
+                                        <span style="display:inline-flex; align-items:center; gap:6px; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;">
+                                            <i class="fas fa-building" style="font-size:11px;"></i> {{ $dept }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Organization(s) -->
+                        @if(count($orgs))
+                            <div>
+                                <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:6px;">Target Organization(s)</div>
+                                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                    @foreach($orgs as $org)
+                                        <span style="display:inline-flex; align-items:center; gap:6px; background:#fff7ed; color:#9a3412; border:1px solid #ffedd5; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;">
+                                            <i class="fas fa-users" style="font-size:11px;"></i> {{ $org }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
 

@@ -241,7 +241,7 @@
                                         {{ $approvedCount }}/{{ $totalApprovals }}
                                     </span>
                                 </div>
-
+ 
                                 {{-- Sub label --}}
                                 <div style="margin-top:5px;">
                                     @if($approvedCount === $totalApprovals)

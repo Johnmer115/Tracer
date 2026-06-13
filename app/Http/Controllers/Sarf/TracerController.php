@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Activity;
 use App\Support\SarfListFilters;
+use App\Models\SystemLog;
 
 class TracerController extends Controller
 {
@@ -79,7 +80,93 @@ class TracerController extends Controller
             ->when($isBranchUser, fn ($query) => $query->where('branch_id', $branchId))
             ->findOrFail($id);
 
-        return view('Dean_OSA.tracer.view', compact('activity'));
+        $logs = \App\Models\SystemLog::with('account')
+            ->where('subject_type', Activity::class)
+            ->where('subject_id', $activity->id)
+            ->latest()
+            ->get();
+
+        $routePrefix = $this->routePrefix();
+
+        return view('Dean_OSA.tracer.view', compact('activity', 'routePrefix', 'logs'));
+    }
+
+    public function uploadDocument(Request $request, string $id)
+    {
+        $isBranchUser = auth()->user()?->usertype === 'Branch_OSA';
+        $branchId = $isBranchUser ? auth()->user()?->branch_id : null;
+
+        abort_if($isBranchUser && ! $branchId, 404);
+
+        $activity = Activity::when($isBranchUser, fn ($query) => $query->where('branch_id', $branchId))
+            ->findOrFail($id);
+
+        $request->validate([
+            'custom_document_names' => 'required|array|min:1',
+            'custom_document_names.*' => 'required|string|max:120',
+            'custom_document_files' => 'nullable|array',
+            'custom_document_files.*' => 'nullable|file|mimes:pdf|max:10240',
+        ]);
+
+        $names = $request->input('custom_document_names', []);
+        $files = $request->file('custom_document_files', []);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($activity, $names, $files) {
+            foreach ($names as $index => $name) {
+                $cleanName = preg_replace('/\s+/', ' ', trim($name));
+                if ($cleanName === '') {
+                    continue;
+                }
+                $type = 'OTHER:' . substr($cleanName, 0, 240);
+
+                // Delete existing if same type exists
+                $existing = \App\Models\SarfDocument::where('activity_id', $activity->id)
+                    ->where('type', $type)
+                    ->first();
+                if ($existing) {
+                    if ($existing->file_path) {
+                        \Illuminate\Support\Facades\Storage::disk('public')->delete($existing->file_path);
+                    }
+                    $existing->delete();
+                }
+
+                if (isset($files[$index]) && $files[$index]->isValid()) {
+                    $file = $files[$index];
+                    $path = $file->store('sarf_documents', 'public');
+
+                    \App\Models\SarfDocument::create([
+                        'activity_id' => $activity->id,
+                        'type' => $type,
+                        'file_path' => $path,
+                        'original_filename' => $file->getClientOriginalName(),
+                    ]);
+
+                    SystemLog::record('Uploaded Document', 'Tracer', [
+                        'subject_type' => Activity::class,
+                        'subject_id' => $activity->id,
+                        'subject_label' => $activity->title,
+                        'description' => "Uploaded custom document: {$cleanName} ({$file->getClientOriginalName()})",
+                    ]);
+                } else {
+                    \App\Models\SarfDocument::create([
+                        'activity_id' => $activity->id,
+                        'type' => $type,
+                        'file_path' => null,
+                        'original_filename' => null,
+                    ]);
+
+                    SystemLog::record('Added Document', 'Tracer', [
+                        'subject_type' => Activity::class,
+                        'subject_id' => $activity->id,
+                        'subject_label' => $activity->title,
+                        'description' => "Added custom document: {$cleanName} (No file attached)",
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route($this->routeName('tracer.show'), $activity->id)
+            ->with('success', 'Documents added successfully.');
     }
 
     /**

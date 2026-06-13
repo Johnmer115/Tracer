@@ -4,6 +4,47 @@
 @section('page-title', 'SARF Tracker')
 
 @section('content')
+<style>
+    .history-logs-btn, #downloadTracerPdf {
+        background: #014ea8 !important;
+        border: 1px solid #013f88 !important;
+        color: #fff !important;
+        font-weight: 700 !important;
+        padding: 8px 16px !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 6px -1px rgba(1, 78, 168, 0.15), 0 2px 4px -1px rgba(1, 78, 168, 0.1) !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease-in-out !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin-right: 5px;
+        font-family: inherit !important;
+        font-size: 13.5px !important;
+    }
+    .history-logs-btn:hover, #downloadTracerPdf:hover {
+        background: #da281c !important;
+        border-color: #b91c1c !important;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 15px -3px rgba(218, 40, 28, 0.2), 0 4px 6px -2px rgba(218, 40, 28, 0.1) !important;
+    }
+    .history-logs-btn i, #downloadTracerPdf i {
+        color: #fff !important;
+        font-size: 14px;
+        transition: transform 0.3s ease;
+    }
+    .history-logs-btn:hover i, #downloadTracerPdf:hover i {
+        transform: rotate(-30deg);
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+</style>
 <section class="panel" style="padding: 25px;">
     @php
         $statusClass = match($activity->status) {
@@ -228,11 +269,15 @@
                 </span>
                 <button type="button"
                     id="downloadTracerPdf"
-                    class="btn btn-add no-pdf tracer-print-btn"
-                    style="cursor: pointer; margin-right: 5px;"
+                    class="btn no-pdf tracer-print-btn"
                     data-filename="{{ Str::slug($activity->code ?: $activity->title) }}-tracer.pdf">
                     <i class="fas fa-file-pdf"></i> Tracer Print/Download
                 </button>
+                @if(isset($logs) && $logs->isNotEmpty())
+                    <button class="btn no-pdf history-logs-btn" type="button" onclick="document.getElementById('historyLogsModal').style.display='flex'">
+                        <i class="fas fa-history"></i> History Logs
+                    </button>
+                @endif
                 <a href="{{ route(($routePrefix ?? 'dean_osa') . '.tracer.index') }}" class="btn btn-filter no-pdf">
                     <i class="fas fa-arrow-left"></i> Back
                 </a>
@@ -248,16 +293,118 @@
 
             <div class="print-page print-first-page">
             {{-- ===== Details first ===== --}}
-            <div class="print-details" style="padding:16px;background:#f9fafb;border:1px solid var(--border);border-radius:10px;margin-bottom:20px;">
+            <!-- SCREEN ONLY: Premium Activity Details -->
+            <div class="no-print" style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025); margin-bottom:24px; overflow:hidden;">
+                <div style="padding:16px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; font-weight:700; font-size:14px; color:#1e293b; display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-info-circle" style="color:var(--primary);"></i> Activity Details
+                </div>
+                <div style="padding:20px;">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px; margin-bottom:20px;">
+                        @php
+                            $hasVenue = in_array($activity->mode_of_conduct, ['Face to Face', 'Hybrid'], true);
+                            $hasPlatform = in_array($activity->mode_of_conduct, ['Online', 'Hybrid'], true);
+                            $hasBudgetInfo = in_array($activity->funds, ['With Budget', 'ATC'], true);
+                            $screenDetailRows = array_filter([
+                                ['Branch', $activity->branch->name ?? null],
+                                ['School Year', $activity->school_year_code],
+                                ['Type', $activity->type_of_activity],
+                                ['Mode of Conduct', $activity->mode_of_conduct],
+                                $hasVenue ? ['Venue', trim(($activity->venue ?? '') . ($activity->venue_type ? " ({$activity->venue_type})" : ''))] : null,
+                                $hasPlatform ? ['Platform', $activity->platform] : null,
+                                ['Funds', $activity->funds],
+                                $hasBudgetInfo && $activity->amount !== null ? ['Requested Budget', 'PHP ' . number_format($activity->amount, 2)] : null,
+                                $activity->funds === 'With Budget' ? ['Source', $activity->source] : null,
+                                $hasBudgetInfo ? ['Canteen', $activity->canteen] : null,
+                                $hasBudgetInfo ? ['Procurement', $activity->procurement] : null,
+                                ['Encoded by', ($activity->encodedBy->username ?? 'Unknown') . ' (' . ($activity->created_at?->format('M d, Y g:i A') ?? 'N/A') . ')'],
+                            ], fn ($row) => $row && filled($row[1]));
+                        @endphp
+                        @foreach($screenDetailRows as [$label, $val])
+                            <div>
+                                <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:4px;">{{ $label }}</div>
+                                <div style="font-size:13px; font-weight:600; color:#1e293b;">{{ $val }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div style="border-top:1px dashed #e2e8f0; padding-top:16px; display:flex; flex-direction:column; gap:16px;">
+                        <!-- Date(s) -->
+                        <div>
+                            <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:6px;">Date(s) of Activity</div>
+                            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                @foreach($activity->activityDateValues() as $dVal)
+                                    <span style="display:inline-flex; align-items:center; gap:6px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;">
+                                        <i class="far fa-calendar-alt" style="font-size:11px;"></i> {{ \Carbon\Carbon::parse($dVal)->format('M d, Y') }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- Time(s) -->
+                        <div>
+                            <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:6px;">Time(s) of Activity</div>
+                            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                @foreach($activity->activityTimeValues() as $tVal)
+                                    <span style="display:inline-flex; align-items:center; gap:6px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;">
+                                        <i class="far fa-clock" style="font-size:11px;"></i> {{ $tVal }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <!-- Level(s) -->
+                        @if(count($levels))
+                            <div>
+                                <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:6px;">Target Level(s)</div>
+                                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                    @foreach($levels as $lvl)
+                                        <span style="display:inline-flex; align-items:center; gap:6px; background:#f5f3ff; color:#5b21b6; border:1px solid #ddd6fe; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;">
+                                            <i class="fas fa-graduation-cap" style="font-size:11px;"></i> {{ $lvl }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Department(s) -->
+                        @if(count($departments))
+                            <div>
+                                <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:6px;">Target Department(s)</div>
+                                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                    @foreach($departments as $dept)
+                                        <span style="display:inline-flex; align-items:center; gap:6px; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;">
+                                            <i class="fas fa-building" style="font-size:11px;"></i> {{ $dept }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Organization(s) -->
+                        @if(count($orgs))
+                            <div>
+                                <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:6px;">Target Organization(s)</div>
+                                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                    @foreach($orgs as $org)
+                                        <span style="display:inline-flex; align-items:center; gap:6px; background:#fff7ed; color:#9a3412; border:1px solid #ffedd5; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;">
+                                            <i class="fas fa-users" style="font-size:11px;"></i> {{ $org }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- PRINT ONLY: Clean, flat structure optimized for PDF generation -->
+            <div class="print-only print-details">
                 <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:#374151;">
                     <i class="fas fa-info-circle"></i> Activity Details
                 </div>
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;">
                     @php
-                        $hasVenue = in_array($activity->mode_of_conduct, ['Face to Face', 'Hybrid'], true);
-                        $hasPlatform = in_array($activity->mode_of_conduct, ['Online', 'Hybrid'], true);
-                        $hasBudgetInfo = in_array($activity->funds, ['With Budget', 'ATC'], true);
-                        $detailRows = array_filter([
+                        $printDetailRows = array_filter([
                             ['Branch', $activity->branch->name ?? null],
                             ['School Year', $activity->school_year_code],
                             ['Date', $activity->date_of_activity?->format('M d, Y')],
@@ -274,13 +421,13 @@
                             $activity->funds === 'With Budget' ? ['Source', $activity->source] : null,
                             $hasBudgetInfo ? ['Canteen', $activity->canteen] : null,
                             $hasBudgetInfo ? ['Procurement', $activity->procurement] : null,
-                            ['Submitted', $activity->created_at?->format('M d, Y g:i A')],
+                            ['Encoded by:', ($activity->encodedBy->username ?? 'Unknown') . ' (' . ($activity->created_at?->format('M d, Y g:i A') ?? 'N/A') . ')'],
                         ], fn ($row) => $row && filled($row[1]));
                     @endphp
-                    @foreach($detailRows as [$label, $value])
+                    @foreach($printDetailRows as [$label, $val])
                         <div>
                             <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:3px;">{{ $label }}</div>
-                            <div style="font-size:13px;font-weight:500;color:#1e293b;">{{ $value }}</div>
+                            <div style="font-size:13px;font-weight:500;color:#1e293b;">{{ $val }}</div>
                         </div>
                     @endforeach
                 </div>
@@ -343,6 +490,17 @@
                                         'disapproved' => 'status-disapproved',
                                         default => 'status-pending',
                                     };
+                                    
+                                    // Extract the username who made the status change from the logs
+                                    $actorName = null;
+                                    if ($statusVal !== 'pending') {
+                                        $logMatch = $logs->first(function ($l) use ($sig) {
+                                            return \Illuminate\Support\Str::contains(strtolower($l->description), strtolower($sig['field']));
+                                        });
+                                        if ($logMatch && $logMatch->account) {
+                                            $actorName = $logMatch->account->username;
+                                        }
+                                    }
                                 @endphp
                                 <div class="approval-card {{ $statusClass }}">
                                     <div class="approval-dot" style="position:absolute;left:-22px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:{{ $color }};border:2px solid #fff;box-shadow:0 0 0 2px {{ $border }};"></div>
@@ -353,11 +511,20 @@
                                             {{ $label }}
                                         </div>
                                         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                                            <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
-                                                <i class="fas fa-clock"></i>
-                                                Approved time:
-                                                <strong>{{ $approvedAt ? $approvedAt->format('M d, Y g:i A') : 'Not recorded' }}</strong>
-                                            </span>
+                                            @if($statusVal === 'approved')
+                                                <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
+                                                    <i class="fas fa-clock"></i>
+                                                    Approved time:
+                                                    <strong>{{ $approvedAt ? $approvedAt->format('M d, Y g:i A') : 'Not recorded' }}</strong>
+                                                </span>
+                                                @if($actorName)
+                                                    <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
+                                                        <i class="fas fa-user-check"></i>
+                                                        Encoded By:
+                                                        <strong>{{ $actorName }}</strong>
+                                                    </span>
+                                                @endif
+                                            @endif
                                             @if($canViewApprovedBudget && $approvedBudget !== null)
                                                 <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#15803d;">
                                                     <i class="fas fa-wallet"></i>
@@ -403,6 +570,17 @@
                                             'disapproved' => 'status-disapproved',
                                             default => 'status-pending',
                                         };
+                                        
+                                        // Extract the username who made the status change from the logs
+                                        $actorName = null;
+                                        if ($statusVal !== 'pending') {
+                                            $logMatch = $logs->first(function ($l) use ($sig) {
+                                                return \Illuminate\Support\Str::contains(strtolower($l->description), strtolower($sig['field']));
+                                            });
+                                            if ($logMatch && $logMatch->account) {
+                                                $actorName = $logMatch->account->username;
+                                            }
+                                        }
                                     @endphp
                                     <div class="approval-card {{ $statusClass }}">
                                         <div class="approval-dot" style="position:absolute;left:-22px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:{{ $color }};border:2px solid #fff;box-shadow:0 0 0 2px {{ $border }};"></div>
@@ -413,11 +591,20 @@
                                                 {{ $label }}
                                             </div>
                                             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                                                <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
-                                                    <i class="fas fa-clock"></i>
-                                                    Approved time:
-                                                    <strong>{{ $approvedAt ? $approvedAt->format('M d, Y g:i A') : 'Not recorded' }}</strong>
-                                                </span>
+                                                @if($statusVal === 'approved')
+                                                    <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
+                                                        <i class="fas fa-clock"></i>
+                                                        Approved time:
+                                                        <strong>{{ $approvedAt ? $approvedAt->format('M d, Y g:i A') : 'Not recorded' }}</strong>
+                                                    </span>
+                                                    @if($actorName)
+                                                        <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#475569;">
+                                                            <i class="fas fa-user-check"></i>
+                                                            Encoded By:
+                                                            <strong>{{ $actorName }}</strong>
+                                                        </span>
+                                                    @endif
+                                                @endif
                                                 @if($canViewApprovedBudget && $approvedBudget !== null)
                                                     <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font-size:11.5px;color:#15803d;">
                                                         <i class="fas fa-wallet"></i>
@@ -594,15 +781,95 @@
                 </div>
             @endif
 
+            {{-- Activity History / Logs Modal --}}
+            @if(isset($logs) && $logs->isNotEmpty())
+                <div id="historyLogsModal" style="
+                    display: none;
+                    position: fixed;
+                    inset: 0;
+                    z-index: 9999;
+                    background: rgba(15,23,42,0.6);
+                    backdrop-filter: blur(8px);
+                    -webkit-backdrop-filter: blur(8px);
+                    align-items: center;
+                    justify-content: center;
+                    animation: fadeIn 0.2s ease-out;
+                ">
+                    <div style="background: #fff; width: 100%; max-width: 650px; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden; display: flex; flex-direction: column; animation: slideUp 0.3s ease-out;">
+                        <div style="padding: 20px 24px; background: #014ea8; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <h5 style="margin: 0; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; font-size: 16px;">
+                                <i class="fas fa-history" style="color:#fff;"></i> Activity History Logs
+                            </h5>
+                        </div>
+                        <div style="padding: 24px; max-height: 450px; overflow-y: auto; background: #f8fafc;">
+                            <div style="display:flex; flex-direction:column; gap:16px; position:relative; padding-left:18px;">
+                                <div style="position:absolute; left:4px; top:8px; bottom:8px; width:2px; background: #014ea8;"></div>
+                                @foreach($logs as $log)
+                                    <div style="position:relative; font-size:12.5px; line-height:1.6; color:#334155; background: #fff; padding: 12px 16px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                                        <div style="position:absolute; left:-18px; top:18px; width:10px; height:10px; border-radius:50%; background:#da281c; border:2.5px solid #fff; box-shadow:0 0 0 2px rgba(218, 40, 28, 0.25);"></div>
+                                        <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 6px; margin-bottom: 6px; align-items: center;">
+                                            @php
+                                                $actionLower = strtolower($log->action);
+                                                $badgeStyle = 'background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;'; // Default
+                                                if (str_contains($actionLower, 'create')) {
+                                                    $badgeStyle = 'background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;';
+                                                } elseif (str_contains($actionLower, 'approve') || str_contains($actionLower, 'complete') || str_contains($actionLower, 'accept')) {
+                                                    $badgeStyle = 'background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;';
+                                                } elseif (str_contains($actionLower, 'reject') || str_contains($actionLower, 'delete') || str_contains($actionLower, 'disapprove') || str_contains($actionLower, 'cancel') || str_contains($actionLower, 'fail')) {
+                                                    $badgeStyle = 'background: #fee2e2; color: #991b1b; border: 1px solid #fecdd3;';
+                                                } elseif (str_contains($actionLower, 'reschedule') || str_contains($actionLower, 'revision') || str_contains($actionLower, 'update')) {
+                                                    $badgeStyle = 'background: #fef3c7; color: #92400e; border: 1px solid #fcd34d;';
+                                                } elseif (str_contains($actionLower, 'log')) {
+                                                    $badgeStyle = 'background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0;';
+                                                }
+                                            @endphp
+                                            <span style="display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; {{ $badgeStyle }}">{{ ucwords($log->action) }}</span>
+                                            <span style="font-size:11px; color:#94a3b8; font-weight: 500;">
+                                                <i class="far fa-clock" style="margin-right: 3px;"></i>{{ $log->created_at?->format('M d, Y g:i A') }}
+                                            </span>
+                                        </div>
+                                        <div style="color:#475569; margin-top:2px; font-weight: 400;">
+                                            {{ $log->description }}
+                                        </div>
+                                        <div style="font-size:11px; color:#64748b; margin-top:8px; display:flex; align-items:center; gap:6px; background: #f1f5f9; padding: 4px 8px; border-radius: 6px; width: fit-content;">
+                                            <i class="fas fa-user" style="color: #014ea8;"></i>
+                                            <span>By: <strong style="color: #334155;">{{ $log->account?->username ?? 'System/Deleted User' }}</strong> ({{ $log->account?->usertype ?? 'N/A' }})</span>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div style="padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; background: #fff;">
+                            <button type="button" class="btn btn-filter" onclick="document.getElementById('historyLogsModal').style.display='none'" style="cursor: pointer; border-radius: 8px; padding: 8px 20px; font-weight: 600;">Close</button>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Late submission notice (Reason of Late Submission remark) --}}
+            @if(filled($activity->late_submission_reason ?? null))
+                <div style="margin-top:20px; margin-bottom:24px; padding:16px; background:#fff; border:1px solid #fca5a5; border-left:4px solid #ef4444; border-radius:10px; box-shadow:0 1px 2px 0 rgba(0, 0, 0, 0.05);">
+                    <div style="font-weight:700; font-size:13px; color:#991b1b; display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                        <i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i> Reason of Late Submission
+                    </div>
+                    <div style="font-size:12.5px; color:#374151; line-height:1.5; font-style:italic;">
+                        {{ $activity->late_submission_reason }}
+                    </div>
+                </div>
+            @endif
+
             {{-- ===== Documents last ===== --}}
             <div class="no-print">
-                <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:#374151;">
-                    <i class="fas fa-paperclip"></i> SARF Documents
+                <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:#374151; display:flex; align-items:center; justify-content:space-between; width:100%;">
+                    <span><i class="fas fa-paperclip"></i> SARF Documents</span>
+                    <button type="button" class="btn btn-add btn-sm" onclick="document.getElementById('addDocsModal').style.display='flex'">
+                        <i class="fas fa-plus"></i> Add Document
+                    </button>
                 </div>
                 @forelse($activity->sarfDocuments as $doc)
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;margin-bottom:8px;border:1px solid var(--border);border-radius:8px;background:#fff;flex-wrap:wrap;">
                         <div style="display:flex;align-items:center;gap:10px;">
-                            <span class="badge b-pending">{{ $doc->type }}</span>
+                            <span class="badge b-pending">{{ str_starts_with($doc->type, 'OTHER:') ? substr($doc->type, 6) : $doc->type }}</span>
                             <div>
                                 <div style="font-weight:600;font-size:13px;">{{ $doc->original_filename ?? 'Hardcopy available' }}</div>
                                 <div class="td-muted" style="font-size:11px;">Uploaded {{ $doc->created_at?->format('M d, Y') }}</div>
@@ -629,6 +896,123 @@
                     </div>
                 @endforelse
             </div>
+
+            <!-- ADD DOCUMENTS MODAL -->
+            <div id="addDocsModal" style="
+                display: none;
+                position: fixed;
+                inset: 0;
+                z-index: 9999;
+                background: rgba(15,23,42,0.6);
+                align-items: center;
+                justify-content: center;
+            ">
+                <div style="background: #fff; width: 100%; max-width: 600px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column;">
+                    <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
+                        <h5 style="margin: 0; font-weight: 700; color: #1e293b;"><i class="fas fa-file-upload" style="color:var(--primary);"></i> Add Other Documents</h5>
+                        <button type="button" class="btn-close" onclick="document.getElementById('addDocsModal').style.display='none'"></button>
+                    </div>
+                    <form action="{{ route(($routePrefix ?? 'dean_osa') . '.tracer.document.store', $activity->id) }}" method="POST" enctype="multipart/form-data" style="margin: 0;">
+                        @csrf
+                        <div style="padding: 20px; max-height: 400px; overflow-y: auto;">
+                            <div id="custom-docs-container">
+                                <div class="custom-doc-item" style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center;">
+                                    <input type="text" name="custom_document_names[]" class="form-control" placeholder="Document Name (e.g. Letter, Endorsement)" required style="flex: 1;">
+                                    <div class="file-upload-wrap custom-file-upload-wrap" style="display: flex; align-items: center; gap: 10px;">
+                                        <input type="file" name="custom_document_files[]" id="custom_tracer_file_0" accept=".pdf" onchange="updateTracerFileName(this)" style="display: none;">
+                                        <label for="custom_tracer_file_0" class="file-label" style="
+                                            display: inline-flex;
+                                            align-items: center;
+                                            gap: 6px;
+                                            font-size: 12.5px;
+                                            color: #fff;
+                                            font-weight: 600;
+                                            background: #3b82f6;
+                                            border-radius: 6px;
+                                            padding: 6px 14px;
+                                            cursor: pointer;
+                                            transition: background .15s;
+                                            white-space: nowrap;
+                                        ">
+                                            <i class="fas fa-upload"></i> Choose PDF
+                                        </label>
+                                        <span class="file-name-display" style="font-size: 12px; color: #64748b; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">No file chosen</span>
+                                    </div>
+                                    <button type="button" class="btn btn-filter btn-sm" onclick="this.closest('.custom-doc-item').remove()" title="Remove document" style="width: 38px; height: 38px; justify-content: center; padding: 0;">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-filter btn-sm" onclick="addTracerDocRow()">
+                                <i class="fas fa-plus"></i> Add Another Document
+                            </button>
+                        </div>
+                        <div style="padding: 16px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc;">
+                            <button type="button" class="btn btn-filter" onclick="document.getElementById('addDocsModal').style.display='none'">Cancel</button>
+                            <button type="submit" class="btn btn-add">Upload Documents</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <script>
+                function updateTracerFileName(input) {
+                    const display = input.closest('.file-upload-wrap')?.querySelector('.file-name-display');
+                    if (display) display.textContent = input.files.length ? input.files[0].name : 'No file chosen';
+                }
+
+                let tracerDocIndex = 1;
+                function addTracerDocRow() {
+                    const container = document.getElementById('custom-docs-container');
+                    const div = document.createElement('div');
+                    div.className = 'custom-doc-item';
+                    div.style = 'display: flex; gap: 10px; margin-bottom: 12px; align-items: center;';
+                    const rowId = `custom_tracer_file_${tracerDocIndex++}`;
+                    div.innerHTML = `
+                        <input type="text" name="custom_document_names[]" class="form-control" placeholder="Document Name (e.g. Letter of Endorsement)" required style="flex: 1;">
+                        <div class="file-upload-wrap custom-file-upload-wrap" style="display: flex; align-items: center; gap: 10px;">
+                            <input type="file" name="custom_document_files[]" id="${rowId}" accept=".pdf" onchange="updateTracerFileName(this)" style="display: none;">
+                            <label for="${rowId}" class="file-label" style="
+                                display: inline-flex;
+                                align-items: center;
+                                gap: 6px;
+                                font-size: 12.5px;
+                                color: #fff;
+                                font-weight: 600;
+                                background: #3b82f6;
+                                border-radius: 6px;
+                                padding: 6px 14px;
+                                cursor: pointer;
+                                transition: background .15s;
+                                white-space: nowrap;
+                            ">
+                                <i class="fas fa-upload"></i> Choose PDF
+                            </label>
+                            <span class="file-name-display" style="font-size: 12px; color: #64748b; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">No file chosen</span>
+                        </div>
+                        <button type="button" class="btn btn-filter btn-sm" onclick="this.closest('.custom-doc-item').remove()" title="Remove document" style="width: 38px; height: 38px; justify-content: center; padding: 0;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    container.appendChild(div);
+                }
+
+                document.addEventListener('DOMContentLoaded', () => {
+                    const historyModal = document.getElementById('historyLogsModal');
+                    if (historyModal) {
+                        historyModal.addEventListener('click', (e) => {
+                            if (e.target === historyModal) {
+                                historyModal.style.display = 'none';
+                            }
+                        });
+                        document.addEventListener('keydown', (e) => {
+                            if (e.key === 'Escape' && historyModal.style.display === 'flex') {
+                                historyModal.style.display = 'none';
+                            }
+                        });
+                    }
+                });
+            </script>
         </div>
     </div>
 </section>
