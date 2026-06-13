@@ -258,10 +258,10 @@
                             {{-- Activity Date --}}
                             <td style="white-space:nowrap;">
                                 <div class="td-main">
-                                    {{ $activity->date_of_activity?->format('M j, Y') ?? '—' }}
+                                    {{ $activity->activityDateDisplay('M j, Y', ', ', 2) ?? '—' }}
                                 </div>
-                                @if($activity->time_of_activity)
-                                    <div class="td-sub">{{ $activity->time_of_activity }}</div>
+                                @if($activity->activityTimeDisplay(', ', 2))
+                                    <div class="td-sub">{{ $activity->activityTimeDisplay(', ', 2) }}</div>
                                 @endif
                             </td>
 

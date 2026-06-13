@@ -92,15 +92,15 @@
                                 @if($activity->activityDateDisplay())
                                     <div class="td-main">
                                         <i class="fas fa-calendar-alt" style="color:#94a3b8; font-size:11px;"></i>
-                                        {{ $activity->activityDateDisplay('M j, Y') }}
+                                        {{ $activity->activityDateDisplay('M j, Y', ', ', 2) }}
                                     </div>
                                 @else
                                     <div class="td-main">—</div>
                                 @endif
-                                @if($activity->time_of_activity)
+                                @if($activity->activityTimeDisplay(', ', 2))
                                     <div class="td-sub">
                                         <i class="fas fa-clock" style="font-size:10px;"></i>
-                                        {{ $activity->time_of_activity }}
+                                        {{ $activity->activityTimeDisplay(', ', 2) }}
                                     </div>
                                 @endif
                                 @if($activity->venue)

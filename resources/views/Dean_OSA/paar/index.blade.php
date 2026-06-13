@@ -120,12 +120,12 @@
                             {{-- Activity Date + venue/platform --}}
                             <td style="white-space:nowrap;">
                                 <div class="td-main">
-                                    {{ $activity->date_of_activity?->format('M j, Y') ?? '—' }}
+                                    {{ $activity->activityDateDisplay('M j, Y', ', ', 2) ?? '—' }}
                                 </div>
-                                @if($activity->time_of_activity)
+                                @if($activity->activityTimeDisplay(', ', 2))
                                     <div class="td-sub">
                                         <i class="fas fa-clock" style="font-size:10px;"></i>
-                                        {{ $activity->time_of_activity }}
+                                        {{ $activity->activityTimeDisplay(', ', 2) }}
                                     </div>
                                 @endif
                                 @if($activity->venue)

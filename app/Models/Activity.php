@@ -250,13 +250,45 @@ class Activity extends Model
         return filled($date) ? Carbon::parse($date) : null;
     }
 
-    public function activityDateDisplay(string $format = 'M j, Y', string $separator = ', '): ?string
+    public function activityDateDisplay(string $format = 'M j, Y', string $separator = ', ', ?int $limit = null): ?string
     {
         $dates = collect($this->activityDateValues())
-            ->map(fn ($date) => Carbon::parse($date)->format($format))
-            ->all();
+            ->map(fn ($date) => Carbon::parse($date)->format($format));
+
+        if ($limit !== null) {
+            $dates = $dates->take($limit);
+        }
+
+        $dates = $dates->all();
 
         return $dates === [] ? null : implode($separator, $dates);
+    }
+
+    public function activityTimeValues(): array
+    {
+        $value = $this->attributes['time_of_activity'] ?? null;
+
+        if (! filled($value)) {
+            return [];
+        }
+
+        return collect(preg_split('/\s*(?:;|,|\R)\s*/', (string) $value))
+            ->filter(fn ($time) => filled($time))
+            ->values()
+            ->all();
+    }
+
+    public function activityTimeDisplay(string $separator = ', ', ?int $limit = null): ?string
+    {
+        $times = collect($this->activityTimeValues());
+
+        if ($limit !== null) {
+            $times = $times->take($limit);
+        }
+
+        $times = $times->all();
+
+        return $times === [] ? null : implode($separator, $times);
     }
 
     public function getDateOfActivityAttribute($value): ?ActivityDateValue
