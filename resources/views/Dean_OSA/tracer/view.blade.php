@@ -10,17 +10,17 @@
         border: 1px solid #013f88 !important;
         color: #fff !important;
         font-weight: 700 !important;
-        padding: 8px 16px !important;
-        border-radius: 8px !important;
+        padding: 7px 13px !important;
+        border-radius: 7px !important;
         box-shadow: 0 4px 6px -1px rgba(1, 78, 168, 0.15), 0 2px 4px -1px rgba(1, 78, 168, 0.1) !important;
         cursor: pointer !important;
         transition: all 0.2s ease-in-out !important;
         display: inline-flex !important;
         align-items: center !important;
-        gap: 8px !important;
+        gap: 5px !important;
         margin-right: 5px;
         font-family: inherit !important;
-        font-size: 13.5px !important;
+        font-size: 12px !important;
     }
     .history-logs-btn:hover, #downloadTracerPdf:hover {
         background: #da281c !important;
@@ -259,14 +259,11 @@
         <div class="panel-header">
             <div class="panel-title">
                 <i class="fas fa-satellite-dish"></i> {{ $activity->title }}
+                &nbsp;|&nbsp;
+                <i class="fas fa-hashtag"></i> {{ $activity->code }}
                 <span style="margin-left:6px;">@include('partials.sarf-status-badge', ['activity' => $activity])</span>
             </div>
             <div class="panel-controls">
-                <span class="td-muted" style="font-size:12px;">
-                    <i class="fas fa-hashtag"></i> {{ $activity->code }}
-                    &nbsp;|&nbsp;
-                    <i class="fas fa-calendar"></i> {{ $activity->date_of_activity?->format('M d, Y') ?? 'N/A' }}
-                </span>
                 <button type="button"
                     id="downloadTracerPdf"
                     class="btn no-pdf tracer-print-btn"
@@ -407,7 +404,7 @@
                         $printDetailRows = array_filter([
                             ['Branch', $activity->branch->name ?? null],
                             ['School Year', $activity->school_year_code],
-                            ['Date', $activity->date_of_activity?->format('M d, Y')],
+                            ['Date', $activity->activityDateDisplay('M d, Y')],
                             ['Time', $activity->time_of_activity],
                             $hasVenue ? ['Venue', trim(($activity->venue ?? '') . ($activity->venue_type ? " ({$activity->venue_type})" : ''))] : null,
                             $hasPlatform ? ['Platform', $activity->platform] : null,
@@ -547,7 +544,7 @@
             </div>
             </div>
 
-            @if(!$financeSignatories->isEmpty() || filled($activity->reschedule_requested_at))
+            @if(!$financeSignatories->isEmpty() || filled($activity->reschedule_requested_at) || filled($activity->late_submission_reason))
                 <div class="print-page print-second-page">
                     @unless($financeSignatories->isEmpty())
                         <div class="approval-group print-finance-group" style="margin-bottom:24px;">
@@ -643,7 +640,7 @@
                                     <div>
                                         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:3px;">Requested Date</div>
                                         <div style="font-size:13px;font-weight:500;color:#1e293b;">
-                                            {{ $activity->reschedule_date ? \Carbon\Carbon::parse($activity->reschedule_date)->format('M d, Y') : 'N/A' }}
+                                            {{ $activity->rescheduleDateDisplay('M d, Y') ?? 'N/A' }}
                                         </div>
                                     </div>
                                     <div>
@@ -778,6 +775,17 @@
                             @endunless
                         </div>
                     @endif
+
+                    @if(filled($activity->late_submission_reason ?? null))
+                        <div style="margin-top:20px; margin-bottom:24px; padding:16px; background:#fff; border:1px solid #fca5a5; border-left:4px solid #ef4444; border-radius:10px; box-shadow:0 1px 2px 0 rgba(0, 0, 0, 0.05);">
+                            <div style="font-weight:700; font-size:13px; color:#991b1b; display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                                <i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i> Reason of Late Submission
+                            </div>
+                            <div style="font-size:12.5px; color:#374151; line-height:1.5; font-style:italic;">
+                                {{ $activity->late_submission_reason }}
+                            </div>
+                        </div>
+                    @endif
                 </div>
             @endif
 
@@ -846,17 +854,7 @@
                 </div>
             @endif
 
-            {{-- Late submission notice (Reason of Late Submission remark) --}}
-            @if(filled($activity->late_submission_reason ?? null))
-                <div style="margin-top:20px; margin-bottom:24px; padding:16px; background:#fff; border:1px solid #fca5a5; border-left:4px solid #ef4444; border-radius:10px; box-shadow:0 1px 2px 0 rgba(0, 0, 0, 0.05);">
-                    <div style="font-weight:700; font-size:13px; color:#991b1b; display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                        <i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i> Reason of Late Submission
-                    </div>
-                    <div style="font-size:12.5px; color:#374151; line-height:1.5; font-style:italic;">
-                        {{ $activity->late_submission_reason }}
-                    </div>
-                </div>
-            @endif
+            {{-- Late submission notice moved inside print-second-page --}}
 
             {{-- ===== Documents last ===== --}}
             <div class="no-print">

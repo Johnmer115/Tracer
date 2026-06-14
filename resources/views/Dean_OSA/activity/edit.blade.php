@@ -356,14 +356,21 @@
                                 <span class="field-error" id="err-platform">Please enter a valid platform.</span>
                             </div>
 
-                            <div class="form-group">
-                                <label class="form-label">Date of Activity <span class="req">*</span></label>
-                                <input type="date" name="date_of_activity" class="form-control" required
-                                    id="date_of_activity" data-label="Date of Activity"
-                                    value="{{ old('date_of_activity', $isRescheduling && $activity->reschedule_date ? $activity->reschedule_date->format('Y-m-d') : $activity->primaryActivityDate()?->format('Y-m-d')) }}"
-                                    onchange="checkLateSubmission()">
-                                <span class="field-error" id="err-date_of_activity">Date of activity is required.</span>
-                            </div>
+                            @php
+                                $scheduleDates = old('schedule_dates');
+                                $scheduleStarts = old('schedule_time_starts');
+                                $scheduleEnds = old('schedule_time_ends');
+
+                                if (! is_array($scheduleDates)) {
+                                    $scheduleDates = $isRescheduling && $activity->rescheduleDateValues()
+                                        ? $activity->rescheduleDateValues()
+                                        : $activity->activityDateValues();
+                                }
+
+                                if (empty($scheduleDates)) {
+                                    $scheduleDates = [''];
+                                }
+                            @endphp
 
                             @php
                                 $storedTimeRange = (string) old('time_of_activity', $isRescheduling ? ($activity->reschedule_time ?: $activity->time_of_activity) : $activity->time_of_activity);
@@ -380,22 +387,56 @@
                                 };
                                 $storedStartTime = $toTimeInput($storedTimeParts[0] ?? null);
                                 $storedEndTime = $toTimeInput($storedTimeParts[1] ?? null);
+
+                                if (! is_array($scheduleStarts)) {
+                                    $timeRanges = $isRescheduling && filled($activity->reschedule_time)
+                                        ? preg_split('/\s*;\s*/', $activity->reschedule_time)
+                                        : $activity->activityTimeValues();
+
+                                    $scheduleStarts = [];
+                                    $scheduleEnds = [];
+
+                                    foreach ($scheduleDates as $index => $scheduleDate) {
+                                        $scheduleTimeParts = preg_split('/\s*(?:-|â€“|â€”|to)\s*/i', $timeRanges[$index] ?? ($timeRanges[0] ?? ''));
+                                        $scheduleStarts[] = $toTimeInput($scheduleTimeParts[0] ?? null);
+                                        $scheduleEnds[] = $toTimeInput($scheduleTimeParts[1] ?? null);
+                                    }
+                                }
                             @endphp
 
-                            <div class="form-group">
-                                <label class="form-label">Start Time <span class="req">*</span></label>
-                                <input type="time" name="time_start" class="form-control"
-                                    id="time-start-input"
-                                    value="{{ old('time_start', $storedStartTime) }}">
-                                <span class="field-error" id="err-time_start">Please enter a start time.</span>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label">End Time <span class="req">*</span></label>
-                                <input type="time" name="time_end" class="form-control"
-                                    id="time-end-input"
-                                    value="{{ old('time_end', $storedEndTime) }}">
-                                <span class="field-error" id="err-time_end">Please enter an end time after the start time.</span>
+                            <div class="form-group full">
+                                <label class="form-label">Schedule(s) <span class="req">*</span></label>
+                                <p class="field-hint">Add every proposed date and time slot for this reschedule.</p>
+                                <div class="schedule-list" id="schedule-list">
+                                    @foreach($scheduleDates as $index => $scheduleDate)
+                                        <div class="schedule-row">
+                                            <div>
+                                                <label class="form-label">Date</label>
+                                                <input type="date" name="schedule_dates[]" class="form-control schedule-date"
+                                                    data-label="Schedule Date"
+                                                    value="{{ $scheduleDate }}"
+                                                    onchange="checkLateSubmission()">
+                                            </div>
+                                            <div>
+                                                <label class="form-label">Start Time</label>
+                                                <input type="time" name="schedule_time_starts[]" class="form-control schedule-start"
+                                                    value="{{ $scheduleStarts[$index] ?? '' }}">
+                                            </div>
+                                            <div>
+                                                <label class="form-label">End Time</label>
+                                                <input type="time" name="schedule_time_ends[]" class="form-control schedule-end"
+                                                    value="{{ $scheduleEnds[$index] ?? '' }}">
+                                            </div>
+                                            <button type="button" class="btn btn-filter btn-sm schedule-remove" onclick="removeScheduleRow(this)" title="Remove schedule">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <button type="button" class="btn btn-filter btn-sm schedule-add" onclick="addScheduleRow()">
+                                    <i class="fas fa-plus"></i> Add Schedule
+                                </button>
+                                <span class="field-error" id="err-schedule">Please complete each schedule with an end time after the start time.</span>
                             </div>
 
                             <div class="form-group full">
@@ -810,6 +851,74 @@ function markInvalid(field, invalid = true) {
     if (!field) return;
     invalid ? field.classList.add('is-invalid') : field.classList.remove('is-invalid');
 }
+function scheduleRowTemplate(date = '', start = '', end = '') {
+    return `
+        <div class="schedule-row">
+            <div>
+                <label class="form-label">Date</label>
+                <input type="date" name="schedule_dates[]" class="form-control schedule-date"
+                    data-label="Schedule Date" value="${escapeHtml(date)}" onchange="checkLateSubmission()">
+            </div>
+            <div>
+                <label class="form-label">Start Time</label>
+                <input type="time" name="schedule_time_starts[]" class="form-control schedule-start" value="${escapeHtml(start)}">
+            </div>
+            <div>
+                <label class="form-label">End Time</label>
+                <input type="time" name="schedule_time_ends[]" class="form-control schedule-end" value="${escapeHtml(end)}">
+            </div>
+            <button type="button" class="btn btn-filter btn-sm schedule-remove" onclick="removeScheduleRow(this)" title="Remove schedule">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+}
+function updateScheduleRemoveButtons() {
+    const rows = document.querySelectorAll('#schedule-list .schedule-row');
+    rows.forEach((row, index) => {
+        const removeButton = row.querySelector('.schedule-remove');
+        if (removeButton) removeButton.style.visibility = rows.length === 1 && index === 0 ? 'hidden' : 'visible';
+    });
+}
+function addScheduleRow(date = '', start = '', end = '') {
+    const list = document.getElementById('schedule-list');
+    if (!list) return;
+    list.insertAdjacentHTML('beforeend', scheduleRowTemplate(date, start, end));
+    updateScheduleRemoveButtons();
+}
+function removeScheduleRow(button) {
+    const rows = document.querySelectorAll('#schedule-list .schedule-row');
+    if (rows.length <= 1) return;
+    button.closest('.schedule-row')?.remove();
+    updateScheduleRemoveButtons();
+    checkLateSubmission();
+}
+function getScheduleRows() {
+    return Array.from(document.querySelectorAll('#schedule-list .schedule-row'));
+}
+function validateSchedules() {
+    let schedulesOk = true;
+
+    getScheduleRows().forEach(row => {
+        const date = row.querySelector('.schedule-date');
+        const start = row.querySelector('.schedule-start');
+        const end = row.querySelector('.schedule-end');
+        const dateOk = date && date.value.trim() !== '';
+        const startOk = start && start.value.trim() !== '';
+        const endOk = end && end.value.trim() !== '';
+        const rangeOk = startOk && endOk && end.value > start.value;
+
+        markInvalid(date, !dateOk);
+        markInvalid(start, !startOk);
+        markInvalid(end, !endOk || (startOk && end.value <= start.value));
+
+        if (!dateOk || !rangeOk) schedulesOk = false;
+    });
+
+    showError('err-schedule', !schedulesOk);
+
+    return schedulesOk;
+}
 function focusFirstInvalidInStep(step) {
     const stepEl = document.getElementById('step-' + step);
     if (!stepEl) return;
@@ -912,21 +1021,7 @@ function validateStep(step, jumpOnFail = false) {
         }
 
         if (IS_RESCHEDULING) {
-            const dateAct   = document.querySelector('[name="date_of_activity"]');
-            const dateActOk = dateAct && dateAct.value.trim() !== '';
-            markInvalid(dateAct, !dateActOk); showError('err-date_of_activity', !dateActOk);
-            if (!dateActOk) valid = false;
-
-            const timeStart = document.querySelector('[name="time_start"]');
-            const timeEnd = document.querySelector('[name="time_end"]');
-            const hasTimeStart = timeStart && timeStart.value.trim() !== '';
-            const hasTimeEnd = timeEnd && timeEnd.value.trim() !== '';
-            const timeRangeOk = hasTimeStart && hasTimeEnd && timeEnd.value > timeStart.value;
-            markInvalid(timeStart, !timeRangeOk && !hasTimeStart);
-            markInvalid(timeEnd, !timeRangeOk && (!hasTimeEnd || timeEnd.value <= timeStart.value));
-            showError('err-time_start', !hasTimeStart);
-            showError('err-time_end', !hasTimeEnd || (hasTimeStart && timeEnd.value <= timeStart.value));
-            if (!timeRangeOk) valid = false;
+            if (!validateSchedules()) valid = false;
 
             const modeChecked = document.querySelector('[name="mode_of_conduct"]:checked');
             const modeOk      = !!modeChecked;
@@ -1101,7 +1196,7 @@ function subtractCalendarDays(date, days) {
 }
 
 function checkLateSubmission() {
-    const dateVal   = document.getElementById('date_of_activity')?.value;
+    const dateVal   = document.querySelector('.schedule-date')?.value;
     const funds     = currentFunds || (document.querySelector('[name="funds"]:checked')?.value ?? '');
     const lateBlock = document.getElementById('late-block');
     if (!dateVal || !funds) { if (lateBlock) lateBlock.style.display = 'none'; return; }
@@ -1396,6 +1491,7 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ── Mode of conduct ── */
     const modeChecked = document.querySelector('[name="mode_of_conduct"]:checked');
     if (modeChecked) handleMode(modeChecked.value);
+    updateScheduleRemoveButtons();
 
     /* ── Funds ── */
     const fundsChecked = document.querySelector('[name="funds"]:checked');

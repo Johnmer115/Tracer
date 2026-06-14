@@ -545,13 +545,13 @@ class ApprovalController extends Controller
 
         $activity->update([
             'reschedule_status'       => 'pending',
-            'reschedule_original_date' => $activity->primaryActivityDate(),
+            'reschedule_original_date' => $activity->activityDateValues() ? json_encode($activity->activityDateValues()) : null,
             'reschedule_original_time' => $activity->time_of_activity,
             'reschedule_original_mode' => $activity->mode_of_conduct,
             'reschedule_original_venue' => $activity->venue,
             'reschedule_original_venue_type' => $activity->venue_type,
             'reschedule_original_platform' => $activity->platform,
-            'reschedule_date'         => $request->input('reschedule_date'),
+            'reschedule_date'         => json_encode([$request->input('reschedule_date')]),
             'reschedule_time'         => $request->input('reschedule_time'),
             'reschedule_mode'         => $activity->mode_of_conduct,
             'reschedule_venue'        => $request->input('reschedule_venue'),
@@ -741,7 +741,7 @@ class ApprovalController extends Controller
                 $activity->update([
                     'reschedule_status' => 'approved',
                     'reschedule_decided_at' => now(),
-                    'date_of_activity' => $activity->reschedule_date ? json_encode([$activity->reschedule_date->format('Y-m-d')]) : null,
+                    'date_of_activity' => $activity->rescheduleDateValues() ? json_encode($activity->rescheduleDateValues()) : null,
                     'time_of_activity' => $activity->reschedule_time,
                     'mode_of_conduct' => $activity->reschedule_mode ?: $activity->mode_of_conduct,
                     'venue' => $activity->reschedule_venue,

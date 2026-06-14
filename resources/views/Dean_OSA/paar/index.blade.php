@@ -71,27 +71,27 @@
                             $hasPaarInput = $activity->sarfDocuments
                                 ->whereIn('type', $paarDocumentTypes($activity))
                                 ->isNotEmpty();
-                            $canRequestRescheduling = $activity->status === 'approved';
+                            $canRequestModification = $activity->status === 'approved';
                         @endphp
                         <tr>
                             <td style="white-space:nowrap;">
                                 <span class="row-id">{{ $activity->code }}</span>
                             </td>
                              {{-- Title + type + mode + event type --}}
-                            <td>
-                                <div class="td-name">{{ $activity->title }}</div>
-                                <div class="td-sub" style="display:flex; gap:5px; flex-wrap:wrap; margin-top:4px;">
-                                    @if($activity->type_of_activity)
-                                        <span class="mini-pill pill-blue">{{ $activity->type_of_activity }}</span>
-                                    @endif
-                                    @if($activity->mode_of_conduct)
-                                        <span class="mini-pill pill-slate">{{ $activity->mode_of_conduct }}</span>
-                                    @endif
-                                    @if($activity->event_type)
-                                        <span class="mini-pill pill-slate">{{ $activity->event_type }}</span>
-                                    @endif
-                                </div>
-                            </td>
+<td style="max-width: 220px; word-break: break-word;">
+    <div class="td-name" style="font-weight: 600;">{{ $activity->title }}</div>
+    <div class="td-sub" style="display:flex; gap:5px; flex-wrap:wrap; margin-top:4px;">
+        @if($activity->type_of_activity)
+            <span class="mini-pill pill-blue">{{ $activity->type_of_activity }}</span>
+        @endif
+        @if($activity->mode_of_conduct)
+            <span class="mini-pill pill-slate">{{ $activity->mode_of_conduct }}</span>
+        @endif
+        @if($activity->event_type)
+            <span class="mini-pill pill-slate">{{ $activity->event_type }}</span>
+        @endif
+    </div>
+</td>
 
                             
                              {{-- Branch / Level --}}
@@ -195,13 +195,15 @@
                                             <i class="fas fa-check-circle"></i>
                                         </a>
                                     @endif
-                                    <button type="button"
-                                        class="abtn abtn-mod"
-                                        title="Request Modification"
-                                        style="flex-shrink:0;"
-                                        onclick="openModificationModal({{ $activity->id }}, '{{ addslashes($activity->code) }}', true, {{ $canRequestRescheduling ? 'true' : 'false' }})">
-                                        <i class="ti ti-adjustments-horizontal"></i>
-                                    </button>
+                                    @if($canRequestModification)
+                                        <button type="button"
+                                            class="abtn abtn-mod"
+                                            title="Request Modification"
+                                            style="flex-shrink:0;"
+                                            onclick="openModificationModal({{ $activity->id }}, '{{ addslashes($activity->code) }}', true, true)">
+                                            <i class="ti ti-adjustments-horizontal"></i>
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

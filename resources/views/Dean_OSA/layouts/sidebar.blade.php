@@ -77,11 +77,17 @@
                 <i class="fas fa-history"></i><span>System Logs</span>
             </a>
         </li>
+        <li>
+            <a href="{{ route('dean_osa.report.index') }}" class="sb-item {{ request()->routeIs('dean_osa.report.*') ? 'active' : '' }}" title="Report">
+                <i class="fas fa-chart-bar"></i><span>Report</span>
+            </a>
+        </li>
     </ul>
 
-    <div class="sb-footer">
-        <p class="sb-footer-year">@2026 AU SARF Tracer</p>
-        <p class="sb-footer-copy">Copyright &copy; Johnmer Tanqui-on &amp; Alex Somera</p>
-    </div>
 </nav>
+
+<div class="sb-footer">
+    <p class="sb-footer-year">@2026 AU SARF Tracer</p>
+    <p class="sb-footer-copy">Copyright &copy; Johnmer Tanqui-on &amp; Alex Somera</p>
+</div>
 </aside>

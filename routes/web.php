@@ -8,6 +8,7 @@ use App\Http\Controllers\Management\BranchController;
 use App\Http\Controllers\Management\DepartmentController;
 use App\Http\Controllers\Management\OrganizationController;
 use App\Http\Controllers\Management\SystemLogController;
+use App\Http\Controllers\Management\ReportController;
 use App\Http\Controllers\Sarf\ActivityController;
 use App\Http\Controllers\Sarf\ApprovalController;
 use App\Http\Controllers\Sarf\PaarController;
@@ -87,6 +88,10 @@ Route::middleware(['auth', 'Dean_OSA'])->prefix('dean_osa')
 
         // System Logs
         Route::get('system-logs', [SystemLogController::class, 'index'])->name('system-logs.index');
+
+        // Reports
+        Route::get('report', [ReportController::class, 'index'])->name('report.index');
+        Route::get('report/print', [ReportController::class, 'print'])->name('report.print');
 
         // SARF Documents (view/download/print)
         Route::get('sarf-documents/activity/{activity}/print', [SarfDocumentController::class, 'printActivity'])->name('sarf-documents.print-activity');

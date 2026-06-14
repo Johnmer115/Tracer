@@ -119,8 +119,8 @@
     }
 
     .tracer-pdf-export .print-second-page {
-        page-break-before: auto !important;
-        break-before: auto !important;
+        page-break-before: always !important;
+        break-before: page !important;
         padding-top: 0 !important;
         margin-top: 0 !important;
     }
@@ -306,6 +306,11 @@
         break-before: page !important;
     }
 
+    .tracer-pdf-export .force-page-break-before {
+        page-break-before: always !important;
+        break-before: page !important;
+    }
+
     .tracer-pdf-export .no-pdf,
     .tracer-pdf-export .no-print {
         display: none !important;
@@ -432,8 +437,8 @@
     }
 
     .print-second-page {
-        page-break-before: auto !important;
-        break-before: auto !important;
+        page-break-before: always !important;
+        break-before: page !important;
         padding-top: 0 !important;
     }
 
@@ -598,6 +603,11 @@
     .approved-upload-card,
     .approval-group {
         page-break-inside: avoid;
+    }
+
+    .force-page-break-before {
+        page-break-before: always !important;
+        break-before: page !important;
     }
 </style>
 
@@ -871,34 +881,36 @@
             });
 
             const insertApprovalRowBreaks = (clone) => {
-                clone.querySelectorAll('.auto-page-break').forEach(el => el.remove());
+                clone.querySelectorAll('.force-page-break-before').forEach(el => {
+                    el.classList.remove('force-page-break-before');
+                });
 
                 const pageHeightMm = 279.4;
                 const pageWidthMm = 215.9;
                 const marginTopMm = 24;
                 const marginRightMm = 0;
-                const marginBottomMm = 38;
+                const marginBottomMm = 25;
                 const marginLeftMm = 20.32;
                 const contentWidthMm = pageWidthMm - marginLeftMm - marginRightMm;
                 const contentHeightMm = pageHeightMm - marginTopMm - marginBottomMm;
-                const pxPerMm = clone.getBoundingClientRect().width / contentWidthMm;
+                const pxPerMm = 920 / contentWidthMm;
                 const usablePageHeight = (contentHeightMm * pxPerMm) - 22;
 
                 let pageStart = 0;
                 const breakableRows = Array.from(clone.querySelectorAll('.approval-card'));
+                const cloneRect = clone.getBoundingClientRect();
 
                 breakableRows.forEach((row) => {
-                    const rowTop = row.offsetTop;
-                    const rowHeight = row.offsetHeight;
+                    const rowRect = row.getBoundingClientRect();
+                    const rowTop = rowRect.top - cloneRect.top;
+                    const rowHeight = rowRect.height;
 
                     if (rowHeight >= usablePageHeight) {
                         return;
                     }
 
                     if ((rowTop - pageStart + rowHeight) > usablePageHeight) {
-                        const pageBreak = document.createElement('div');
-                        pageBreak.className = 'auto-page-break html2pdf__page-break';
-                        row.parentNode.insertBefore(pageBreak, row);
+                        row.classList.add('force-page-break-before');
                         pageStart = rowTop;
                     }
                 });
@@ -922,12 +934,12 @@
                 const fonts = await getFonts();
 
                 if (onProgress) onProgress('Checking page breaks...');
-                insertApprovalRowBreaks(clone);
+                // insertApprovalRowBreaks(clone);
                 await new Promise(resolve => setTimeout(resolve, 50));
 
                 if (onProgress) onProgress('Rendering PDF...');
                 const options = {
-                    margin: [24, 0, 38, 20.32],
+                    margin: [24, 0, 25, 20.32],
                     filename: button.dataset.filename || 'sarf-tracer.pdf',
                     image: { type: 'jpeg', quality: 0.92 },
                     html2canvas: {
@@ -950,8 +962,7 @@
                     },
                     pagebreak: {
                         mode: ['css', 'legacy'],
-                        before: ['.auto-page-break'],
-                        avoid: ['.approval-card', '.approval-group-title', '.print-details'],
+                        avoid: ['.approval-card', '.approval-group-title', '.print-details', '.print-title-code'],
                     },
                 };
 

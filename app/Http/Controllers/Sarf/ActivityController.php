@@ -316,26 +316,35 @@ class ActivityController extends Controller
         if ($isRescheduling) {
             $request->validate([
                 'mode_of_conduct'    => 'required|in:Face to Face,Online,Hybrid',
-                'date_of_activity'   => 'required|date',
-                'time_start'         => 'required|date_format:H:i',
-                'time_end'           => 'required|date_format:H:i|after:time_start',
+                'schedule_dates'     => 'required|array|min:1',
+                'schedule_dates.*'   => 'required|date',
+                'schedule_time_starts' => 'required|array|min:1',
+                'schedule_time_starts.*' => 'required|date_format:H:i',
+                'schedule_time_ends' => 'required|array|min:1',
+                'schedule_time_ends.*' => 'required|date_format:H:i',
                 'venue'              => 'nullable|string|max:255',
                 'venue_type'         => 'nullable|in:On-Campus,Off-Campus',
                 'platform'           => 'nullable|string|max:255',
                 'reschedule_reason'  => 'required|string|max:1000',
             ], [
-                'time_start.required' => 'Please enter the activity start time.',
-                'time_end.required'   => 'Please enter the activity end time.',
-                'time_end.after'           => 'The activity end time must be after the start time.',
+                'schedule_dates.required' => 'Please add at least one activity schedule.',
+                'schedule_dates.*.required' => 'Each schedule must have a date.',
+                'schedule_time_starts.*.required' => 'Each schedule must have a start time.',
+                'schedule_time_ends.*.required' => 'Each schedule must have an end time.',
             ], [
-                'time_start' => 'start time',
-                'time_end'   => 'end time',
+                'schedule_dates.*' => 'schedule date',
+                'schedule_time_starts.*' => 'schedule start time',
+                'schedule_time_ends.*' => 'schedule end time',
             ]);
+
+            $this->validateScheduleTimeRanges($request);
 
             $modeOfConduct = $request->input('mode_of_conduct');
             $hasVenue      = in_array($modeOfConduct, ['Face to Face', 'Hybrid'], true);
             $hasPlatform   = in_array($modeOfConduct, ['Online', 'Hybrid'], true);
-            $timeOfActivity = $this->formatActivityTimeRange($request);
+            $activitySchedules = $this->activitySchedulesFromRequest($request);
+            $dateOfActivity = $this->formatActivityDatesForStorage($activitySchedules);
+            $timeOfActivity = $this->formatActivityTimeRange($request, $activitySchedules);
             $rescheduleReason = filled($request->input('reschedule_reason'))
                 ? $request->input('reschedule_reason')
                 : (filled($activity->reschedule_reason) && $activity->reschedule_reason !== 'Schedule modification requested.'
@@ -344,13 +353,13 @@ class ActivityController extends Controller
 
             $activity->update([
                 'reschedule_status'       => 'pending',
-                'reschedule_original_date' => $activity->primaryActivityDate(),
+                'reschedule_original_date' => $activity->activityDateValues() ? json_encode($activity->activityDateValues()) : null,
                 'reschedule_original_time' => $activity->time_of_activity,
                 'reschedule_original_mode' => $activity->mode_of_conduct,
                 'reschedule_original_venue' => $activity->venue,
                 'reschedule_original_venue_type' => $activity->venue_type,
                 'reschedule_original_platform' => $activity->platform,
-                'reschedule_date'         => $request->input('date_of_activity'),
+                'reschedule_date'         => $dateOfActivity,
                 'reschedule_time'         => $timeOfActivity,
                 'reschedule_mode'         => $modeOfConduct,
                 'reschedule_venue'        => $hasVenue ? $request->input('venue') : null,

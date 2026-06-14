@@ -236,8 +236,7 @@ class PaarController extends Controller
      * Revision      → status = 'for revision', returns to Activities
      * Rescheduling  → status = 'for reschedule', returns to Activities then Approvals
      *
-     * Rescheduling is only available for 'approved' activities.
-     * Revision is available for both 'approved' and 'completed' activities.
+     * Revision and rescheduling are only available for 'approved' activities.
      */
     public function requestModification(Request $request, string $id)
     {
@@ -251,12 +250,12 @@ class PaarController extends Controller
         $type    = $request->input('modification_type');
         $remarks = $request->input('modification_remarks');
 
-        $canRequestRevision     = in_array($activity->status, ['approved', 'completed'], true);
+        $canRequestRevision     = $activity->status === 'approved';
         $canRequestRescheduling = $activity->status === 'approved';
 
         if ($type === 'revision' && ! $canRequestRevision) {
             return back()->withErrors([
-                'modification_type' => 'Revision requests are only available for approved or completed activities.',
+                'modification_type' => 'Revision requests are only available for approved activities.',
             ]);
         }
 

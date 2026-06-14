@@ -241,7 +241,9 @@
         }
 
         $showOriginalScheduleInDetails = $activity->reschedule_status === 'approved';
-        $detailsDate = $showOriginalScheduleInDetails ? ($activity->reschedule_original_date ?: $activity->date_of_activity) : $activity->date_of_activity;
+        $detailsDate = $showOriginalScheduleInDetails
+            ? ($activity->rescheduleOriginalDateDisplay('F j, Y') ?: $activity->activityDateDisplay('F j, Y'))
+            : $activity->activityDateDisplay('F j, Y');
         $detailsTime = $showOriginalScheduleInDetails ? ($activity->reschedule_original_time ?: $activity->time_of_activity) : $activity->time_of_activity;
         $detailsMode = $showOriginalScheduleInDetails ? ($activity->reschedule_original_mode ?: $activity->mode_of_conduct) : $activity->mode_of_conduct;
         $detailsVenue = $showOriginalScheduleInDetails ? ($activity->reschedule_original_venue ?: $activity->venue) : $activity->venue;
@@ -545,7 +547,7 @@
                         <div class="show-field">
                             <div class="show-label">Date of Activity</div>
                             <div class="show-value">
-                                {{ $detailsDate?->format('F j, Y') ?? '—' }}
+                                {{ $detailsDate ?? '—' }}
                             </div>
                         </div>
 
@@ -1277,7 +1279,7 @@
                             <div class="show-grid">
                                 <div class="show-field">
                                     <div class="show-label">Date of Activity</div>
-                                    <div class="show-value">{{ $activity->date_of_activity?->format('F j, Y') ?? '---' }}</div>
+                                    <div class="show-value">{{ $activity->activityDateDisplay('F j, Y') ?? '---' }}</div>
                                 </div>
                                 <div class="show-field">
                                     <div class="show-label">Time of Activity</div>
@@ -1379,7 +1381,7 @@
                                             <div class="resched-compare-field-label">Date</div>
                                             <div class="resched-compare-field-value">
                                                 <i class="fas fa-calendar-alt"></i>
-                                                {{ ($activity->reschedule_original_date ?: $activity->date_of_activity)?->format('M j, Y') ?? '---' }}
+                                                {{ $activity->rescheduleOriginalDateDisplay('M j, Y') ?: ($activity->activityDateDisplay('M j, Y') ?? '---') }}
                                             </div>
                                         </div>
                                         <div class="resched-compare-field">
@@ -1426,7 +1428,7 @@
                                             <div class="resched-compare-field-label">Date</div>
                                             <div class="resched-compare-field-value resched-highlight">
                                                 <i class="fas fa-calendar-alt"></i>
-                                                {{ $activity->reschedule_date?->format('M j, Y') ?? '---' }}
+                                                {{ $activity->rescheduleDateDisplay('M j, Y') ?? '---' }}
                                             </div>
                                         </div>
                                         <div class="resched-compare-field">

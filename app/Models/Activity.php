@@ -183,8 +183,6 @@ class Activity extends Model
         'approved_at_osa_finance' => 'datetime',
         'approved_at_finance_final' => 'datetime',
         'approved_at_comptroller_final' => 'datetime',
-        'reschedule_original_date' => 'date',
-        'reschedule_date' => 'date',
         'reschedule_requested_at' => 'datetime',
         'reschedule_decided_at' => 'datetime',
         'reschedule_approved_at_dean_sa' => 'datetime',
@@ -222,8 +220,21 @@ class Activity extends Model
 
     public function activityDateValues(): array
     {
-        $value = $this->attributes['date_of_activity'] ?? null;
+        return $this->dateValuesFromRaw($this->attributes['date_of_activity'] ?? null);
+    }
 
+    public function rescheduleDateValues(): array
+    {
+        return $this->dateValuesFromRaw($this->attributes['reschedule_date'] ?? null);
+    }
+
+    public function rescheduleOriginalDateValues(): array
+    {
+        return $this->dateValuesFromRaw($this->attributes['reschedule_original_date'] ?? null);
+    }
+
+    private function dateValuesFromRaw($value): array
+    {
         if (! filled($value)) {
             return [];
         }
@@ -243,6 +254,13 @@ class Activity extends Model
             ->all();
     }
 
+    public function primaryRescheduleDate(): ?Carbon
+    {
+        $date = $this->rescheduleDateValues()[0] ?? null;
+
+        return filled($date) ? Carbon::parse($date) : null;
+    }
+
     public function primaryActivityDate(): ?Carbon
     {
         $date = $this->activityDateValues()[0] ?? null;
@@ -252,7 +270,22 @@ class Activity extends Model
 
     public function activityDateDisplay(string $format = 'M j, Y', string $separator = ', ', ?int $limit = null): ?string
     {
-        $dates = collect($this->activityDateValues())
+        return $this->dateDisplayFromValues($this->activityDateValues(), $format, $separator, $limit);
+    }
+
+    public function rescheduleDateDisplay(string $format = 'M j, Y', string $separator = ', ', ?int $limit = null): ?string
+    {
+        return $this->dateDisplayFromValues($this->rescheduleDateValues(), $format, $separator, $limit);
+    }
+
+    public function rescheduleOriginalDateDisplay(string $format = 'M j, Y', string $separator = ', ', ?int $limit = null): ?string
+    {
+        return $this->dateDisplayFromValues($this->rescheduleOriginalDateValues(), $format, $separator, $limit);
+    }
+
+    private function dateDisplayFromValues(array $values, string $format, string $separator, ?int $limit): ?string
+    {
+        $dates = collect($values)
             ->map(fn ($date) => Carbon::parse($date)->format($format));
 
         if ($limit !== null) {
