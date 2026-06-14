@@ -124,8 +124,9 @@
                 <i class="fas fa-table"></i> Report Table
             </div>
             <div class="panel-controls">
-                <a href="{{ route('dean_osa.report.print', request()->query()) }}" class="btn btn-add" target="_blank" rel="noopener">                    <i class="fas fa-print"></i> Print
-                </a>
+                <button type="button" class="btn btn-add" id="openReportPrintModal">
+                    <i class="fas fa-print"></i> Print
+                </button>
                 @if($activeFilters->isNotEmpty() || filled(request('search')) || $moduleFilters->isNotEmpty())
                     <a href="{{ route('dean_osa.report.index') }}" class="btn btn-filter">
                         <i class="fas fa-rotate-left"></i> Reset
@@ -286,4 +287,88 @@
         </div>
     </div>
 </section>
+
+<div id="reportPrintModal" style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(15,23,42,0.85);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    color: #fff;
+    font-size: 15px;
+    font-family: sans-serif;
+">
+    <div style="text-align: center; background: #1e293b; padding: 30px 40px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; gap: 15px;">
+        <i class="fas fa-spinner fa-spin" style="font-size:40px; color:#60a5fa;"></i>
+        <div style="font-weight: 600;" id="reportPrintLoadingText">Preparing PDF...</div>
+        <button id="reportPrintCancelBtn" style="margin-top: 10px; background: #ef4444; border: none; border-radius: 6px; color: white; padding: 6px 16px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.2s;">
+            Cancel
+        </button>
+    </div>
+    <!-- Hidden iframe to process the print route in the background -->
+    <iframe
+        id="reportPrintFrame"
+        style="position: absolute; width: 0; height: 0; border: 0; visibility: hidden;"
+        title="Report PDF generator"
+        src="about:blank"></iframe>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('reportPrintModal');
+    const frame = document.getElementById('reportPrintFrame');
+    const openBtn = document.getElementById('openReportPrintModal');
+    const cancelBtn = document.getElementById('reportPrintCancelBtn');
+    const loadingText = document.getElementById('reportPrintLoadingText');
+    const reportUrl = @json(route('dean_osa.report.print', array_merge(request()->query(), ['embedded' => 1])));
+
+    const openModal = () => {
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+        if (loadingText) {
+            loadingText.textContent = 'Preparing PDF...';
+        }
+        frame.src = reportUrl;
+    };
+
+    const closeModal = () => {
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+        frame.src = 'about:blank';
+    };
+
+    openBtn?.addEventListener('click', openModal);
+    cancelBtn?.addEventListener('click', closeModal);
+    modal?.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && modal.style.display === 'flex') {
+            closeModal();
+        }
+    });
+
+    // Listen for progress and completion messages from the iframe
+    window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'report-print-progress') {
+            if (loadingText) {
+                loadingText.textContent = event.data.message;
+            }
+        } else if (event.data && event.data.type === 'report-print-success') {
+            closeModal();
+        } else if (event.data && event.data.type === 'report-print-error') {
+            if (loadingText) {
+                loadingText.textContent = 'Failed to generate PDF';
+            }
+            setTimeout(closeModal, 1500);
+        }
+    });
+});
+</script>
 @endsection

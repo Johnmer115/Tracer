@@ -745,6 +745,7 @@
         const setProgress = (message) => {
             status.textContent = message;
             loadingText.textContent = message;
+            window.parent.postMessage({ type: 'report-print-progress', message: message }, '*');
         };
 
         const openModal = () => {
@@ -758,6 +759,7 @@
         const generatePdf = async () => {
             if (!content || typeof html2pdf === 'undefined') {
                 status.textContent = 'PDF library failed to load.';
+                window.parent.postMessage({ type: 'report-print-error' }, '*');
                 return;
             }
 
@@ -810,12 +812,14 @@
                         const blobUrl = URL.createObjectURL(blob);
                         closeModal();
                         window.open(blobUrl, '_blank');
+                        window.parent.postMessage({ type: 'report-print-success' }, '*');
                     });
 
                 status.textContent = 'PDF opened in a new tab.';
             } catch (error) {
                 console.error(error);
                 setProgress('Failed to generate PDF.');
+                window.parent.postMessage({ type: 'report-print-error' }, '*');
                 setTimeout(closeModal, 1400);
             } finally {
                 wrapper.remove();

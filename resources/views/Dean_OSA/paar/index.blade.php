@@ -41,14 +41,14 @@
                 @include('Dean_OSA.partials.sarf-filters', [
                     'filterMode' => 'button',
                     'filterRoute' => ($routePrefix ?? 'dean_osa') . '.paar.index',
-                    'pipelineStatuses' => ['completed' => 'Completed'],
+                    'pipelineStatuses' => ['approved' => 'Approved', 'completed' => 'Completed'],
                 ])
             </form>
         </div>
 
         @include('Dean_OSA.partials.sarf-filters', [
             'filterRoute' => ($routePrefix ?? 'dean_osa') . '.paar.index',
-            'pipelineStatuses' => ['completed' => 'Completed'],
+            'pipelineStatuses' => ['approved' => 'Approved', 'completed' => 'Completed'],
         ])
 
         <div class="table-wrap">
@@ -119,13 +119,23 @@
 
                             {{-- Activity Date + venue/platform --}}
                             <td style="white-space:nowrap;">
+                                @php
+                                    $activityExtraDateCount = max(0, count($activity->activityDateValues()) - 1);
+                                    $activityExtraTimeCount = max(0, count($activity->activityTimeValues()) - 1);
+                                @endphp
                                 <div class="td-main">
-                                    {{ $activity->activityDateDisplay('M j, Y', ', ', 2) ?? '—' }}
+                                    {{ $activity->activityDateDisplay('M j, Y', ', ', 1) ?? '—' }}
+                                    @if($activityExtraDateCount > 0)
+                                        <span class="more-count">+{{ $activityExtraDateCount }} more</span>
+                                    @endif
                                 </div>
-                                @if($activity->activityTimeDisplay(', ', 2))
+                                @if($activity->activityTimeDisplay(', ', 1))
                                     <div class="td-sub">
                                         <i class="fas fa-clock" style="font-size:10px;"></i>
-                                        {{ $activity->activityTimeDisplay(', ', 2) }}
+                                        {{ $activity->activityTimeDisplay(', ', 1) }}
+                                        @if($activityExtraTimeCount > 0)
+                                            <span class="more-count">+{{ $activityExtraTimeCount }} more</span>
+                                        @endif
                                     </div>
                                 @endif
                                 @if($activity->venue)
@@ -178,7 +188,7 @@
                                     <span class="td-muted">-</span>
                                 @endif
                             </td>
-                            <td>
+                            <td style="white-space:nowrap;">
                                 <div class="action-cell">
                                     <a href="{{ route(($routePrefix ?? 'dean_osa') . '.paar.show', $activity->id) }}"
                                         class="abtn abtn-view" title="View PAAR Details">
@@ -344,6 +354,29 @@
 .td-main  { font-size:13.5px; font-weight:600; color:#1e293b; }
 .td-sub   { font-size:11.5px; color:#94a3b8; margin-top:2px; line-height:1.4; }
 .td-muted { color:#94a3b8; font-style:italic; }
+.more-count {
+    display:inline-flex;
+    align-items:center;
+    margin-left:4px;
+    padding:1px 6px;
+    border-radius:999px;
+    background:#f1f5f9;
+    color:#64748b;
+    font-size:10.5px;
+    font-weight:700;
+    white-space:nowrap;
+}
+.action-cell {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    flex-wrap:nowrap;
+    white-space:nowrap;
+}
+.action-cell .abtn {
+    flex:0 0 auto;
+}
 
 /* ── Mini pills ── */
 .mini-pill {

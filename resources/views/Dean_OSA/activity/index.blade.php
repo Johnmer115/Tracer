@@ -89,18 +89,28 @@
 
                             {{-- Date + time + venue/platform --}}
                             <td style="white-space:nowrap;">
+                                @php
+                                    $activityExtraDateCount = max(0, count($activity->activityDateValues()) - 1);
+                                    $activityExtraTimeCount = max(0, count($activity->activityTimeValues()) - 1);
+                                @endphp
                                 @if($activity->activityDateDisplay())
                                     <div class="td-main">
                                         <i class="fas fa-calendar-alt" style="color:#94a3b8; font-size:11px;"></i>
-                                        {{ $activity->activityDateDisplay('M j, Y', ', ', 2) }}
+                                        {{ $activity->activityDateDisplay('M j, Y', ', ', 1) }}
+                                        @if($activityExtraDateCount > 0)
+                                            <span class="more-count">+{{ $activityExtraDateCount }} more</span>
+                                        @endif
                                     </div>
                                 @else
                                     <div class="td-main">—</div>
                                 @endif
-                                @if($activity->activityTimeDisplay(', ', 2))
+                                @if($activity->activityTimeDisplay(', ', 1))
                                     <div class="td-sub">
                                         <i class="fas fa-clock" style="font-size:10px;"></i>
-                                        {{ $activity->activityTimeDisplay(', ', 2) }}
+                                        {{ $activity->activityTimeDisplay(', ', 1) }}
+                                        @if($activityExtraTimeCount > 0)
+                                            <span class="more-count">+{{ $activityExtraTimeCount }} more</span>
+                                        @endif
                                     </div>
                                 @endif
                                 @if($activity->venue)
@@ -199,7 +209,7 @@
                             </td>
 
                             {{-- Actions --}}
-                            <td>
+                            <td style="white-space:nowrap;">
                                 <div class="action-cell">
                                     <a href="{{ route(($routePrefix ?? 'dean_osa') . '.activity.show', $activity->id) }}"
                                         class="abtn abtn-view" title="View Activity Details">
@@ -327,6 +337,29 @@
 </div>
 
 <style>
+.more-count {
+    display:inline-flex;
+    align-items:center;
+    margin-left:4px;
+    padding:1px 6px;
+    border-radius:999px;
+    background:#f1f5f9;
+    color:#64748b;
+    font-size:10.5px;
+    font-weight:700;
+    white-space:nowrap;
+}
+.action-cell {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    flex-wrap:nowrap;
+    white-space:nowrap;
+}
+.action-cell .abtn {
+    flex:0 0 auto;
+}
 .mod-overlay {
     display:none;
     position:fixed; inset:0; z-index:9999;
