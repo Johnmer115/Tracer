@@ -451,10 +451,76 @@ class ActivityController extends Controller
                 }
             }
 
-            // Revision from PAAR (modification_type='revision') → already fully approved, return to 'approved'
-            // Signatory disapproval (no modification_type) → return to 'for approval' to continue pipeline
+            // Revision from PAAR (modification_type='revision') → activity was fully approved.
+            // Re-check if the revised fields (waiver_consent, funds, level) now require signatories
+            // that weren't part of the original approval scope. If so, those must be re-approved.
             if ($activity->status === 'for revision' && $activity->modification_type === 'revision') {
-                $resetData['status'] = 'approved';
+                // Determine which approval fields are NOW required based on the NEW submitted values.
+                $newWaiverConsent = $request->input('waiver_consent', $activity->waiver_consent);
+                $newFunds         = $request->input('funds', $activity->funds);
+                $newLevel         = $request->input('level', $activity->level ?? []);
+
+                // Build a temporary activity-like object to evaluate new scope.
+                // We use a simple array check mirroring ApprovalController::applicableMainFields / applicableFinanceFields.
+                $requiresLegal   = $newWaiverConsent === 'With';
+                $requiresFinance = $newFunds === 'With Budget';
+                $newLevelArr     = is_array($newLevel) ? $newLevel : (filled($newLevel) ? [$newLevel] : []);
+                $requiresBasicEd = collect($newLevelArr)->contains(function ($lvl) {
+                    $lvl = strtolower((string) $lvl);
+                    return str_contains($lvl, 'elementary')
+                        || str_contains($lvl, 'junior high')
+                        || str_contains($lvl, 'senior high')
+                        || str_contains($lvl, 'basic')
+                        || str_contains($lvl, 'all levels');
+                });
+
+                // Fields that are NOW applicable (must be approved).
+                $nowApplicable = ['approval_dean_sa', 'approval_avp_sps', 'approval_vp_acad'];
+                if ($requiresBasicEd) {
+                    $nowApplicable[] = 'approval_dir_basic_ed';
+                }
+                if ($requiresLegal) {
+                    $nowApplicable[] = 'approval_vp_hrd_legal';
+                }
+                if ($requiresFinance) {
+                    $nowApplicable = array_merge($nowApplicable, [
+                        'approval_auditing', 'approval_comptroller_initial', 'approval_finance_initial',
+                        'approval_osa_finance', 'approval_finance_final', 'approval_comptroller_final',
+                    ]);
+                }
+
+                // Detect any newly-applicable field that was not previously approved
+                // (e.g. was 'pending' because it wasn't required before, now it IS required).
+                $needsReApproval = false;
+                foreach ($nowApplicable as $field) {
+                    if ($activity->{$field} !== 'approved') {
+                        // This signatory is now required but hasn't approved yet → reset and re-approve.
+                        $resetData[$field] = 'pending';
+                        $needsReApproval   = true;
+                    }
+                }
+
+                // Also reset finance fields back to pending if funds changed FROM 'With Budget' to something else
+                // (they were approved but are no longer applicable — set them to null/pending to clean up).
+                if (! $requiresFinance) {
+                    foreach ([
+                        'approval_auditing', 'approval_comptroller_initial', 'approval_finance_initial',
+                        'approval_osa_finance', 'approval_finance_final', 'approval_comptroller_final',
+                    ] as $field) {
+                        // Only clear if they were previously approved (no longer applicable).
+                        if ($activity->{$field} === 'approved') {
+                            $resetData[$field] = 'pending';
+                        }
+                    }
+                }
+
+                if ($needsReApproval) {
+                    // New signatories are required — must go back through the approval pipeline.
+                    $resetData['status'] = 'for approval';
+                } else {
+                    // No new signatories needed — safe to restore 'approved'.
+                    $resetData['status'] = 'approved';
+                }
             } else {
                 $resetData['status'] = 'for approval';
             }
